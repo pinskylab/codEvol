@@ -1,0 +1,108 @@
+# run after wfs_abc.r
+
+################################
+# load functions and prep data
+################################
+if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
+	require(RColorBrewer)
+	require(data.table)
+	require(boa)
+}
+if(grepl('hpc.uio.no', Sys.info()["nodename"])){
+	require(RColorBrewer, lib.loc="/projects/cees/lib/R_packages/")
+	require(data.table, lib.loc="/projects/cees/lib/R_packages/")
+	require(boa, lib.loc="/projects/cees/lib/R_packages/")
+}
+
+mci <- function(x){ # mean, CIs for an MCMC chain
+	b <- as.numeric(boa.hpd(x, alpha=0.05))
+	return(c(mean=mean(x), l95=b[1], u95=b[2]))
+}
+mcip <- function(x){ # mean, CIs, and p(x<>0) for an MCMC chain
+	b <- as.numeric(boa.hpd(x, alpha=0.05))
+	p <- sum(x>0)/length(x) # fraction of tail above 0
+	if(p>0.5) p <- 1-p # convert to smaller of the two tails
+	p <- 2*p # two-tailed test
+	return(c(mean=mean(x), l95=b[1], u95=b[2], p=p))
+}
+
+
+# load data
+load('analysis/wfs_abc_posts.rdata') # posteriors from ABC "posts"
+dat <- fread('analysis/LOF_07_LG03_to_LOF_S_14_LG03_notrim.wfabc', skip=2) # the data on samples sizes and observed allele frequencies, from WFABC input file
+locnms <- fread('analysis/Frequency_table') # the name and observed frequencies of all the loci, from output by Bastiaan Star
+
+
+# prep data
+	# extract sample frequencies
+sampsize <- dat[seq(1,nrow(dat),by=2),] # sample sizes in # of chromosomes
+obsfrqs <- dat[seq(2,nrow(dat),by=2),] # allele counts in # chromosomes
+rm(dat)
+setnames(obsfrqs, 1:2, c('count1', 'count2'))
+setnames(sampsize, 1:2, c('size1', 'size2'))
+obsfrqs <- cbind(obsfrqs, sampsize)
+obsfrqs[,f1:=count1/size1]
+obsfrqs[,f2:=count2/size2]
+obsfrqs[,diff:=f2-f1]
+
+	# trim locus names to LG03 to match rest of data
+locnms <- locnms[CHROM=='LG03',]
+
+
+
+################################
+# calculate HPDs
+################################
+
+hpds <- vector('list', length(posts))
+names(hpds) <- names(posts)
+hpds$f1samp <- as.data.frame(t(apply(posts$f1samp, MARGIN=1, FUN=mci)))
+hpds$fsdprime <- as.data.frame(t(apply(posts$fsdprime, MARGIN=1, FUN=mci)))
+hpds$fsiprime <- as.data.frame(t(apply(posts$fsiprime, MARGIN=1, FUN=mci)))
+hpds$ne <- as.data.frame(t(apply(posts$ne, MARGIN=1, FUN=mci)))
+hpds$f1 <- as.data.frame(t(apply(posts$f1, MARGIN=1, FUN=mci)))
+hpds$s <- as.data.frame(t(apply(posts$s, MARGIN=1, FUN=mcip))) # with p-value
+
+	# all FDR correction for p-values
+hpds$s$p.adj <- p.adjust(hpds$s$p, method='fdr')
+
+
+# find loci potentially under selection
+posinds <- hpds$s$p.adj < 0.05 & hpds$s$mean > 0
+neginds <- hpds$s$p.adj < 0.05 & hpds$s$mean < 0
+
+sum(posinds) # number of loci
+sum(neginds)
+
+
+
+################################
+# plot
+################################
+
+colrmp <- colorRamp(colors=brewer.pal(11, 'RdYlBu'))
+getcol <- function(x, alpha=1){ rgbs <-colrmp(x); return(rgb(rgbs[,1], rgbs[,2], rgbs[,3], alpha*256, maxColorValue=256))}
+
+	# Initial frequency vs. posterior s
+plot(hpds$f1$mean, hpds$s$mean, xlab='Initial frequency', ylab='Posterior mean s', col=getcol(hpds$s$mean/2+0.5))
+points(hpds$f1$mean[neginds|posinds], hpds$s$mean[neginds|posinds], xlab='Initial frequency', ylab='Posterior mean s', pch=16)
+
+	# Obs init freq vs. posterior init freq
+plot(obsfrqs$f1, hpds$f1$mean, col=getcol(hpds$s$mean/2+0.5, 0.2), xlab='Observed initial frequency', ylab='Posterior mean initial frequency')
+points(obsfrqs$f1[neginds|posinds], hpds$f1$mean[neginds|posinds], pch=16)
+
+	# Initial frequency vs. change in frequency vs. posterior s
+	# only for loci "under selection"
+inds <- neginds | posinds
+	
+quartz(width=7, height=6)
+layout(matrix(c(1,2),ncol=2),widths=c(4,1))
+par(mai=c(1,1,0.2, 0.2), las=1, mgp=c(2.4, 0.6, 0), tcl=-0.2)
+plot(obsfrqs$f1, obsfrqs$diff, xlab='Observed initial frequency', ylab='Observed change in frequency', col=getcol(hpds$s$mean/2+0.5, 0.2), ylim=c(-1,1)) # background
+points(obsfrqs$f1[inds], obsfrqs$diff[inds], col='black', pch=16, cex=0.8)
+plot(rep(1,100),seq(-1,1,length.out=100), col=getcol(seq(-1,1,length.out=100)/2+0.5), bty='n', xaxt='n', ylab='Posterior mean s', xlab='', pch=15, cex=0.7) # legend
+
+
+# Examine candidates
+print(locnms[neginds,], nrow=sum(neginds))
+print(locnms[posinds,], nrow=sum(posinds))
