@@ -13,17 +13,20 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 
 # set up parameters
-limstep <- 0.1 # the size for the Freq_1 bins
+limstep <- 0.05 # the size for the Freq_1 bins
 alimstep <- 0.05 # the size for the ABS_DIFF bins
 
 # read in data
-dat <- fread('analysis/Frequency_table'); c1=58; c2=48; nm='1907-2014'; gen=20 # for 1907 vs. 2014. sample sizes
+dat <- fread('analysis/Frequency_table'); c1=56; c2=48; nm='1907-2011'; gen=20 # for 1907 vs. 2011. sample sizes
+dat <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=56; c2=48; nm='1907-2014'; gen=20 # for 1907 vs. 2014. sample sizes
 dat <- fread('analysis/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=48; c2=48; nm='2011-2014'; gen=1 # for 2011 vs. 2014
 
 # analyze the data by frequency bin
 dat[,f1r:=floor(Freq_1/limstep)*limstep+limstep/2] # round to nearest bin (label with bin center)
-dat[f1r==1.05,f1r:=0.95]
+dat[f1r==(1+limstep/2),f1r:=(1-limstep/2)] # correct the highest bin so <1
+dat[f1r>0.5, f1r:=(1-f1r)] # focus on MAF
 dat[,absr:=floor(ABS_DIFF/alimstep)*alimstep+alimstep/2]
+dat[,f1r:=floor(f1r/limstep)*limstep+limstep/2] # correct numeric error in f1r
 tab <- dat[,table(absr,f1r)] # the data to compare simulations against: table of alleles by starting frequency and absolute difference (binned)
 
 # function for use in simulations
@@ -36,7 +39,7 @@ tab <- dat[,table(absr,f1r)] # the data to compare simulations against: table of
 	# alimstep: bin size for splitting up allele frequency changes
 	# gen: number of generations (if doing a Wright-Fisher drift simulation)
 	# ne: effective population size, measured as # chromosomes (set to Inf for no drift)
-getcounts <- function(i, nloci, f1, c1=58, c2=48, alimstep, gen, ne=Inf){ # i is a dummy argument so that it can be used with sapply and parSapply
+getcounts <- function(i, nloci, f1, c1=56, c2=48, alimstep, gen, ne=Inf){ # i is a dummy argument so that it can be used with sapply and parSapply
 	if(is.infinite(ne)) f2 <- f1 # for an infinite population size
 	if(!is.infinite(ne)) f2 <- wf(ne, f1, gen) # Wright-Fisher sampling process
 
@@ -63,7 +66,7 @@ wf <- function(ne,f1,gen){
 # simulations (good to run this on a cluster, take 30 min or so with 20 cores on cod)
 nsims <- 1000
 simsum <- array(NA,dim=c(1/limstep, 1/alimstep, nsims), dimnames=list(f1r=seq(limstep/2,1-limstep/2,by=limstep), absr=seq(alimstep/2,1-alimstep/2,by=alimstep), sim=1:nsims))
-f1s <- seq(limstep/2,1,by=limstep) # starting allele frequencies
+f1s <- seq(limstep/2,0.5,by=limstep) # starting allele frequencies
 ne=500
 
 
@@ -75,6 +78,7 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 clusterExport(cl, c('getcounts', 'wf'))
 
+length(f1s) # how many to do
 for(j in 1:length(f1s)){
 	print(j)
 	nloci <- sum(tab[,j]) # total loci in this starting frequency bin
@@ -86,13 +90,19 @@ for(j in 1:length(f1s)){
 stopCluster(cl)
 
 save(simsum, file=paste('analysis/binom_sampling_simsum_', nm, '_ne', ne, '.rdata', sep=''))
-
+print(paste('analysis/binom_sampling_simsum_', nm, '_ne', ne, '.rdata', sep=''))
 
 # analysis
+	# for 1907-2011
+load('analysis/binom_sampling_simsum_1907-2011_ne500.rdata'); ne=500
+
 	# for 1907-2014
-load('analysis/binom_sampling_simsum.rdata'); ne='Inf' # infinite
-load('analysis/binom_sampling_simsum_ne3000.rdata'); ne=3000
-load('analysis/binom_sampling_simsum_ne500.rdata'); ne=500
+load('analysis/binom_sampling_simsum_1907-2014_ne500.rdata'); ne=500
+
+	# for 2011-2014
+load('analysis/binom_sampling_simsum_2011-2014_neInf.rdata'); ne=Inf
+load('analysis/binom_sampling_simsum_2011-2014_ne3000.rdata'); ne=3000
+load('analysis/binom_sampling_simsum_2011-2014_ne500.rdata'); ne=500
 
 	# probability of observing as many or more loci in each starting freq & abs diff category
 pvals <- as.matrix(tab)
@@ -107,9 +117,13 @@ for(i in 1:ncol(tab)){
 }
 pvals
 
-pvalsstar <- pvals
-pvalsstar[pvals>0.05] <- '-'
-pvalsstar
+pvals.adj <- matrix(data=p.adjust(pvals, method='fdr'), ncol=ncol(pvals), dimnames=list( absr=rownames(pvals), f1r=colnames(pvals)))
+
+print(pvals.adj, digits=2)
+
+pvalsstar <- pvals.adj
+pvalsstar[pvals.adj>0.05] <- ''
+print(pvalsstar, digits=2, quote=FALSE)
 
 # plots
 	# plot of observed frequency differences vs. the simuluations
