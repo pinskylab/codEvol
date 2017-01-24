@@ -18,7 +18,7 @@ outfile=$outdir$pre1'_to_'$pre2'.wfabc' # output file
 
 # extract focal populations from VCF
 module load vcftools/0.1.14.zlib.1.2.8
-vcftools --gzvcf $vcf --chr LG03 --keep $pop1 --keep $pop2 --recode --out $tempdir$pre1'_'$pre2
+vcftools --gzvcf $vcf --chr LG03 --keep $pop1 --keep $pop2 --recode --out $tempdir$pre1'_'$pre2 # could add --minq 20
 
 # trim to minor allele freq > 0.025
 vcftools --vcf $tempdir$pre1'_'$pre2'.recode.vcf' --maf 0.025 --recode --out $tempdir$pre1'_'$pre2'_maf0.025'

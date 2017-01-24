@@ -32,7 +32,7 @@ rf <- colorRampPalette(rev(brewer.pal(11,'Spectral')))
 # load data
 load('analysis/wfs_abc_posts.rdata') # posteriors from ABC "posts"
 dat <- fread('analysis/LOF_07_LG03_to_LOF_S_14_LG03_notrim.wfabc', skip=2) # the data on samples sizes and observed allele frequencies, from WFABC input file
-locnms <- fread('analysis/Frequency_table') # the name and observed frequencies of all the loci, from output by Bastiaan Star
+locnms <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 
 
 # prep data
@@ -80,9 +80,20 @@ sum(neginds)
 print(locnms[neginds,], nrow=sum(neginds))
 print(locnms[posinds,], nrow=sum(posinds))
 
+hpds$s[posinds,]
+
+# write out
+out <- hpds$s
+save(out, file='analysis/wfs_abc_hpds_s.rdata')
+
 ################################
 # plots
 ################################
+locnms <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+
+load('analysis/wfs_abc_hpds_s.rdata')
+hpds <- vector('list', 6)
+hpds$s <- out
 
 colrmp <- colorRamp(colors=brewer.pal(11, 'RdYlBu'))
 getcol <- function(x, alpha=1){ rgbs <-colrmp(x); return(rgb(rgbs[,1], rgbs[,2], rgbs[,3], alpha*256, maxColorValue=256))}
@@ -116,3 +127,10 @@ plot(density(posts$f1[i[j],])); abline
 hexbinplot(posts$s[i[j],] ~ posts$f1[i[j],], colramp=rf, main=paste('locus', i[j]), xlab='posterior mean initial frequency', ylab='posterior mean s')
 
 hexbinplot(posts$s[i[j],] ~ posts$ne[i[j],], colramp=rf, main=paste('locus', i[j]), xlab='posterior mean Ne', ylab='posterior mean s')
+
+
+# Plot of s vs. genome position
+i <- locnms$CHROM=='LG03'
+plot(locnms$POS[i], hpds$s$mean,type='p', cex=0.5, ylim=c(-1,1))
+
+plot(locnms$POS[i], hpds$s$mean,type='p', cex=0.5, xlim=c(4.3e6,4.5e6), ylim=c(-1,1))
