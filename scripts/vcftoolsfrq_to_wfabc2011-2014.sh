@@ -3,9 +3,9 @@
 # Format data for WFABC
 
 vcf='/projects/cees/in_progress/historic_cod_malin/data/VCF_to_Malin_22.08.16.recode.vcf.gz' # VCF file
-pop1='/projects/cees/in_progress/historic_cod_malin/data/pop_LOF_07.txt' # file to list indivs in pop1
+pop1='/projects/cees/in_progress/historic_cod_malin/data/pop_LOF_S_11.txt' # file to list indivs in pop1
 pop2='/projects/cees/in_progress/historic_cod_malin/data/pop_LOF_S_14.txt'
-pre1='LOF_07_LG03'
+pre1='LOF_S_11_LG03'
 pre2='LOF_S_14_LG03'
 tempdir='/projects/cees/in_progress/historic_cod_malin/analysis/temp/' # temp directory
 outdir='/projects/cees/in_progress/historic_cod_malin/analysis/' # output directory
