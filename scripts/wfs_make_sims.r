@@ -11,13 +11,17 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 
 
 # data
-nes <- read.table('analysis/LOF_07_LG03_to_LOF_S_14_LG03_notrim.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-nchrs <- fread('analysis/Frequency_table') # to figure out the sample sizes to simulate
+nes <- read.table('analysis/LOF_07_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	print(summary(nes)) # to check
+nchrs <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE) # to figure out the sample sizes to simulate
+setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 
 # parameters
-nsims <- 1000000
+nsims <- 10000000
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_1] # the sample sizes to simulate (first sample)
 c2s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_2]
+	print(c1s)
+	print(c2s)
 
 # start cluster
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
@@ -28,19 +32,14 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 clusterExport(cl, c('sumstats', 'wfs'))
 
-# make simulations for each combination of sample sizes
+# make simulations
 out <- array(dim=c(9,nsims,length(c1s)), dimnames=list(var=c('ne', 'f1', 's', 'gen', 'f2', 'f1samp', 'f2samp', 'fsdprime', 'fsiprime'), sim=1:nsims, sampsize=paste(c1s, c2s, sep=',')))
 for(i in 1:length(c1s)){
-	print(i)
 	out[,,i] <- parSapply(cl, 1:nsims, FUN=wfs, f1min=0, f1max=1, smin=-1, smax=1, c1=c1s[i], c2=c2s[i], gen=20, ne=nes, h=0.5, simplify=TRUE)
 }
 
-save(out, file='analysis/wfs_sims_notrim.rdata')
+save(out, file='analysis/wfs_sims.rdata')
 
 
 stopCluster(cl)
 
-
-
-
-### compare to data
