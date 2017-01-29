@@ -65,8 +65,8 @@ sumstats <- function(f1samp, f2samp, c1, c2, gen){
 		}
 	}
 	if(z==0){ # otherwise, z==0 and Fs is undefined
-		fsdprime <- 0
-		fsiprime <- 0
+		fsdprime <- NA
+		fsiprime <- NA
 	}
 
 	return(c(fsdprime=fsdprime, fsiprime=fsiprime))
