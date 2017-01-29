@@ -20,6 +20,7 @@ alimstep <- 0.05 # the size for the ABS_DIFF bins
 dat <- fread('analysis/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=56; c2=48; nm='1907-2011'; gen=11 # for 1907 vs. 2011. sample sizes
 dat <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=56; c2=48; nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes
 dat <- fread('analysis/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=48; c2=48; nm='2011-2014'; gen=1 # for 2011 vs. 2014
+dat <- fread('analysis/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=36; c2=44; nm='2011-2014'; gen=1 # for 2011 vs. 2014 with lower sample size (median)
 
 # analyze the data by frequency bin
 dat[,f1r:=floor(Freq_1/limstep)*limstep+limstep/2] # round to nearest bin (label with bin center)
@@ -67,7 +68,7 @@ wf <- function(ne,f1,gen){
 nsims <- 1000
 simsum <- array(NA,dim=c(1/limstep, 1/alimstep, nsims), dimnames=list(f1r=seq(limstep/2,1-limstep/2,by=limstep), absr=seq(alimstep/2,1-alimstep/2,by=alimstep), sim=1:nsims)) # hold simulation results (# loci in each frequency bin)
 f1s <- seq(limstep/2,0.5,by=limstep) # starting allele frequencies
-ne=3000
+ne=500
 
 
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
@@ -89,8 +90,8 @@ for(j in 1:length(f1s)){
 
 stopCluster(cl)
 
-save(simsum, file=paste('analysis/binom_sampling_simsum_', nm, '_ne', ne, '.rdata', sep=''))
-print(paste('analysis/binom_sampling_simsum_', nm, '_ne', ne, '.rdata', sep=''))
+save(simsum, file=paste('analysis/binom_sampling_simsum_', nm, '_ne', ne, '_c', c1, '&', c2, '.rdata', sep=''))
+print(paste('analysis/binom_sampling_simsum_', nm, '_ne', ne, '_c', c1, '&', c2, '.rdata', sep=''))
 
 # analysis
 	# for 1907-2011
@@ -138,6 +139,8 @@ for(i in 1:ncol(tab)){
 }
 nexcess[nexcess<0] <- 0
 nexcess
+
+sum(nexcess)
 
 # plots
 	# plot of observed frequency differences vs. the simuluations
