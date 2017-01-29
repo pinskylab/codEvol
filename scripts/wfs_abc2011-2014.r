@@ -19,8 +19,8 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 
 # load data
 load('analysis/wfs_sims_notrim.rdata') # load the simulations: 'out' array. may be slow to load...
-obs <- fread('analysis/LOF_07_LG03_to_LOF_S_14_LG03_notrim.w_obs_stats.txt') # the observations of Fsi and Fsd
-dat <- fread('analysis/LOF_07_LG03_to_LOF_S_14_LG03_notrim.wfabc', skip=2) # the data on samples sizes and observed allele frequencies
+obs <- fread('analysis/LOF_S_11_LG03_to_LOF_S_14_LG03_notrim.w_obs_stats.txt') # the observations of Fsi and Fsd
+dat <- fread('analysis/LOF_S_11_LG03_to_LOF_S_14_LG03_notrim.wfabc', skip=2) # the data on samples sizes and observed allele frequencies
 
 
 # prep data
@@ -71,7 +71,7 @@ if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
 	clusterEvalQ(cl, library(abc))
 }
 if(grepl('hpc.uio.no', Sys.info()["nodename"])){
-	cl <- makeCluster(2) # set up 30-core cluster on a cod node
+	cl <- makeCluster(20) # set up 20-core cluster on a cod node
 	clusterEvalQ(cl, library(data.table, lib.loc='/projects/cees/lib/R_packages/'))
 	clusterEvalQ(cl, library(abc.data, lib.loc='/projects/cees/lib/R_packages/'))
 	clusterEvalQ(cl, library(locfit, lib.loc='/projects/cees/lib/R_packages/'))
@@ -82,13 +82,15 @@ clusterExport(cl, c('runabc'))
 
 
 # run calculations in parallel
-temp <- parApply(cl, cbind(sampsize, alcnts, obs), MARGIN=1, FUN=runabc, out=out) # a slow start: have to load out onto each node. output is annoying: a 3000 x nrow(obs) matrix. Rows are ne, f1, s, ne, f1, s, etc. (samples from the posterior). Columns are each locus.
+temp <- parApply(cl, cbind(sampsize, alcnts, obs), MARGIN=1, FUN=runabc, out=out) # a slow start: have to load out onto each node. output is annoying: a 60000 x nrow(obs) matrix. Rows are f1samp, fsdprime, fsiprime, ne, f1, s, f1samp, fsdprime, fsiprime, ne, f1, s, etc. (samples from the posterior). Columns are each locus.
+
+save(temp, file='analysis/temp/temp.rdata')
 
 # reformat
 posts <- list(f1samp=t(temp[seq(1,nrow(temp),by=6),]), fsdprime=t(temp[seq(2,nrow(temp),by=6),]), fsiprime=t(temp[seq(3,nrow(temp),by=6),]), ne=t(temp[seq(4,nrow(temp),by=6),]), f1 = t(temp[seq(5,nrow(temp),by=6),]), s = t(temp[seq(6,nrow(temp),by=6),]))
 
 # save
-save(posts, file='analysis/wfs_abc_posts.rdata')
+save(posts, file='analysis/wfs_abc_posts2011-2014.rdata')
 
 # stop cluster
 stopCluster(cl)
