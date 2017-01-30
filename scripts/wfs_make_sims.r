@@ -32,14 +32,23 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 clusterExport(cl, c('sumstats', 'wfs'))
 
-# make simulations
-out <- array(dim=c(9,nsims,length(c1s)), dimnames=list(var=c('ne', 'f1', 's', 'gen', 'f2', 'f1samp', 'f2samp', 'fsdprime', 'fsiprime'), sim=1:nsims, sampsize=paste(c1s, c2s, sep=',')))
-for(i in 1:length(c1s)){
-	out[,,i] <- parSapply(cl, 1:nsims, FUN=wfs, f1min=0, f1max=1, smin=-1, smax=1, c1=c1s[i], c2=c2s[i], gen=20, ne=nes, h=0.5, simplify=TRUE)
-}
+# make simulations (parallel way)
+	out <- array(dim=c(9,nsims,length(c1s)), dimnames=list(var=c('ne', 'f1', 's', 'gen', 'f2', 'f1samp', 'f2samp', 'fsdprime', 'fsiprime'), sim=1:nsims, sampsize=paste(c1s, c2s, sep=',')))
 
+	for(i in 1:length(c1s)){
+		out[,,i] <- parSapply(cl, 1:nsims, FUN=wfs, f1min=0, f1max=1, smin=-1, smax=1, c1=c1s[i], c2=c2s[i], gen=11, ne=nes, h=0.5, simplify=TRUE)
+	}
+
+# make simulations (data.table way: failed when reach 200G RAM)
+#a <- rep(as.numeric(NA), nsims*length(c1s))
+#out <- data.table(i=1:length(a), c1=rep(c1s,rep(nsims,length(c1s))), c2=rep(c2s,rep(nsims,length(c2s))), ne=a, f1=a, s=a, gen=a, f2=a, f1samp=a, f2samp=a, fsdprime=a, fsiprime=a) # takes 154G RAM with nsims=10M
+#
+#out[,c('ne', 'f1', 's', 'gen', 'f2', 'f1samp', 'f2samp', 'fsdprime', 'fsiprime') := wfs(i=1,f1min=0, f1max=1, smin=-1, smax=1, c1=c1, c2=c2, gen=11, ne=nes, h=0.5), by=i]
+
+
+# write out
 save(out, file='analysis/wfs_sims.rdata')
 
-
+# stop the cluster
 stopCluster(cl)
 
