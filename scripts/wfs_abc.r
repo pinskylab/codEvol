@@ -25,16 +25,6 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 load('analysis/wfs_targ.rdata') # targets normalized
 load('analysis/wfs_sims_meansds.rdata') # useful as a list of sample sizes, which help when loading the ff files
 
-out.ff <- vector('list', nrow(meansds)) # list to hold the ff objects
-names(out.ff) <- meansds[,paste(alcnt1, alcnt2, sep=',')] # add names based on sample sizes
-
-print(options('fftempdir')) # where the ff temp files will be stored
-for(i in 1:nrow(meansds)){
-	print(i)
-	ffnm <- paste('analysis/temp/wfs_sims_ff', paste(meansds[i,.(alcnt1, alcnt2)], collapse=','), sep='')
-	ffload(ffnm, overwrite=TRUE) # takes 30 sec or so. loads thisout.ff
-	out.ff[[i]] <- thisout.ff
-}
 
 # parameters
 tol <- 0.001 # 10k from 10M sims
@@ -76,12 +66,6 @@ runabc <- function(locusnum, thistarg, thisout.ff, tol){
 ### run calculations in parallel with foreach
 ###################################################
 
-# set up data chunks to operate on and write out separately
-parts <- 1:ceiling(nrow(targ)/lociperpart) # 1 to number of parts
-partinds <- vector('list', length(parts)); for(i in 1:length(partinds)) partinds[[i]] <- ((i-1)*lociperpart+1):min(c(i*lociperpart, nrow(targ))) # indices for the loci in each part
-ndigits <- nchar(as.character(nrow(targ))) # used for formatting file names
-print(paste(length(parts), "parts")) # report number of parts to process
-
 # set up cluster
 #registerDoMC(2) # register cores. doesn't clean up after itself (creates new cores on every loop without removing old ones)
 .libPaths('/projects/cees/lib/R_packages/')
@@ -89,28 +73,45 @@ cl <- makeCluster(ncores, type='SOCK')
 registerDoSNOW(cl)
 clusterCall(cl, function(x) .libPaths(x), .libPaths()) # add libpaths to each node
 
-for(partnum in parts){
-	print(paste('partnum', partnum, 'of', length(parts)))
-	thisdat <- iter(cbind((1:nrow(targ))[partinds[[partnum]]], targ[partinds[[partnum]],]), by='row') # the iterator object: this part of the loop's chunk of data
+# set up chunks of the same sample size to operate on and write out separately
+samplepartinds <- vector('list', nrow(meansds)) # hold the locus numbers for each sample size
+names(samplepartinds) <- meansds[,paste(alcnt1, alcnt2, sep=',')]
+for(i in 1:length(samplepartinds)) samplepartinds[[i]] <- targ[alcnt1==meansds[i,alcnt1] & alcnt2==meansds[i,alcnt2],locusnum] # locus numbers in each sample size chunk
+sampleparts.n <- sapply(samplepartinds, length) # number of loci in each samplesize chunk
+
+ndigits <- nchar(as.character(nrow(targ))) # used for formatting file names
+
+for(k in 1:length(samplepartinds)){
+	print(paste('samplepart', k, 'of', length(samplepartinds), ':', names(samplepartinds)[k], sampleparts.n[k], 'loci', Sys.time()))
+
+	# set up data chunks to operate on and write out separately within this chunk of sample sizes
+	parts <- 1:ceiling(length(samplepartinds[[k]])/lociperpart) # 1 to number of parts for this samplepart
+	partinds <- vector('list', length(parts))
+	for(i in 1:length(partinds)) partinds[[i]] <- samplepartinds[[k]][((i-1)*lociperpart+1):min(c(i*lociperpart, length(samplepartinds[[k]])))] # indices for the loci in each part
+
+	ffnm <- paste('analysis/temp/wfs_sims_ff', names(samplepartinds)[k], sep='')
+	ffload(ffnm, overwrite=TRUE) # takes 30 sec or so. loads thisout.ff
+
+	for(partnum in parts){
+		print(paste('partnum', partnum, 'of', length(parts)))
+		thisdat <- iter(targ[locusnum %in% partinds[[partnum]],], by='row') # the iterator object: this part of the loop's chunk of data
 	
-	results <- foreach(i=thisdat, .combine=rbind, .packages=c('ff', 'doParallel', 'data.table')) %dopar% {
-		# have to pick the correct ff object here (there will be 193)
-		j <- which(names(out.ff) == paste(i[,.(alcnt1, alcnt2)], collapse=',')) # have to find the slice of out that matches the sample sizes for this row
-		# then run abc
-		runabc(locusnum=i[,V1], thistarg=i[,.(f1samp.n, fsd.n, fsi.n)], thisout.ff=out.ff[[j]], tol=tol) 
+		results <- foreach(i=thisdat, .combine=rbind, .packages=c('ff', 'doParallel', 'data.table')) %dopar% {
+			runabc(locusnum=i[,locusnum], thistarg=i[,.(f1samp.n, fsd.n, fsi.n)], thisout.ff=thisout.ff, tol=tol) # run abc analysis. returns vector of selected simulation parameters
+		}
+
+		minloc <- formatC(min(partinds[[partnum]]), width=ndigits, flag='0')
+		maxloc <- formatC(max(partinds[[partnum]]), width=ndigits, flag='0')
+		outfile <- paste('analysis/temp/wfs_abc_sampsize', names(samplepartinds)[k], '_locus', minloc, '-', maxloc, '.csv.gz', sep='')
+		write.csv(results, file=gzfile(outfile), row.names=FALSE) # write directly to gzipped file. has normalized f1samp, fsdprime, fsiprime, plus ne, f1, s
+		print(paste('wrote', outfile))
 	}
 
-	minloc <- formatC(min(partinds[[partnum]]), width=ndigits, flag='0')
-	maxloc <- formatC(max(partinds[[partnum]]), width=ndigits, flag='0')
-	outfile <- paste('analysis/temp/wfs_abc_locus', minloc, '-', maxloc, '.csv.gz', sep='')
-	write.csv(results, file=gzfile(outfile), row.names=FALSE) # write directly to gzipped file. has normalized f1samp, fsdprime, fsiprime, plus ne, f1, s
+	# remove ff temporary files
+	delete(thisout.ff)
+	rm(thisout.ff)
 }
 
 # stop cluster
 stopCluster(cl)
 
-# remove ff temporary files
-for(i in 1:length(out.ff)){
-	delete(out.ff[[i]])
-}
-rm(out.ff)

@@ -24,48 +24,53 @@ alcnts <- dat[seq(2,nrow(dat),by=2),] # allele counts in # chromosomes
 
 # calculate mean and sd for each summary stat in out (simulations)
 # to allow scaling of target stats and simulation stats
-#	uniqsamps <- apply(do.call('rbind', strsplit(dimnames(out)[[3]], split=',')), 2, as.numeric) # extract unique sample sizes. could also have extracted (probably more easily) from targ
-#	meansds <- data.table(alcnt1=uniqsamps[,1], alcnt2=uniqsamps[,2])
-#	meansds[,f1samp.mean:=numeric(nrow(meansds))]
-#	meansds[,f1samp.sd:=numeric(nrow(meansds))]
-#	meansds[,fsd.mean:=numeric(nrow(meansds))]
-#	meansds[,fsd.sd:=numeric(nrow(meansds))]
-#	meansds[,fsi.mean:=numeric(nrow(meansds))]
-#	meansds[,fsi.sd:=numeric(nrow(meansds))]
-#	for(i in 1:nrow(meansds)){ # this takes 22%+ of a cod node RAM... why? perhaps because mean and sd on vectors of length 10M
-#		print(i)
-#		j <- which(dimnames(out)[[3]] == paste(meansds[i,.(alcnt1, alcnt2)], collapse=',')) # have to find the slice of out that matches the sample sizes for this row
-#		meansds[i,f1samp.mean:=mean(out['f1samp',,j], na.rm=TRUE)]
-#		meansds[i,f1samp.sd:=sd(out['f1samp',,j], na.rm=TRUE)]
-#		meansds[i,fsd.mean:=mean(out['fsdprime',,j], na.rm=TRUE)]
-#		meansds[i,fsd.sd:=sd(out['fsdprime',,j], na.rm=TRUE)]
-#		meansds[i,fsi.mean:=mean(out['fsiprime',,j], na.rm=TRUE)]
-#		meansds[i,fsi.sd:=sd(out['fsiprime',,j], na.rm=TRUE)]
-#	}	
-#	meansds[f1samp.sd==0, f1samp.sd:=1] # set sd = 1 for cases were sd=0, to prevent Inf
-#	meansds[fsd.sd==0, fsd.sd:=1] # set sd = 1 for cases were sd=0, to prevent Inf
-#	meansds[fsi.sd==0, fsi.sd:=1] # set sd = 1 for cases were sd=0, to prevent Inf
-#
-#	# write out
-#	save(meansds, file='analysis/wfs_sims_meansds.rdata')
+	uniqsamps <- apply(do.call('rbind', strsplit(dimnames(out)[[3]], split=',')), 2, as.numeric) # extract unique sample sizes. could also have extracted (probably more easily) from targ
+	meansds <- data.table(alcnt1=uniqsamps[,1], alcnt2=uniqsamps[,2])
+	meansds[,f1samp.mean:=numeric(nrow(meansds))]
+	meansds[,f1samp.sd:=numeric(nrow(meansds))]
+	meansds[,fsd.mean:=numeric(nrow(meansds))]
+	meansds[,fsd.sd:=numeric(nrow(meansds))]
+	meansds[,fsi.mean:=numeric(nrow(meansds))]
+	meansds[,fsi.sd:=numeric(nrow(meansds))]
+	for(i in 1:nrow(meansds)){ # this takes 22%+ of a cod node RAM... why? perhaps because mean and sd on vectors of length 10M
+		print(i)
+		j <- which(dimnames(out)[[3]] == paste(meansds[i,.(alcnt1, alcnt2)], collapse=',')) # have to find the slice of out that matches the sample sizes for this row
+		meansds[i,f1samp.mean:=mean(out['f1samp',,j], na.rm=TRUE)]
+		meansds[i,f1samp.sd:=sd(out['f1samp',,j], na.rm=TRUE)]
+		meansds[i,fsd.mean:=mean(out['fsdprime',,j], na.rm=TRUE)]
+		meansds[i,fsd.sd:=sd(out['fsdprime',,j], na.rm=TRUE)]
+		meansds[i,fsi.mean:=mean(out['fsiprime',,j], na.rm=TRUE)]
+		meansds[i,fsi.sd:=sd(out['fsiprime',,j], na.rm=TRUE)]
+	}	
+	meansds[f1samp.sd==0, f1samp.sd:=1] # set sd = 1 for cases were sd=0, to prevent Inf
+	meansds[fsd.sd==0, fsd.sd:=1] # set sd = 1 for cases were sd=0, to prevent Inf
+	meansds[fsi.sd==0, fsi.sd:=1] # set sd = 1 for cases were sd=0, to prevent Inf
+
+	# write out
+	save(meansds, file='analysis/wfs_sims_meansds.rdata')
 
 # set up target statistics
+	load('analysis/wfs_sims_meansds.rdata')
 	# stats for each locus
-#	targ <- cbind(sampsize[,.(V1, V2)], alcnts[,V1]/sampsize[,V1], obs[,.(Fsd, Fsi)]) # alcnt1, alcnt2, f1samp, fsd, fsi
-#	setnames(targ, 1:5, c('alcnt1', 'alcnt2', 'f1samp', 'fsd', 'fsi'))
-#	
-#	# add mean and sd to targ to allow easy normalization
-#	setkey(targ, alcnt1, alcnt2)
-#	setkey(meansds, alcnt1, alcnt2)
-#	targ <- meansds[targ,]
-#	
-#	# normalize the target stats
-#	targ[,f1samp.n:=(f1samp-f1samp.mean)/f1samp.sd]
-#	targ[,fsd.n:=(fsd-fsd.mean)/fsd.sd]
-#	targ[,fsi.n:=(fsi-fsi.mean)/fsi.sd]
-#
-#	# write out?
-#	save(targ, file='analysis/wfs_targ.rdata')	
+	targ <- cbind(1:nrow(sampsize), sampsize[,.(V1, V2)], alcnts[,V1]/sampsize[,V1], obs[,.(Fsd, Fsi)]) # alcnt1, alcnt2, f1samp, fsd, fsi
+	setnames(targ, 1:6, c('locusnum', 'alcnt1', 'alcnt2', 'f1samp', 'fsd', 'fsi'))
+
+	# add mean and sd to targ to allow easy normalization
+	setkey(targ, alcnt1, alcnt2)
+	setkey(meansds, alcnt1, alcnt2)
+	targ <- meansds[targ,]
+
+	# normalize the target stats
+	targ[,f1samp.n:=(f1samp-f1samp.mean)/f1samp.sd]
+	targ[,fsd.n:=(fsd-fsd.mean)/fsd.sd]
+	targ[,fsi.n:=(fsi-fsi.mean)/fsi.sd]
+
+	# re-order rows and columns
+	setkey(targ, locusnum)
+	setcolorder(targ, c('locusnum', 'alcnt1', 'alcnt2', 'f1samp.n', 'fsd.n', 'fsi.n', 'f1samp', 'fsd', 'fsi', 'f1samp.mean', 'fsd.mean', 'fsi.mean', 'f1samp.sd', 'fsd.sd', 'fsi.sd'))
+
+	# write out
+	save(targ, file='analysis/wfs_targ.rdata')	
 
 
 # export out file from abc sims to ff data type for memory-efficient use across cluster
