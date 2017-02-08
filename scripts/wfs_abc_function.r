@@ -37,7 +37,7 @@ load('analysis/wfs_sims_meansds.rdata') # useful as a list of sample sizes, whic
 
 # parameters
 tol <- 0.001 # 10k from 10M sims
-lociperpart <- 10 # how many loci in each part (each part will be written to file)
+lociperpart <- 100 # how many loci in each part (each part will be written to file)
 
 # abc function
 # thisout.ff is an ff matrix (one slice of out[,,i])
@@ -76,6 +76,7 @@ runabc <- function(locusnum, thistarg, thisout.ff, tol){
 
 # find if any loci of this sample size have already been run (for checkpointing)
 existingfiles <- list.files(path='analysis/temp', pattern=paste('wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep=''))
+print(paste('found', length(existingfiles), 'existing files relevant to this sample size'))
 existingrngs <- strsplit(gsub(paste('wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep=''), '', existingfiles), split='-') # extract just the locus ranges
 existingrngs <- lapply(existingrngs, as.numeric)
 existingloci <- numeric(0)
@@ -90,43 +91,47 @@ print(paste('Will run abc for', sampleparts.n, 'loci of', orig.n, 'loci original
 
 ndigits <- nchar(as.character(nrow(targ))) # used for formatting file names
 
-# set up cluster
-ncores <- min(maxcores, sampleparts.n) # don't set up any more cores than we need for this batch of loci
-print(paste('Using', ncores, 'cores'))
-.libPaths('/projects/cees/lib/R_packages/')
-cl <- makeCluster(rep('localhost', ncores), type='SOCK') # make the cluster on the localhost
-registerDoSNOW(cl) # register the cluster so accessible to foreach
-clusterCall(cl, function(x) .libPaths(x), .libPaths()) # add libpaths to each node
+if(sampleparts.n > 0){
+	# set up cluster
+	ncores <- min(maxcores, sampleparts.n) # don't set up any more cores than we need for this batch of loci
+	print(paste('Using', ncores, 'cores'))
+	.libPaths('/projects/cees/lib/R_packages/')
+	cl <- makeCluster(rep('localhost', ncores), type='SOCK') # make the cluster on the localhost
+	registerDoSNOW(cl) # register the cluster so accessible to foreach
+	clusterCall(cl, function(x) .libPaths(x), .libPaths()) # add libpaths to each node
 
 
-# set up data chunks to operate on and write out separately within this chunk of sample sizes
-parts <- 1:ceiling(sampleparts.n/lociperpart) # 1 to number of parts for this samplepart
-partinds <- vector('list', length(parts))
-for(i in 1:length(partinds)) partinds[[i]] <- samplepartinds[((i-1)*lociperpart+1):min(c(i*lociperpart, sampleparts.n))] # indices for the loci in each part
+	# set up data chunks to operate on and write out separately within this chunk of sample sizes
+	parts <- 1:ceiling(sampleparts.n/lociperpart) # 1 to number of parts for this samplepart
+	partinds <- vector('list', length(parts))
+	for(i in 1:length(partinds)) partinds[[i]] <- samplepartinds[((i-1)*lociperpart+1):min(c(i*lociperpart, sampleparts.n))] # indices for the loci in each part
 
-# load the appropriate file of abc simulations
-ffnm <- paste('analysis/temp/wfs_sims_ff', paste(myalcnt1, myalcnt2, sep=','), sep='')
-ffload(ffnm, overwrite=TRUE) # takes 30 sec or so. loads thisout.ff
+	# load the appropriate file of abc simulations
+	ffnm <- paste('analysis/temp/wfs_sims_ff', paste(myalcnt1, myalcnt2, sep=','), sep='')
+	ffload(ffnm, overwrite=TRUE) # takes 30 sec or so. loads thisout.ff
 
-# loop through each chunk of data, writing each to file
-for(partnum in parts){
-	print(paste('partnum', partnum, 'of', length(parts)))
-	thisdat <- iter(targ[locusnum %in% partinds[[partnum]],], by='row') # the iterator object: this part of the loop's chunk of data
+	# loop through each chunk of data, writing each to file
+	for(partnum in parts){
+		print(paste('partnum', partnum, 'of', length(parts)))
+		thisdat <- iter(targ[locusnum %in% partinds[[partnum]],], by='row') # the iterator object: this part of the loop's chunk of data
 
-	results <- foreach(i=thisdat, .combine=rbind, .packages=c('ff', 'doParallel', 'data.table')) %dopar% {
-		runabc(locusnum=i[,locusnum], thistarg=i[,.(f1samp.n, fsd.n, fsi.n)], thisout.ff=thisout.ff, tol=tol) # run abc analysis. returns vector of selected simulation parameters
+		results <- foreach(i=thisdat, .combine=rbind, .packages=c('ff', 'doParallel', 'data.table')) %dopar% {
+			runabc(locusnum=i[,locusnum], thistarg=i[,.(f1samp.n, fsd.n, fsi.n)], thisout.ff=thisout.ff, tol=tol) # run abc analysis. returns vector of selected simulation parameters
+		}
+
+		minloc <- formatC(min(partinds[[partnum]]), width=ndigits, flag='0')
+		maxloc <- formatC(max(partinds[[partnum]]), width=ndigits, flag='0')
+		outfile <- paste('analysis/temp/wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus', minloc, '-', maxloc, '.csv.gz', sep='')
+		write.csv(results, file=gzfile(outfile), row.names=FALSE) # write directly to gzipped file. has normalized f1samp, fsdprime, fsiprime, plus ne, f1, s
+		print(paste('wrote', outfile))
 	}
 
-	minloc <- formatC(min(partinds[[partnum]]), width=ndigits, flag='0')
-	maxloc <- formatC(max(partinds[[partnum]]), width=ndigits, flag='0')
-	outfile <- paste('analysis/temp/wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus', minloc, '-', maxloc, '.csv.gz', sep='')
-	write.csv(results, file=gzfile(outfile), row.names=FALSE) # write directly to gzipped file. has normalized f1samp, fsdprime, fsiprime, plus ne, f1, s
-	print(paste('wrote', outfile))
+	# remove ff temporary files
+	delete(thisout.ff)
+	rm(thisout.ff)
+
+	# stop cluster
+	stopCluster(cl)
+} else {
+	print('Exiting because all loci had already been run')
 }
-
-# remove ff temporary files
-delete(thisout.ff)
-rm(thisout.ff)
-
-# stop cluster
-stopCluster(cl)
