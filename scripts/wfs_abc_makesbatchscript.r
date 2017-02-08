@@ -17,6 +17,9 @@ nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
 	nrow(nloci) # 185... why not 193?
 	nrow(meansds)
 	setdiff(meansds[,paste(alcnt1, alcnt2)], nloci[,paste(alcnt1, alcnt2)]) # 8 sample sizes not in targ (maybe because LG01, 02, etc were trimmed out?)
+
+# sample sizes with >100 loci
+nloci[nloci>5000,]
 	
 # write out the shell script
 outfile <- 'scripts/wfs_abc_submit_all_sbatch.sh'
