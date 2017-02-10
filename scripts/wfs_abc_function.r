@@ -4,16 +4,17 @@
 
 # read command line arguments
 args <- commandArgs(trailingOnly = TRUE)
+print(args)
 
 if (length(args)<2) {
   stop("Have to specify myalcnt1 and myalcnt2", call.=FALSE)
 } else if (length(args)==2){
 	maxcores <- 16 # default maximum cores (for abel)
 } else if (length(args)>2) {
-	maxcores <- args[3]
+	maxcores <- as.numeric(args[3])
 }
-myalcnt1 <- args[1]
-myalcnt2 <- args[2]
+myalcnt1 <- as.numeric(args[1])
+myalcnt2 <- as.numeric(args[2])
 
 print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'maxcores', maxcores))
 print(Sys.info()["nodename"])
@@ -93,8 +94,9 @@ ndigits <- nchar(as.character(nrow(targ))) # used for formatting file names
 
 if(sampleparts.n > 0){
 	# set up cluster
-	ncores <- min(maxcores, sampleparts.n) # don't set up any more cores than we need for this batch of loci
+	ncores <- min(c(maxcores, sampleparts.n)) # don't set up any more cores than we need for this batch of loci
 	print(paste('Using', ncores, 'cores'))
+
 	.libPaths('/projects/cees/lib/R_packages/')
 	cl <- makeCluster(rep('localhost', ncores), type='SOCK') # make the cluster on the localhost
 	registerDoSNOW(cl) # register the cluster so accessible to foreach
