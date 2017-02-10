@@ -8,31 +8,12 @@ if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(data.table)
 	require(boa)
 	require(hexbin)
-	require(plyr) # for summarize
 }
 if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(RColorBrewer, lib.loc="/projects/cees/lib/R_packages/")
 	require(data.table, lib.loc="/projects/cees/lib/R_packages/")
-	require(boa, lib.loc="/projects/cees/lib/R_packages/")
-	require(plyr, lib.loc="/projects/cees/lib/R_packages/")
 }
 
-# mean, CIs for abc posteriors
-# assumes data in column 2
-mci <- function(x){
-	b <- as.numeric(boa.hpd(x[,2], alpha=0.05))
-	return(c(mean=mean(x[,2]), l95=b[1], u95=b[2]))
-}
-
-# mean, CIs, and p(x<>0) for abc posteriors
-# assumes data in column 2
-mcip <- function(x){ 
-	b <- as.numeric(boa.hpd(x[,2], alpha=0.05))
-	p <- sum(x[,2]>0)/nrow(x) # fraction of tail above 0
-	if(p>0.5) p <- 1-p # convert to smaller of the two tails
-	p <- 2*p # two-tailed test
-	return(c(mean=mean(x[,2]), l95=b[1], u95=b[2], p=p))
-}
 
 rf <- colorRampPalette(rev(brewer.pal(11,'Spectral')))
 
@@ -61,39 +42,10 @@ locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),] # trim
 
 
 #########################################################
-# calculate HPDs
-# loop over all the posterior files output by wfs_abc.r
+## Initial exploration
 #########################################################
 
-# set up list to hold hpds
-hpds <- list()
-a <- rep(NA, nrow(obsfrqs))
-locs <- 1:nrow(obsfrqs)
-hpds$f1samp <- data.frame(locus=locs, mean=a, l95=a, u95=a)
-hpds$fsd <- data.frame(locus=locs, mean=a, l95=a, u95=a)
-hpds$fsi <- data.frame(locus=locs, mean=a, l95=a, u95=a)
-hpds$ne <- data.frame(locus=locs, mean=a, l95=a, u95=a)
-hpds$f1 <- data.frame(locus=locs, mean=a, l95=a, u95=a)
-hpds$s <- data.frame(locus=locs, mean=a, l95=a, u95=a, p=a)
-
-# find files to read in
-files <- list.files(path='analysis/temp', pattern='wfs_abc_sampsize*', full.names=TRUE)
-print(paste(length(files), 'to process'))
-for(i in 1:length(files)){
-	print(files[i])
-	posts <- read.csv(gzfile(files[i]))
-	theselocs <- sort(unique(posts$locus))
-	inds <- hpds$f1samp$locus %in% theselocs
-	hpds$f1samp[inds,] <- ddply(.data=posts[,c('locus', 'f1samp')], .variables= ~locus, .fun=mci)
-	hpds$fsd[inds,] <- ddply(.data=posts[,c('locus', 'fsdprime')], .variables= ~locus, .fun=mci)
-	hpds$fsi[inds,] <- ddply(.data=posts[,c('locus', 'fsiprime')], .variables= ~locus, .fun=mci)
-	hpds$ne[inds,] <- ddply(.data=posts[,c('locus', 'ne')], .variables= ~locus, .fun=mci)
-	hpds$f1[inds,] <- ddply(.data=posts[,c('locus', 'f1')], .variables= ~locus, .fun=mci)
-	hpds$s[inds,] <- ddply(.data=posts[,c('locus', 's')], .variables= ~locus, .fun=mcip)
-}
-
-	# all FDR correction for p-values
-hpds$s$p.adj <- p.adjust(hpds$s$p, method='fdr')
+load('analysis/wfs_abc_hpds.rdata')
 
 
 # find loci potentially under selection
@@ -109,16 +61,13 @@ print(locnms[neginds,], nrow=sum(neginds))
 
 hpds$s[posinds,]
 
-# write out
-out <- hpds$s
-save(out, file='analysis/wfs_abc_hpds_s.rdata')
 
 ################################
 # plots
 ################################
 locnms <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 
-load('analysis/wfs_abc_hpds_s.rdata')
+load('analysis/wfs_abc_hpds.rdata')
 hpds <- vector('list', 6)
 hpds$s <- out
 
@@ -136,7 +85,7 @@ points(obsfrqs$f1[neginds|posinds], hpds$f1$mean[neginds|posinds], pch=16)
 # Initial frequency vs. change in frequency vs. posterior s
 # overplot loci "under selection"
 inds <- neginds | posinds
-	
+
 quartz(width=7, height=6)
 layout(matrix(c(1,2),ncol=2),widths=c(4,1))
 par(mai=c(1,1,0.2, 0.2), las=1, mgp=c(2.4, 0.6, 0), tcl=-0.2)
