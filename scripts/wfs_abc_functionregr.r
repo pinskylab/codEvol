@@ -82,6 +82,7 @@ runabc <- function(locusnum, thistarg, thisout.ff, tol, rej=TRUE){
 		ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['fsdprime',wt1], thisout.ff['fsiprime',wt1], fit1$residuals[,1]+predmean.ne, fit1$residuals[,2]+predmean.f1, fit1$residuals[,3]+predmean.s), ncol=7, byrow=FALSE) # the parameters are regression-adjusted values
 		colnames(ret) <- c('locus', 'f1samp', 'fsdprime', 'fsiprime', 'ne', 'f1', 's')
 	
+		return(ret)
 	}
 }
 
@@ -92,9 +93,9 @@ runabc <- function(locusnum, thistarg, thisout.ff, tol, rej=TRUE){
 ###################################################
 
 # find if any loci of this sample size have already been run (for checkpointing)
-existingfiles <- list.files(path='analysis/temp', pattern=paste('wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep=''))
+existingfiles <- list.files(path='analysis/temp', pattern=paste('wfs_abcregr_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep=''))
 print(paste('found', length(existingfiles), 'existing files relevant to this sample size'))
-existingrngs <- strsplit(gsub(paste('wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep=''), '', existingfiles), split='-') # extract just the locus ranges
+existingrngs <- strsplit(gsub(paste('wfs_abcregr_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep=''), '', existingfiles), split='-') # extract just the locus ranges
 existingrngs <- lapply(existingrngs, as.numeric)
 existingloci <- numeric(0)
 if(length(existingrngs)>0) for(i in 1:length(existingrngs)) existingloci <- c(existingloci, existingrngs[[i]][1]:existingrngs[[i]][2])
