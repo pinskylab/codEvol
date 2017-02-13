@@ -70,7 +70,7 @@ if(file.exists('analysis/wfs_abc_hpds.rdata')){
 files <- list.files(path='analysis/temp', pattern='wfs_abc_sampsize*', full.names=TRUE)
 print(paste(length(files), 'to process'))
 
-# read in each file and calculate HPD: ~48 hours on cod node
+# read in each file and calculate HPD: ~48 hours on a cod node
 for(i in startind:length(files)){
 	print(paste(i, 'of', length(files), ':', files[i]))
 	posts <- read.csv(gzfile(files[i]))
