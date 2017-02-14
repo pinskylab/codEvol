@@ -20,18 +20,21 @@ wfs <- function(i, f1min=0, f1max=1, smin=-1, smax=1, c1=58, c2=48, gen=20, ne=1
 	if(length(ne)>1) thisne <- round(sample(ne, 1)) # ne has to be integer for binomial sampling
 	if(length(ne)==1) thisne <- round(ne)
 	
+#	print(paste(f1, s, thisne))
+	
 	p <- f1 # current allele frequency
 	waa <- 1+s # relative fitness of genotype AA
 	wab <- 1+s*h
 	wbb <- 1
 	for(i in 1:gen){
-		x <- (waa*p^2+wab*p*(1-p))/(waa*p^2+wab*2*p*(1-p)+wbb*(1-p)^2) # probability of sampling allele A, given selection
-		p <- mean(rbinom(1,thisne,x)/thisne)
+		x <- (waa*p^2 + wab*p*(1-p))/(waa*p^2 + wab*2*p*(1-p) + wbb*(1-p)^2) # probability of sampling allele A, given selection
+		p <- rbinom(1,thisne,x)/thisne
+#		print(paste(x,p))
 	}
 	f2 <- p
 
-	f1samp <- mean(rbinom(1,c1,f1)/c1) # first sample allele frequency
-	f2samp <- mean(rbinom(1,c2,f2)/c2) # second sample allele frequency
+	f1samp <- rbinom(1,c1,f1)/c1 # first sample allele frequency
+	f2samp <- rbinom(1,c2,f2)/c2 # second sample allele frequency
 
 	# calculate summary statistics (Foll et al. 2015 Molecular Ecology Resources)
 	stats <- sumstats(f1samp, f2samp, c1, c2, gen)
