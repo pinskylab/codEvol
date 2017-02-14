@@ -42,13 +42,13 @@ lociperpart <- 100 # how many loci in each part (each part will be written to fi
 
 # abc function
 # thisout.ff is an ff matrix (one slice of out[,,i])
+# assumes that thisout.ff['f1samp' and 'f2samp' are not normalized
 runabc <- function(locusnum, thistarg, thisout.ff, tol){
 
 	# with f1samp as a summary stat
 	# calc euclidean distance
-	sum1 <- (thisout.ff['f1samp',] - thistarg[,f1samp.n])^2
-	sum1 <- sum1 + (thisout.ff['fsdprime',] - thistarg[,fsd.n])^2
-	sum1 <- sum1 + (thisout.ff['fsiprime',] - thistarg[,fsi.n])^2
+	sum1 <- (thisout.ff['f1samp',] - thistarg[,f1samp])^2
+	sum1 <- sum1 + (thisout.ff['f2samp',] - thistarg[,f2samp])^2
 	dst <- sqrt(sum1)
 
 	# includes the effect of gwt in the tolerance
@@ -63,8 +63,8 @@ runabc <- function(locusnum, thistarg, thisout.ff, tol){
 	}
 
 	# set up return matrix
-	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['fsdprime',wt1], thisout.ff['fsiprime',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['s',wt1]), ncol=7, byrow=FALSE)
-	colnames(ret) <- c('locus', 'f1samp', 'fsdprime', 'fsiprime', 'ne', 'f1', 's')
+	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['f2samp',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['f2',wt1], thisout.ff['s',wt1]), ncol=7, byrow=FALSE)
+	colnames(ret) <- c('locus', 'f1samp', 'f2samp', 'ne', 'f1', 'f2', 's')
 
 	return(ret)
 }
@@ -118,7 +118,7 @@ if(sampleparts.n > 0){
 		thisdat <- iter(targ[locusnum %in% partinds[[partnum]],], by='row') # the iterator object: this part of the loop's chunk of data
 
 		results <- foreach(i=thisdat, .combine=rbind, .packages=c('ff', 'doParallel', 'data.table')) %dopar% {
-			runabc(locusnum=i[,locusnum], thistarg=i[,.(f1samp.n, fsd.n, fsi.n)], thisout.ff=thisout.ff, tol=tol) # run abc analysis. returns vector of selected simulation parameters
+			runabc(locusnum=i[,locusnum], thistarg=i[,.(f1samp, f2samp)], thisout.ff=thisout.ff, tol=tol) # run abc analysis. returns vector of selected simulation parameters
 		}
 
 		minloc <- formatC(min(partinds[[partnum]]), width=ndigits, flag='0')
