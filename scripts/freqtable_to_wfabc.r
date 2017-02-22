@@ -16,7 +16,7 @@ ntimes <- 2
 trim <- ''; outfile <- 'analysis/LOF_07_to_LOF_S_14.wfabc'
 
 # read in data (choose one)
-dat <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=56; c2=48; nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes
+dat <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes
 
 
 # trim to one linkage group?
@@ -26,8 +26,9 @@ if(trim != ''){
 }
 	dim(dat)
 	
-# trim out inversions
+# trim out inversions and Unplaced
 dat <- dat[!(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),]
+#dat <- dat[!(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
 
 	dim(dat)
 	
