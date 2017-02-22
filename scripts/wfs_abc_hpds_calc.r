@@ -48,7 +48,7 @@ obsfrqs <- dat[seq(2,nrow(dat),by=2),] # allele counts in # chromosomes. for now
 # calculate HPDs
 # loop over all the posterior files output by wfs_abc.r
 #########################################################
-startind <- 1510 # to start looping over files part-way through
+startind <- 1 # to start looping over files part-way through (if desired)
 
 # read in hpds if the file exists
 if(file.exists('analysis/wfs_abc_hpds.rdata')){
@@ -59,10 +59,10 @@ if(file.exists('analysis/wfs_abc_hpds.rdata')){
 	a <- rep(NA, nrow(obsfrqs))
 	locs <- 1:nrow(obsfrqs)
 	hpds$f1samp <- data.frame(locus=locs, mean=a, l95=a, u95=a)
-	hpds$fsd <- data.frame(locus=locs, mean=a, l95=a, u95=a)
-	hpds$fsi <- data.frame(locus=locs, mean=a, l95=a, u95=a)
+	hpds$f2samp <- data.frame(locus=locs, mean=a, l95=a, u95=a)
 	hpds$ne <- data.frame(locus=locs, mean=a, l95=a, u95=a)
 	hpds$f1 <- data.frame(locus=locs, mean=a, l95=a, u95=a)
+	hpds$f2 <- data.frame(locus=locs, mean=a, l95=a, u95=a)
 	hpds$s <- data.frame(locus=locs, mean=a, l95=a, u95=a, p=a)
 }
 
@@ -70,25 +70,23 @@ if(file.exists('analysis/wfs_abc_hpds.rdata')){
 files <- list.files(path='analysis/temp', pattern='wfs_abc_sampsize*', full.names=TRUE)
 print(paste(length(files), 'to process'))
 
-# read in each file and calculate HPD: ~48 hours on a cod node
+# read in each file and calculate HPD: ~48 hours on cod node
 for(i in startind:length(files)){
 	print(paste(i, 'of', length(files), ':', files[i]))
 	posts <- read.csv(gzfile(files[i]))
 	theselocs <- sort(unique(posts$locus))
 	inds <- hpds$f1samp$locus %in% theselocs
 	hpds$f1samp[inds,] <- ddply(.data=posts[,c('locus', 'f1samp')], .variables= ~locus, .fun=mci)
-	hpds$fsd[inds,] <- ddply(.data=posts[,c('locus', 'fsdprime')], .variables= ~locus, .fun=mci)
-	hpds$fsi[inds,] <- ddply(.data=posts[,c('locus', 'fsiprime')], .variables= ~locus, .fun=mci)
+	hpds$f2samp[inds,] <- ddply(.data=posts[,c('locus', 'f2samp')], .variables= ~locus, .fun=mci)
 	hpds$ne[inds,] <- ddply(.data=posts[,c('locus', 'ne')], .variables= ~locus, .fun=mci)
 	hpds$f1[inds,] <- ddply(.data=posts[,c('locus', 'f1')], .variables= ~locus, .fun=mci)
+	hpds$f2[inds,] <- ddply(.data=posts[,c('locus', 'f2')], .variables= ~locus, .fun=mci)
 	hpds$s[inds,] <- ddply(.data=posts[,c('locus', 's')], .variables= ~locus, .fun=mcip)
 }
 
-	# all FDR correction for p-values
-hpds$s$p.adj <- p.adjust(hpds$s$p, method='fdr')
 
 # write out
-save(hpds, file='analysis/wfs_abc_hpds2.rdata')
+save(hpds, file='analysis/wfs_abc_hpds.rdata')
 
 
 
