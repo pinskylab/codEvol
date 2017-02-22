@@ -1,9 +1,7 @@
 # load functions
 source('scripts/wfs.r')
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
-	require(parallel)
 	require(data.table)
-	require(abc)
 }
 if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(bit, lib.loc="/projects/cees/lib/R_packages/") # for use with ff
