@@ -37,10 +37,11 @@ wfs <- function(i, f1min=0, f1max=1, smin=-1, smax=1, c1=58, c2=48, gen=20, ne=1
 	f2samp <- rbinom(1,c2,f2)/c2 # second sample allele frequency
 
 	# calculate summary statistics (Foll et al. 2015 Molecular Ecology Resources)
-	stats <- sumstats(f1samp, f2samp, c1, c2, gen)
+#	stats <- sumstats(f1samp, f2samp, c1, c2, gen)
 	
 	# return values
-	out <- c(ne=thisne, f1=f1, s=s, gen=gen, f2=f2, f1samp=f1samp, f2samp=f2samp, fsdprime=stats[1], fsiprime=stats[2])
+#	out <- c(ne=thisne, f1=f1, s=s, gen=gen, f2=f2, f1samp=f1samp, f2samp=f2samp, fsdprime=stats[1], fsiprime=stats[2])
+	out <- c(ne=thisne, f1=f1, s=s, gen=gen, f2=f2, f1samp=f1samp, f2samp=f2samp)
 	return(out)
 }
 
