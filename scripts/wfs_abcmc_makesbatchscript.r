@@ -61,7 +61,7 @@ for(i in 1:nrow(nloci)){
 }
 	
 # write out the shell script
-outfile <- 'scripts/wfs_abcmc_submit_all_sbatch1.sh'
+outfile <- 'scripts/wfs_abcmc_submit_all_sbatch2.sh'
 
 cat('#!/bin/bash\n', file=outfile, append=FALSE) # header
 

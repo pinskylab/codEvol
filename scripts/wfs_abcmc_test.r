@@ -1,5 +1,5 @@
-# ABC on each locus from ABC lookup table to estimate s
-# run after wfs_make_sims.r and wfs_process_sims.r
+# ABC model choice on one locus
+# run after wfs_make_sims.r and wfs_process_sims.r, as well as wfs_make_sims_null.r
 
 # load functions
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
