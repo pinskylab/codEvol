@@ -28,13 +28,14 @@ locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting
 
 
 # merge
+dat <- as.data.table(dat)
 dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DIFF)], by='locusnum')
 
 # calculate a running mean -log10(p-value)
 stp = 1e5
 meanp <- data.frame(mids <- seq(stp/2, max(dat$POSgen), by=stp), mean <- rep(NA, length(mids))) # for mean of p-adj
 nrow(meanp)
-for(j in 1:nrow(meanp)){
+for(j in 1:nrow(meanp)){ # takes a couple minutes
 	if(j %% 100 == 0) cat(j)
 	inds <- dat$POSgen >= (meanp$mids[j]-stp/2) & dat$POSgen < (meanp$mids[j]+stp/2)
 	meanp$mean[j] <- mean(-log10(dat$p.adj[inds]))
@@ -45,7 +46,8 @@ for(j in 1:nrow(meanp)){
 ## basic analysis
 ##################
 # most diverged loci?
-sum(selinds <- dat$p.adj <0.025 & dat$CHROM != 'Unplaced')
+sum(selinds <- dat$p.adj <0.025 & dat$CHROM != 'Unplaced') # not on Unplaced (the ones we want)
+sum(dat$p.adj <0.025 & dat$CHROM == 'Unplaced') # on Unplaced
 
 dat[selinds,]
 summary(dat$ABS_DIFF[selinds])
@@ -103,9 +105,9 @@ summary(dat$ABS_DIFF[selinds])
 		abline(h=-log10(0.03), col='red', lty=3)
 
 		# add LG labels
-	lgs <- sort(unique(locnms[i,CHROM]))
+	lgs <- sort(unique(dat[,CHROM]))
 	for(j in 1:length(lgs)){
-		rng <- range(locnms[CHROM==lgs[j], POSgen])
+		rng <- range(dat[CHROM==lgs[j], POSgen])
 		if(j %% 2 == 0) lines(x=rng, y=c(0,0), col=col, lwd=2)
 		if(j %% 2 == 1) lines(x=rng, y=c(0.015,0.015), col=col, lwd=2)
 		text(x=mean(rng), y=0.03, labels=lgs[j], col=col, cex=0.5)
