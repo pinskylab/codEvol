@@ -1,11 +1,11 @@
 # load functions
-if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
+if(!grepl('hpc.uio.no', Sys.info()["nodename"])){ # if not on cod node
 	require(data.table)
 	require(plyr)
 	require(parallel)
 	ncores=3
 }
-if(grepl('hpc.uio.no', Sys.info()["nodename"])){
+if(grepl('hpc.uio.no', Sys.info()["nodename"])){ # if on a cod node
 	require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 	require(plyr, lib.loc="/projects/cees/lib/R_packages/")
 	require(parallel, lib.loc="/projects/cees/lib/R_packages/")
@@ -13,8 +13,22 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 
 # read in data (choose one)
-dat <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=56; c2=48; nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes
+	# 1907-2011
+dat <- fread('data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=50; c2=46; nm='1907-2011'; gen=11 # for 1907 vs. 2011. sample sizes. Use 25 kmer since most conservative (least likely biased by read mapping errors)
 
+dat <- fread('data_29.06.17/Frequency_table_Lof07_Lof11_150k.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=50; c2=46; nm='1907-2011'; gen=11 # for 1907 vs. 2011. sample sizes.
+
+
+	# 1907-2014
+dat <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=50; c2=48; nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes. Use 25 kmer since most conservative (least likely biased by read mapping errors)
+
+dat <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_50k.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=50; c2=48; nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes
+
+dat <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_100k.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=50; c2=48; nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes
+
+dat <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE); setnames(dat, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); c1=50; c2=48; nm='1907-2014'; gen=11 # for 1907 vs. 2014. sample sizes
+
+summary(dat)
 
 # calculate Fs' (Foll et al. 2015)
 gen=11
@@ -31,19 +45,19 @@ dat[,Fsprime := 1/gen * (Fs*(1-1/(2*enye))-2/enye)/((1+Fs/4)*(1-1/N_CHR_2))]
 	# understand NA values
 	dat[,summary(Fsprime)]
 	summary(dat[is.na(Fsprime),]) # maf1 and maf2 are 0 where Fsprime is NA
-	summary(dat[inds,])
 
 	# choose a set of loci
 inds <- !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) # not inversions or unplaced (use this)
-inds <- !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12'))
-inds <- !(dat$CHROM %in% c('Unplaced')) # not Unplaced
-inds <- (dat$CHROM %in% c('Unplaced')) # only Unplaced
-inds <- (dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # only inversions
-inds <- rep(TRUE, nrow(dat)) # all loci
+#inds <- !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12'))
+#inds <- !(dat$CHROM %in% c('Unplaced')) # not Unplaced
+#inds <- (dat$CHROM %in% c('Unplaced')) # only Unplaced
+#inds <- (dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # only inversions
+#inds <- rep(TRUE, nrow(dat)) # all loci
+sum(inds)
 
 dat[inds,mean(Fsprime, na.rm=TRUE)]
-dat[inds,1/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (# chromosomes: for comparison to wfabc_1 output)
 dat[inds,1/2/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (diploid individuals)
+dat[inds,1/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (# chromosomes: for comparison to wfabc_1 output)
 
 	# Jorde & Ryman/NeEstimator approach
 	dat[,z2:=((1-maf1)+(1-maf2))/2] # z for the 2nd allele
