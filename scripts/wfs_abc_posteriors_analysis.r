@@ -96,6 +96,17 @@ selinds3 <- sort(c(selinds3, selinds3-1)) # add locus before
 
 cands[selinds3,]
 
+
+## explore loci identified by null model analysis
+cands <- read.csv('analysis/wfs_nullmodel_candidates07-14.csv', row.names=1)
+cands <- merge(cands, hpds$s[,c('locus', 'mean', 'l95', 'u95')], by.x='locusnum', by.y='locus')
+
+cands[,c('CHROM', 'POS', 'cluster', 'Freq_1', 'Freq_2', 'p.adj', 'mean', 'l95', 'u95')] # loci with s estimates from abc
+
+candclust <- aggregate(list(POS.mu=cands$POS, delta.freq=cands$Freq_1-cands$Freq_2, s.mu=cands$mean), by=list(CHROM=cands$CHROM, cluster=cands$cluster), FUN=mean) # average in clusters
+candclust
+	with(candclust, plot(delta.freq, s.mu))
+
 ################################
 # plots of the results
 ################################

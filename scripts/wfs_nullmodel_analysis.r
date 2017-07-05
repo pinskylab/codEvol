@@ -31,6 +31,12 @@ locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting
 dat <- as.data.table(dat)
 dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DIFF)], by='locusnum')
 
+# re-order columns
+setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'pmax', 'p.adj'))
+
+# write out a nice version
+write.table(dat[,.(CHROM, POS, p.adj)], file='analysis/wfs_nullmodel_pos&pvals_07-14.txt', quote=FALSE, sep='\t', row.names=FALSE)
+
 # calculate a running mean -log10(p-value)
 stp = 1e5
 meanp <- data.frame(mids <- seq(stp/2, max(dat$POSgen), by=stp), mean <- rep(NA, length(mids))) # for mean of p-adj
@@ -65,8 +71,20 @@ summary(dat$ABS_DIFF[selinds])
 	selinds2 <- which(cands$ndist < 100000 & !is.na(cands$ndist)) # loci close to a previous locus
 	selinds2 <- sort(c(selinds2, selinds2-1)) # add locus before
 
+	# label each cluster
+	indx <- 1
+	cands[,cluster:=as.numeric(NA)]
+	for(i in selinds2){
+		cands[i,cluster:=indx]
+		if(i < nrow(cands)){
+			if(cands[i+1,ndist>=100000 | is.na(ndist)]) indx <- indx+1
+		}
+	}
+
 	cands[selinds2,]
 
+# write out
+write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, pmax, p.adj)], file='analysis/wfs_nullmodel_candidates07-14.csv')
 
 #####################
 ## plots
