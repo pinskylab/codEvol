@@ -14,7 +14,7 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 ntimes <- 2
 
 # read in data (choose one)
-datNEA <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE)
+datNEA <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE)
 	setnames(datNEA, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 	outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc'
 	genNEA=11 # for 1907 vs. 2014. sample sizes
