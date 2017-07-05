@@ -1,9 +1,12 @@
+## Plot allele frequency change vs. genome position
+## Compare across different data sets
+
 # load functions
-if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
+if(!grepl('hpc.uio.no', Sys.info()["nodename"])){ # not cod node
 	require(data.table)
 	require(plyr)
 	require(parallel)
-	ncores=3
+	ncores=2
 }
 if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(data.table, lib.loc="/projects/cees/lib/R_packages/")
@@ -13,7 +16,7 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 
 # read in data
-dat14 <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
+dat14 <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
 dat11 <- fread('analysis/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
 datCAN <- fread('analysis/Frequency_table_Can_40_Can_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_40', 'Freq_40', 'N_CHR_TGA', 'Freq_TGA', 'ABS_DIFF_40TGA')) # for 1907 vs. 2011
 
