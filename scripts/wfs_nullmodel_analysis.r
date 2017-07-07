@@ -6,8 +6,8 @@
 ## Prep 
 ##########
 require(data.table)
-locnms <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals.rdata') # dat
+locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')); suffix='_07-14_25k' # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_07-14_25k.rdata') # dat
 
 # make a nucleotide position for the whole genome
 chrmax <- locnms[,.(len=max(POS)), by=CHROM]
@@ -18,8 +18,8 @@ setkey(chrmax, CHROM)
 locnms <- locnms[chrmax[,.(CHROM, start)], ]
 locnms[,POSgen:=POS+start]
 
-# trim locus names to match rest of data
-locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),] # trim out inversions
+# trim locus names to match rest of data (if needed)
+#locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),] # trim out inversions
 locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting
 
 	# make sure it matches
@@ -35,7 +35,7 @@ dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DI
 setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'pmax', 'p.adj'))
 
 # write out a nice version
-write.table(dat[,.(CHROM, POS, p.adj)], file='analysis/wfs_nullmodel_pos&pvals_07-14.txt', quote=FALSE, sep='\t', row.names=FALSE)
+write.table(dat[,.(CHROM, POS, p.adj)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.txt', sep=''), quote=FALSE, sep='\t', row.names=FALSE)
 
 # calculate a running mean -log10(p-value)
 stp = 1e5
@@ -52,8 +52,9 @@ for(j in 1:nrow(meanp)){ # takes a couple minutes
 ## basic analysis
 ##################
 # most diverged loci?
-sum(selinds <- dat$p.adj <0.025 & dat$CHROM != 'Unplaced') # not on Unplaced (the ones we want)
-sum(dat$p.adj <0.025 & dat$CHROM == 'Unplaced') # on Unplaced
+sum(selinds <- dat$p.adj <0.025 & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced'))) # not on Unplaced (the ones we want)
+sum(dat$p.adj <0.025 & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
+sum(dat$p.adj <0.025 & dat$CHROM %in% c('Unplaced')) # on Unplaced
 
 dat[selinds,]
 summary(dat$ABS_DIFF[selinds])
@@ -68,7 +69,7 @@ summary(dat$ABS_DIFF[selinds])
 		if(length(j)>0) cands$ndist[i] <- min(abs(cands$POS[i] - cands$POS[j]))
 	} 
 
-	selinds2 <- which(cands$ndist < 100000 & !is.na(cands$ndist)) # loci close to a previous locus
+	selinds2 <- which(cands$ndist < 10000 & !is.na(cands$ndist)) # loci close to a previous locus
 	selinds2 <- sort(c(selinds2, selinds2-1)) # add locus before
 
 	# label each cluster
@@ -84,7 +85,7 @@ summary(dat$ABS_DIFF[selinds])
 	cands[selinds2,]
 
 # write out
-write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, pmax, p.adj)], file='analysis/wfs_nullmodel_candidates07-14.csv')
+write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, pmax, p.adj)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
 
 #####################
 ## plots
@@ -110,9 +111,15 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 
 	# zoom in on low p-values
 	# png(width=5, height=4, filename='analysis/figures/wfs_nullmodel_hist_padjvals_zoom.png', units='in', res=300)
-	hist(dat$p.adj, col='grey', breaks=2000, xlim=c(0,0.05), ylim=c(0,80), main='FDR-corrected p-values under null model')
+	hist(dat$p.adj, col='grey', breaks=2000, xlim=c(0,0.05), ylim=c(0,1000), main='FDR-corrected p-values under null model')
 
 	dev.off()
+	
+# p-values vs. abs_diff
+	plot(dat$ABS_DIFF, -log10(dat$pmax),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=rgb(0.1,0.1,0.1, 0.2))
+
+	plot(dat$ABS_DIFF, -log10(dat$p.adj),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(FDR-adjusted p)', col=rgb(0.1,0.1,0.1, 0.2))
+
 	
 # -log10(p) vs. genome position
 	col='red'

@@ -8,12 +8,14 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load data
-load('analysis/wfs_targ.rdata') # targets normalized
+targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); suffix='_07-14_25k'
+setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
+targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 185
+	nrow(nloci) # 176
 
 # read in files
 dat <- data.frame(cnt1=numeric(0), cnt2=numeric(0), locusnum=character(0), p=numeric(0), n=numeric(0))
@@ -46,9 +48,15 @@ for(i in 1:nrow(nloci)){
 	}
 }
 
+# sort by locus number
+dat <- dat[order(dat$locusnum),]
+
 # all loci analyzed?
 dim(targ)
 nrow(targ) - nrow(dat) # number missing loci
+
+# NA values?
+sum(is.na(dat$p)) # 0
 
 # create new p-value never ==0
 i <- dat$p == 0
@@ -59,10 +67,8 @@ dat$pmax[i] <- 1/dat$n[i] # set to highest possible based on sample size
 # adjusted p-values
 dat$p.adj <- p.adjust(dat$pmax, method='fdr')
 
-# sort by locus number
-dat <- dat[order(dat$locusnum),]
 
 # write out
-save(dat, file='analysis/wfs_nullmodel_pvals.rdata')
+save(dat, file=paste('analysis/wfs_nullmodel_pvals', suffix, '.rdata', sep=''))
 
 
