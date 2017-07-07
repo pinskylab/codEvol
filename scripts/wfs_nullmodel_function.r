@@ -42,15 +42,19 @@ lociperpart <- 20000 # how many loci in each part (each part will be written to 
 
 
 # Null model test: how likely are results this extreme?
-nullmodtest <- function(locusnum, thistarg, thisout.ff){
+# locusnum: the locus number
+# thistarg: f1samp and f2samp (first and second sample allele frequencies), as a data.table
+# thisout.ff: ff object from the null model simulations, 7x10million, with rows for f1samp and f2samp. 
+# tol: how close simulations and observation have to be to have the "same" starting frequency or to have the same change in frequency
+nullmodtest <- function(locusnum, thistarg, thisout.ff, tol=1/100){
 
 	# find extreme simulations
-	stinds <- thisout.ff['f1samp',] == thistarg[,f1samp] # null model simulations that had the same starting sample frequency
+	stinds <- abs(thisout.ff['f1samp',] - thistarg[,f1samp])<tol # null model simulations that had the same starting sample frequency
 	delta <- thistarg[,f2samp] - thistarg[,f1samp]
 	if(delta>0){
-		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) >= delta # simulations that also had as or greater allele frequency change
+		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) >= delta - tol # simulations that also had as or greater allele frequency change
 	} else {
-		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) <= delta # simulations that also had as or more extreme allele frequency change
+		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) <= delta + tol # simulations that also had as or more extreme allele frequency change
 	}
 	
  	# calculate p-value
