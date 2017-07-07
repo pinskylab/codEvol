@@ -8,13 +8,16 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 }
 
 
-load('analysis/wfs_targ.rdata') # targets normalized
+# load observed data
+targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE)
+setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
+targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
 
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 185
+	nrow(nloci) # 176
 
 # sample sizes with >100 loci
 nloci[nloci>5000,]
@@ -56,6 +59,7 @@ for(i in 1:nrow(nloci)){
 	} else {
 		nloci[i,todo:=0] # can't run this now because sim files don't exist
 		print(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
+		warning(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
 	}
 }
 	
@@ -63,10 +67,10 @@ for(i in 1:nrow(nloci)){
 sum(nloci$todo)
 	
 # write out the shell script
-outfile <- 'scripts/wfs_nullmodel_submit_all_sbatch2.sh'
+outfile <- 'scripts/wfs_nullmodel_submit_all_sbatch1.sh'
 
 cat('#!/bin/bash\n', file=outfile, append=FALSE) # header
 
 for(i in which(nloci[,todo==1])){
-	cat(paste('sbatch --job-name=nullmod', nloci[i,alcnt1], ',', nloci[i,alcnt2], ' --cpus-per-task=', min(16, nloci[i,nloci]), ' scripts/wfs_nullmodel_sbatch.sh ', nloci[i,alcnt1], ' ', nloci[i, alcnt2], ' ', min(16, nloci[i,nloci]), '\n', sep=''), file=outfile, append=TRUE)
+	cat(paste('sbatch --job-name=nlmd', nloci[i,alcnt1], ',', nloci[i,alcnt2], ' --cpus-per-task=', min(16, nloci[i,nloci]), ' scripts/wfs_nullmodel_sbatch.sh ', nloci[i,alcnt1], ' ', nloci[i, alcnt2], ' ', min(16, nloci[i,nloci]), '\n', sep=''), file=outfile, append=TRUE)
 }

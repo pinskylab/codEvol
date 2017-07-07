@@ -1,6 +1,7 @@
 # Calculate probability of null model producing results as extreme as our observations
 # run after wfs_make_sims.r/wfs_process_sims.r and wfs_make_sims_null.r
 # This version set up to run a single sample size, taken as command line arguments
+# runs on cod node as a script with arguments (myalcnt1 myalcnt2)
 
 # read command line arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -31,8 +32,10 @@ require(ff, lib.loc="/projects/cees/lib/R_packages/") # for big objects shared a
 require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
-# load data
-load('analysis/wfs_targ.rdata') # targets normalized
+# load observed data
+targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE)
+setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
+targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
 # parameters
 lociperpart <- 20000 # how many loci in each part (each part will be written to file)
@@ -69,7 +72,7 @@ print(paste('found', length(existingfiles), 'existing files relevant to this sam
 existingrngs <- strsplit(gsub(paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep=''), '', existingfiles), split='-') # extract just the locus ranges
 existingrngs <- lapply(existingrngs, as.numeric)
 existingloci <- numeric(0)
-if(length(existingrngs)>0) for(i in 1:length(existingrngs)) existingloci <- c(existingloci, existingrngs[[i]][1]:existingrngs[[i]][2])
+if(length(existingrngs)>0) for(i in 1:length(existingrngs)) existingloci <- c(existingloci, existingrngs[[i]][1]:existingrngs[[i]][2]) # we have run all loci between the first and last locunum listed in the file name
 
 # find the chunk of loci of the specified sample size to operate on
 samplepartinds <- targ[alcnt1==myalcnt1 & alcnt2==myalcnt2,locusnum] # locus numbers in each sample size chunk
