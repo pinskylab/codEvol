@@ -14,7 +14,8 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 
 # data
 nes <- read.table('analysis/LOF_07_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE) # to figure out the sample sizes to simulate
+#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE) # to figure out the sample sizes to simulate
+nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE) # to figure out the sample sizes to simulate
 setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 
 # parameters for the simulation
@@ -30,13 +31,13 @@ print(paste('Of', length(nes), 'Ne values', sum(nes > 0), 'are >0. Trimming all 
 nes <- nes[nes>0]
 
 # check temp directory for previous simulations (if Ne, gen and other parameters are the same)
-#torun <- paste(c1s, c2s, sep=',') # the list of sample sizes I need to run
-#existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.*\\.ffData') # the existing simulations
-#existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes
-#keep <- !(torun %in% existing) # the sample sizes that still need to be run
-#c1s <- c1s[keep]
-#c2s <- c2s[keep]
-#length(c1s) # how many to run?
+torun <- paste(c1s, c2s, sep=',') # the list of sample sizes I need to run
+existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.*\\.ffData') # the existing simulations
+existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes
+keep <- !(torun %in% existing) # the sample sizes that still need to be run
+c1s <- c1s[keep]
+c2s <- c2s[keep]
+length(c1s) # how many to run?
 
 # run simulations for missing sample sizes
 if(length(c1s)>0){
@@ -57,6 +58,7 @@ if(length(c1s)>0){
 
 	# make simulations (parallel way)
 	for(i in 1:length(c1s)){
+		print(paste('Sample size', i, 'of', length(c1s), 'to do.'))
 		thisout <- parSapply(cl, 1:nsims, FUN=wfs, f1min=0, f1max=1, smin=0, smax=0, c1=c1s[i], c2=c2s[i], gen=11, ne=nes, h=0.5, simplify=TRUE)
 			
 		thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
