@@ -9,7 +9,7 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 
 
 # load observed data
-targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE)
+targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
@@ -17,7 +17,7 @@ targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 176
+	nrow(nloci) # 176 (25k), 193 (150)
 
 # sample sizes with >100 loci
 nloci[nloci>5000,]

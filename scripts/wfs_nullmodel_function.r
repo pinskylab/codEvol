@@ -33,7 +33,7 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load observed data
-targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE)
+targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
