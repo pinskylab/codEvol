@@ -1,5 +1,4 @@
 ## Calculate correlation in allele frequency change across datasets
-## Add some test comments
 
 # load functions
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){ # not cod node
