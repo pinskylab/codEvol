@@ -87,3 +87,9 @@ dat07.11_11.14[,plot(ABS_DIFF_0711, ABS_DIFF_1114, col=rgb(0,0,0,0.5), pch=16, c
 #	
 #	# all 3 comparisons
 #	datCAN_11_14[ABS_DIFF_40TGA>0.3 & ABS_DIFF_0711>0.3 & ABS_DIFF_0714>0.3,]
+
+#####################################
+# Find outliers
+#####################################
+	# 1907-2011 and 1907-2014
+	dat07.11_07.14[ABS_DIFF_0711 > 0.35 & ABS_DIFF_0714 >0.35,]
