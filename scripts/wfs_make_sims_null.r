@@ -14,9 +14,10 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 
 # data
 nes <- read.table('analysis/LOF_07_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE) # to figure out the sample sizes to simulate
-#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE) # to figure out the sample sizes to simulate
-nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE) # to figure out the sample sizes to simulate
+#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE) # for sample sizes. 1907-2014 25kmer
+#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE) # 1907-2014 150kmer
+#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE) # 1907-2011 25 kmer
+nchrs <- fread('data_29.06.17/Frequency_table_Lof11_Lof14_25k.txt', header=TRUE) # 2011-2014 25kmer
 setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 
 # parameters for the simulation

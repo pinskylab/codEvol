@@ -7,9 +7,14 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 	require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 }
 
+# settings
+#myyr1 <- '07'; myyr2 <- '11'; kmer <- 25
+myyr1 <- '11'; myyr2 <- '14'; kmer <- 25
+
 
 # load observed data
-targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE)
+targfile <- paste('data_29.06.17/Frequency_table_Lof', myyr1, '_Lof', myyr2, '_', kmer, 'k.txt', sep='')
+targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
@@ -17,7 +22,9 @@ targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 176 (25k), 193 (150)
+	nrow(nloci) # 1907-2014: 176 (25kmer), 193 (150k)
+				# 1907-2011: 249 (25k)
+				# 2011-2014: 162 (25k)
 
 # sample sizes with >100 loci
 nloci[nloci>5000,]
@@ -72,5 +79,5 @@ outfile <- 'scripts/wfs_nullmodel_submit_all_sbatch1.sh'
 cat('#!/bin/bash\n', file=outfile, append=FALSE) # header
 
 for(i in which(nloci[,todo==1])){
-	cat(paste('sbatch --job-name=nlmd', nloci[i,alcnt1], ',', nloci[i,alcnt2], ' --cpus-per-task=', min(16, nloci[i,nloci]), ' scripts/wfs_nullmodel_sbatch.sh ', nloci[i,alcnt1], ' ', nloci[i, alcnt2], ' ', min(16, nloci[i,nloci]), '\n', sep=''), file=outfile, append=TRUE)
+	cat(paste('sbatch --job-name=nlmd', nloci[i,alcnt1], ',', nloci[i,alcnt2], ' --cpus-per-task=', min(16, nloci[i,nloci]), ' scripts/wfs_nullmodel_sbatch.sh ', nloci[i,alcnt1], ' ', nloci[i, alcnt2], ' ', myyr1, ' ', myyr2, ' ', kmer, ' ', min(16, nloci[i,nloci]), '\n', sep=''), file=outfile, append=TRUE)
 }

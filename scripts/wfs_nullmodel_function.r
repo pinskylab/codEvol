@@ -1,23 +1,40 @@
 # Calculate probability of null model producing results as extreme as our observations
 # run after wfs_make_sims.r/wfs_process_sims.r and wfs_make_sims_null.r
-# This version set up to run a single sample size, taken as command line arguments
-# runs on cod node as a script with arguments (myalcnt1 myalcnt2)
+# This version set up to run for NEA for a single sample size, taken as command line arguments
+# Set up to run for a specified pair of years (07, 11, or 14)
+# runs on cod node as a script with arguments (myalcnt1 myalcnt2 myyr1 myyr2 kmer maxcores)
 
 # read command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 print(args)
 
-if (length(args)<2) {
-  stop("Have to specify myalcnt1 and myalcnt2", call.=FALSE)
-} else if (length(args)==2){
+if (length(args)<5) {
+  stop("Have to specify myalcnt1, myalcnt2, myyr1, myyr2, kmer", call.=FALSE)
+} else if (length(args)==5){
 	maxcores <- 16 # default maximum cores (for abel)
-} else if (length(args)>2) {
-	maxcores <- as.numeric(args[3])
+} else if (length(args)>5) {
+	maxcores <- as.numeric(args[6])
 }
+
 myalcnt1 <- as.numeric(args[1])
 myalcnt2 <- as.numeric(args[2])
+myyr1 <- args[3]
+myyr2 <- args[4]
+kmer <- as.numeric(args[5])
 
-print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'maxcores', maxcores))
+if(!(myyr1 %in% c('07', '11'))){
+	stop('myyr1 must be one of 07 or 11', call.=FALSE)
+}
+
+if(!(myyr2 %in% c('11', '14'))){
+	stop('myyr2 must be one of 11 or 14', call.=FALSE)
+}
+
+if(!(kmer %in% c(25, 150))){
+	stop('myyr2 must be one of 25 or 150', call.=FALSE)
+}
+
+print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'myyr1', myyr1, 'myyr2', myyr2, 'kmer', kmer, 'maxcores', maxcores))
 print(Sys.info()["nodename"])
 
 # load functions: assume this is run on a cod or abel node
@@ -33,7 +50,8 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load observed data
-targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE)
+targfile <- paste('data_29.06.17/Frequency_table_Lof', myyr1, '_Lof', myyr2, '_', kmer, 'k.txt', sep='')
+targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 

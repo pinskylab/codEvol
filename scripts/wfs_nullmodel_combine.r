@@ -1,6 +1,7 @@
 # Calculate probability of null model producing results as extreme as our observations
 # run after wfs_nullmodel_function.r
 # Script combines the output
+# To be run on cod node
 
 
 # load functions: assume this is run on a cod or abel node
@@ -8,14 +9,17 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load data
-targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); suffix='_07-14_25k'
+#targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); suffix='_07-14_25k'
+#targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE); suffix='_07-14_150k'
+targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); suffix='_07-11_25k'
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 176
+	nrow(nloci) # 1907-2014: 176 for 25kmer, 193 for 150kmer
+				# 1907-2011: 249 for 25kmer
 
 # read in files
 dat <- data.frame(cnt1=numeric(0), cnt2=numeric(0), locusnum=character(0), p=numeric(0), n=numeric(0))
@@ -60,7 +64,7 @@ sum(is.na(dat$p)) # 0
 
 # create new p-value never ==0
 i <- dat$p == 0
-sum(i) # 59
+sum(i)
 dat$pmax <- dat$p
 dat$pmax[i] <- 1/dat$n[i] # set to highest possible based on sample size
 
