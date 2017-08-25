@@ -7,18 +7,21 @@
 ##########
 require(data.table)
 
+# Choose one set to read in
 	# 1907-2014
 	# 25kmer
 locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 load('analysis/wfs_nullmodel_pvals_07-14_25k.rdata') # dat
 suffix <- '_07-14_25k'
 locnms11 <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); 
+setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
 
 	# 150kmer
 locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 load('analysis/wfs_nullmodel_pvals_07-14_150k.rdata') # dat
 suffix <- '_07-14_150k'
 locnms11 <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof11_150k.txt', header=TRUE); 
+setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
 
 	# 1907-2011
 	# 25kmer
@@ -27,8 +30,8 @@ load('analysis/wfs_nullmodel_pvals_07-11_25k.rdata') # dat
 suffix <- '_07-11_25k'
 
 
+# Then continue here
 
-setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
 
 # make a nucleotide position for the whole genome
 chrmax <- locnms[,.(len=max(POS)), by=CHROM]
@@ -82,7 +85,7 @@ for(j in 1:nrow(meanp)){ # takes a couple minutes
 
 # number of unique p-values for a single sample size
 numps <- dat[cnt1==46 & cnt2==44 & !is.na(p),length(unique(p)), by=.(Freq_1, Freq_2)]
-	summary(numps)
+	summary(numps) # should all be 1
 
 # number of unique p-values for all sample sizes
 cnts <- unique(dat[,.(cnt1, cnt2)], by=c('cnt1', 'cnt2'))
