@@ -1,22 +1,28 @@
 # Calculate probability of null model producing results as extreme as our observations
 # run after wfs_make_sims.r/wfs_process_sims.r and wfs_make_sims_null.r
 # This version set up to run a single sample size, taken as command line arguments
+# runs on cod node as a script with arguments (myalcnt1 myalcnt2 kmer maxcores)
 
 # read command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 print(args)
 
-if (length(args)<2) {
-  stop("Have to specify myalcnt1 and myalcnt2", call.=FALSE)
-} else if (length(args)==2){
+if (length(args)<3) {
+  stop("Have to specify myalcnt1, myalcnt2, and kmer", call.=FALSE)
+} else if (length(args)==3){
 	maxcores <- 16 # default maximum cores (for abel)
-} else if (length(args)>2) {
-	maxcores <- as.numeric(args[3])
+} else if (length(args)>3) {
+	maxcores <- as.numeric(args[4])
 }
 myalcnt1 <- as.numeric(args[1])
 myalcnt2 <- as.numeric(args[2])
+kmer <- as.numeric(args[3])
 
-print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'maxcores', maxcores))
+if(!(kmer %in% c(25, 150))){
+	stop('kmer must be one of 25 or 150', call.=FALSE)
+}
+
+print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'kmer', kmer, 'maxcores', maxcores))
 print(Sys.info()["nodename"])
 
 # load functions: assume this is run on a cod or abel node
@@ -31,8 +37,9 @@ require(ff, lib.loc="/projects/cees/lib/R_packages/") # for big objects shared a
 require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
-# load data
-targ <- fread('data_21_02_17/Frequency_table_Can_40_Can_TGA.txt', header=TRUE) # to figure out the obs summary stats
+# load observed data
+targfile <- paste('data_11.07.17/Frequency_table_Can_40_Can_', kmer, 'k.txt', sep='')
+targ <- fread(targfile, header=TRUE) # to figure out the obs summary stats
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)]
 
@@ -41,15 +48,19 @@ lociperpart <- 20000 # how many loci in each part (each part will be written to 
 
 
 # Null model test: how likely are results this extreme?
-nullmodtest <- function(locusnum, thistarg, thisout.ff){
+# locusnum: the locus number
+# thistarg: f1samp and f2samp (first and second sample allele frequencies), as a data.table
+# thisout.ff: ff object from the null model simulations, 7x10million, with rows for f1samp and f2samp. 
+# tol: how close simulations and observation have to be to have the "same" starting frequency or to have the same change in frequency
+nullmodtest <- function(locusnum, thistarg, thisout.ff, tol=1/100){
 
 	# find extreme simulations
-	stinds <- thisout.ff['f1samp',] == thistarg[,f1samp] # null model simulations that had the same starting sample frequency
+	stinds <- abs(thisout.ff['f1samp',] - thistarg[,f1samp])<tol # null model simulations that had the same starting sample frequency
 	delta <- thistarg[,f2samp] - thistarg[,f1samp]
 	if(delta>0){
-		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) >= delta # simulations that also had as or greater allele frequency change
+		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) >= delta - tol # simulations that also had as or greater allele frequency change
 	} else {
-		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) <= delta # simulations that also had as or more extreme allele frequency change
+		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) <= delta + tol # simulations that also had as or more extreme allele frequency change
 	}
 	
  	# calculate p-value
@@ -57,6 +68,7 @@ nullmodtest <- function(locusnum, thistarg, thisout.ff){
  
 	return(c(locusnum=locusnum, p=p, n=sum(stinds)))
 }
+
 
 
 

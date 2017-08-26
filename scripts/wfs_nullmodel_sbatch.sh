@@ -23,4 +23,4 @@ set -o errexit # exit on errors
 module load R/3.3.2
 
 ## Run the abc calculations
-Rscript scripts/wfs_nullmodel_function.r $1 $2 $3 $4 $5 $6
+Rscript scripts/wfs_nullmodel_function.r $1 $2 $3 $4 $5 $6 $7

@@ -1,41 +1,51 @@
 # Calculate probability of null model producing results as extreme as our observations
 # run after wfs_make_sims.r/wfs_process_sims.r and wfs_make_sims_null.r
-# This version set up to run for NEA for a single sample size, taken as command line arguments
-# Set up to run for a specified pair of years (07, 11, or 14)
-# runs on cod node as a script with arguments (myalcnt1 myalcnt2 myyr1 myyr2 kmer maxcores)
+# This version set up to run for Lof or Can for a single sample size, taken as command line arguments
+# Set up to run for a specified pair of years (07, 11, or 14) if Lof is chosen
+# runs on cod node as a script with arguments (myalcnt1 myalcnt2 pop myyr1 myyr2 kmer maxcores)
 
 # read command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 print(args)
 
-if (length(args)<5) {
-  stop("Have to specify myalcnt1, myalcnt2, myyr1, myyr2, kmer", call.=FALSE)
-} else if (length(args)==5){
+if (length(args)<6) {
+  stop("Have to specify myalcnt1, myalcnt2, pop, myyr1, myyr2, kmer", call.=FALSE)
+} else if (length(args)==6){
 	maxcores <- 16 # default maximum cores (for abel)
-} else if (length(args)>5) {
-	maxcores <- as.numeric(args[6])
+} else if (length(args)>6) {
+	maxcores <- as.numeric(args[7])
 }
 
 myalcnt1 <- as.numeric(args[1])
 myalcnt2 <- as.numeric(args[2])
-myyr1 <- args[3]
-myyr2 <- args[4]
-kmer <- as.numeric(args[5])
+pop <- args[3]
+myyr1 <- args[4]
+myyr2 <- args[5]
+kmer <- as.numeric(args[6])
 
-if(!(myyr1 %in% c('07', '11'))){
-	stop('myyr1 must be one of 07 or 11', call.=FALSE)
+if(!(pop %in% c('Lof', 'Can'))){
+	stop('pop must be one of Lof or Can', call.=FALSE)
 }
 
-if(!(myyr2 %in% c('11', '14'))){
-	stop('myyr2 must be one of 11 or 14', call.=FALSE)
+if(!(myyr1 %in% c('07', '11')) & pop == 'Lof'){
+	stop('myyr1 must be one of 07 or 11 if pop is Lof', call.=FALSE)
+}
+
+if(!(myyr2 %in% c('11', '14')) & pop == 'Lof'){
+	stop('myyr2 must be one of 11 or 14 if pop is Lof', call.=FALSE)
 }
 
 if(!(kmer %in% c(25, 150))){
 	stop('kmer must be one of 25 or 150', call.=FALSE)
 }
 
-print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'myyr1', myyr1, 'myyr2', myyr2, 'kmer', kmer, 'maxcores', maxcores))
+print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'pop', pop, 'myyr1', myyr1, 'myyr2', myyr2, 'kmer', kmer, 'maxcores', maxcores))
 print(Sys.info()["nodename"])
+
+
+# set parameters
+lociperpart <- 20000 # how many loci in each part (each part will be written to file)
+
 
 # load functions: assume this is run on a cod or abel node
 require(parallel, lib.loc="/projects/cees/lib/R_packages/")
@@ -50,14 +60,25 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load observed data
-targfile <- paste('data_29.06.17/Frequency_table_Lof', myyr1, '_Lof', myyr2, '_', kmer, 'k.txt', sep='')
+if(pop == 'Lof'){
+	targfile <- paste('data_29.06.17/Frequency_table_Lof', myyr1, '_Lof', myyr2, '_', kmer, 'k.txt', sep='')
+}
+if(pop == 'Can'){
+	targfile <- paste('data_11.07.17/Frequency_table_Can_40_Can_', kmer, 'k.txt', sep='')
+}
 targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
-# parameters
-lociperpart <- 20000 # how many loci in each part (each part will be written to file)
-
+# set up file names
+existingfilespattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep='') # regexp to test for existing p-value files
+existingfilesgsubpattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep='') # regexp to strip out all but locus numbers from existing file names
+if(pop == 'Lof'){
+	ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, sep=','), sep='') # ff file name for simulations
+}
+if(pop == 'Can'){
+	ffnm <- paste('analysis/temp/wfs_simsnullCAN_ff', paste(myalcnt1, myalcnt2, sep=','), sep='')
+}
 
 # Null model test: how likely are results this extreme?
 # locusnum: the locus number
@@ -89,9 +110,9 @@ nullmodtest <- function(locusnum, thistarg, thisout.ff, tol=1/100){
 ###################################################
 
 # find if any loci of this sample size have already been run (for checkpointing)
-existingfiles <- list.files(path='analysis/temp', pattern=paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep=''))
+existingfiles <- list.files(path='analysis/temp', pattern=existingfilespattern)
 print(paste('found', length(existingfiles), 'existing files relevant to this sample size'))
-existingrngs <- strsplit(gsub(paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep=''), '', existingfiles), split='-') # extract just the locus ranges
+existingrngs <- strsplit(gsub(existingfilesgsubpattern, '', existingfiles), split='-') # extract just the locus ranges
 existingrngs <- lapply(existingrngs, as.numeric)
 existingloci <- numeric(0)
 if(length(existingrngs)>0) for(i in 1:length(existingrngs)) existingloci <- c(existingloci, existingrngs[[i]][1]:existingrngs[[i]][2]) # we have run all loci between the first and last locunum listed in the file name
@@ -123,7 +144,6 @@ if(sampleparts.n > 0){
 
 	# load the appropriate file of abc simulations
 		# null model
-	ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, sep=','), sep='')
 	ffload(ffnm, overwrite=TRUE) # takes 30 sec or so. loads thisout.ff
 
 	# loop through each chunk of data, writing each to file
@@ -138,7 +158,7 @@ if(sampleparts.n > 0){
 		minloc <- formatC(min(partinds[[partnum]]), width=ndigits, flag='0')
 		maxloc <- formatC(max(partinds[[partnum]]), width=ndigits, flag='0')
 		outfile <- paste('analysis/temp/wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus', minloc, '-', maxloc, '.csv.gz', sep='')
-		write.csv(results, file=gzfile(outfile), row.names=FALSE) # write directly to gzipped file. has normalized f1samp, fsdprime, fsiprime, plus ne, f1, s
+		write.csv(results, file=gzfile(outfile), row.names=FALSE) # write directly to gzipped file. has locusnum, p, and n (number of simulations)
 		print(paste('wrote', outfile))
 	}
 
