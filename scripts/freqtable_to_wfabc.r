@@ -18,9 +18,9 @@ datNEA <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRU
 	setnames(datNEA, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 	outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc'
 	genNEA=11 # for 1907 vs. 2014. sample sizes
-datCAN <- fread('data_21_02_17/Frequency_table_Can_40_Can_TGA.txt', header=TRUE)
+datCAN <- fread('data_11.07.17/Frequency_table_Can_40_Can_150k.txt', header=TRUE)
 	setnames(datCAN, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
-	outfileCAN <- 'analysis/Can_40_to_Can_TGA.wfabc'
+	outfileCAN <- 'analysis/Can_40_to_Can_150k.wfabc'
 	genCAN=8 # for 1940 to contemporary. Guess 8 generations
 
 	
