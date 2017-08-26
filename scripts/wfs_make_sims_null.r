@@ -1,3 +1,10 @@
+# set parameters
+#pop <- 'Lof'; kmer <- 25; yr1<-'07'; yr2<-'14'
+#pop <- 'Lof'; kmer <- 150; yr1<-'07'; yr2<-'14'
+#pop <- 'Lof'; kmer <- 25; yr1<-'07'; yr2<-'11'
+#pop <- 'Lof'; kmer <- 25; yr1<-'11'; yr2<-'14'
+pop <- 'Can'; kmer <- 150
+
 # load functions
 source('scripts/wfs.r')
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
@@ -12,12 +19,18 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 
 
-# data
-nes <- read.table('analysis/LOF_07_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE) # for sample sizes. 1907-2014 25kmer
-#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE) # 1907-2014 150kmer
-#nchrs <- fread('data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE) # 1907-2011 25 kmer
-nchrs <- fread('data_29.06.17/Frequency_table_Lof11_Lof14_25k.txt', header=TRUE) # 2011-2014 25kmer
+# read in data
+if(pop=='Lof'){
+	nes <- read.table('analysis/LOF_07_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	freqfile <- paste('data_29.06.17/Frequency_table_Lof', yr1, '_Lof', yr2, '_', kmer, 'k.txt', sep='')
+	nchrs <- fread(freqfile, header=TRUE) # read in frequency table data
+}
+if(pop=='Can'){
+	nes <- read.table('analysis/Can_40_to_Can_150k.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	freqfile <- paste('data_11.07.17/Frequency_table_Can_40_Can_', kmer, 'k.txt', sep='')
+	nchrs <- fread(freqfile, header=TRUE)
+}
+
 setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 
 # parameters for the simulation
@@ -34,8 +47,14 @@ nes <- nes[nes>0]
 
 # check temp directory for previous simulations (if Ne, gen and other parameters are the same)
 torun <- paste(c1s, c2s, sep=',') # the list of sample sizes I need to run
-existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.*\\.ffData') # the existing simulations
-existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes
+if(pop=='Lof'){
+	existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.*\\.ffData') # the existing simulations
+	existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes
+}
+if(pop=='Can'){
+	existing <- list.files(path='analysis/temp', pattern='wfs_simsnullCAN_ff.*\\.ffData') # the existing simulations
+	existing <- gsub('wfs_simsnullCAN_ff|.ffData', '', existing) # trim file names to just sample sizes
+}
 keep <- !(torun %in% existing) # the sample sizes that still need to be run
 c1s <- c1s[keep]
 c2s <- c2s[keep]
@@ -66,8 +85,13 @@ if(length(c1s)>0){
 		thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
 	
 		# save to permanent file (semi-permanent.. but in my temp directory)
-		ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnull_ff', paste(c1s[i], c2s[i], sep=','), sep=''))
-
+		if(pop=='Lof'){
+			ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnull_ff', paste(c1s[i], c2s[i], sep=','), sep=''))
+		}
+		if(pop=='Can'){
+			ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnullCAN_ff', paste(c1s[i], c2s[i], sep=','), sep=''))
+		}
+		
 		# remove the temp files
 		delete(thisout.ff)
 		rm(thisout.ff)
