@@ -35,6 +35,11 @@ locnms <- fread('data/data_29.06.17/Frequency_table_Lof11_Lof14_25k.txt', header
 load('analysis/wfs_nullmodel_pvals_11-14_25k.rdata') # dat
 suffix <- '_11-14_25k'
 
+	# Canada
+	# 25kmer
+locnms <- fread('data/data_11.07.17/Frequency_table_Can_40_Can_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_Can_25k.rdata') # dat
+suffix <- '_Can_25k'
 
 # Then continue here
 
@@ -64,10 +69,10 @@ dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DI
 # re-order columns
 setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'pmax', 'p.adj'))
 
-# mask out loci with known mapping problems (25kmer 2014)
-dat[CHROM=='LG08' & POS >= 16344554 & POS <=16347801, c("p", "pmax") :=list(NA, NA)] # polymorphic repetitive region: heterozygous individuals have 2x the coverage
+# mask out loci with known mapping problems (only Lof 25kmer 2014)
+#dat[CHROM=='LG08' & POS >= 16344554 & POS <=16347801, c("p", "pmax") :=list(NA, NA)] # polymorphic repetitive region: heterozygous individuals have 2x the coverage
 
-# re-calculate p.adj
+# re-calculate p.adj (after masking)
 dat[,p.adj2 := p.adjust(pmax, method='fdr')]
 
 
@@ -90,10 +95,11 @@ for(j in 1:nrow(meanp)){ # takes a couple minutes
 ######################
 
 # number of unique p-values for a single sample size
+# Need a different sample size if using Can
 numps <- dat[cnt1==46 & cnt2==44 & !is.na(p),length(unique(p)), by=.(Freq_1, Freq_2)]
 	summary(numps) # should all be 1
 
-# number of unique p-values for all sample sizes
+# number of unique p-values for all sample sizes and starting and ending frequencies
 cnts <- unique(dat[,.(cnt1, cnt2)], by=c('cnt1', 'cnt2'))
 
 numps <- dat[!is.na(p) & cnt1==cnts[1,cnt1] & cnt2==cnts[1,cnt2], .(nump=length(unique(p))), by=.(Freq_1, Freq_2)]
@@ -116,8 +122,8 @@ dat[,min(p.adj, na.rm=TRUE)]
 dat[,min(p.adj2, na.rm=TRUE)]
 
 # most diverged loci?
-pthresh <- 0.2
-sum(selinds <- dat$p.adj <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not on Unplaced (the ones we want)
+pthresh <- 0.1
+sum(selinds <- dat$p.adj <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
 sum(dat$p.adj <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
 sum(dat$p.adj <pthresh & dat$CHROM %in% c('Unplaced')) # on Unplaced
 
