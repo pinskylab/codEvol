@@ -11,7 +11,7 @@ require(data.table)
 	# 1907-2014
 	# 25kmer
 locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_07-14_25k.rdata') # dat
+load('analysis/wfs_nullmodel_pvals_07-14_25k.rdata') # dat (has p-values)
 suffix <- '_07-14_25k'
 locnms11 <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); 
 setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
@@ -28,6 +28,12 @@ setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 load('analysis/wfs_nullmodel_pvals_07-11_25k.rdata') # dat
 suffix <- '_07-11_25k'
+
+	# 2011-2014
+	# 25kmer
+locnms <- fread('data/data_29.06.17/Frequency_table_Lof11_Lof14_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_11-14_25k.rdata') # dat
+suffix <- '_11-14_25k'
 
 
 # Then continue here
@@ -58,15 +64,15 @@ dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DI
 # re-order columns
 setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'pmax', 'p.adj'))
 
-# mask out loci with known mapping problems (25kmer)
+# mask out loci with known mapping problems (25kmer 2014)
 dat[CHROM=='LG08' & POS >= 16344554 & POS <=16347801, c("p", "pmax") :=list(NA, NA)] # polymorphic repetitive region: heterozygous individuals have 2x the coverage
 
 # re-calculate p.adj
-dat[,p.adj := p.adjust(pmax, method='fdr')]
+dat[,p.adj2 := p.adjust(pmax, method='fdr')]
 
 
 # write out a nice version
-write.table(dat[,.(CHROM, POS, p.adj)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.txt', sep=''), quote=FALSE, sep='\t', row.names=FALSE)
+write.table(dat[,.(CHROM, POS, p.adj, p.adj2)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.txt', sep=''), quote=FALSE, sep='\t', row.names=FALSE)
 
 # calculate a running mean -log10(p-value) (FDR-adjusted)
 stp = 1e5
@@ -104,10 +110,13 @@ unique(numps$nump) # should all be 1
 ##################
 ## basic analysis
 ##################
+dat[,min(p, na.rm=TRUE)]
+dat[,min(pmax, na.rm=TRUE)]
 dat[,min(p.adj, na.rm=TRUE)]
+dat[,min(p.adj2, na.rm=TRUE)]
 
 # most diverged loci?
-pthresh <- 0.05
+pthresh <- 0.2
 sum(selinds <- dat$p.adj <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not on Unplaced (the ones we want)
 sum(dat$p.adj <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
 sum(dat$p.adj <pthresh & dat$CHROM %in% c('Unplaced')) # on Unplaced
@@ -240,7 +249,7 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 	# just a single sample size
 	quartz(width=6,height=6)
 	# png(width=5, height=4, filename=paste('analysis/figures/wfs_nullmodel_Freq_1_vs_Freq_2_w_pmax_cnt46,44', suffix, '.png', sep=''), units='in', res=300)
-	dat[cnt1==46 & cnt2==44, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(pmax)/6), main='null model analysis, cnt1=46, cnt2=44')]
+	dat[cnt1==46 & cnt2==44, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(pmax)/6), main=paste('null model analysis, cnt1=46, cnt2=44\n', suffix), xlim=c(0,1), ylim=c(0,1))]
 		# add a legend
 		points(rep(0,10), seq(0.6,0.8,length.out=10), col=colrmpfun(seq(0,1,length.out=10)), pch=16) 
 		text(rep(0.05,5), seq(0.6,0.8,length.out=5), labels=seq(0,6,length.out=5), cex=0.5)
@@ -276,6 +285,7 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 #		abline(h=-log10(0.0001), col='red', lty=2)
 
 		# add LG labels
+	col = 'red'
 	lgs <- sort(unique(dat[,CHROM]))
 	for(j in 1:length(lgs)){
 		rng <- range(dat[CHROM==lgs[j], POSgen])
@@ -291,7 +301,7 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 	dev.off()
 
 
-# -log10(p) vs. genome position
+# -log10(p) vs. genome position (zoom)
 	quartz(width=8, height=6)
 	xlims=c(1.432e8, 1.439e8)
 	# png(width=8, height=6, file=paste('analysis/figures/wfs_nullmodel_p_vs_position_zoom', suffix, '.png', sep=''), res=300, units='in')
