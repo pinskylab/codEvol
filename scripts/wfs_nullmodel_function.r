@@ -31,7 +31,7 @@ if(!(myyr2 %in% c('11', '14'))){
 }
 
 if(!(kmer %in% c(25, 150))){
-	stop('myyr2 must be one of 25 or 150', call.=FALSE)
+	stop('kmer must be one of 25 or 150', call.=FALSE)
 }
 
 print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'myyr1', myyr1, 'myyr2', myyr2, 'kmer', kmer, 'maxcores', maxcores))
