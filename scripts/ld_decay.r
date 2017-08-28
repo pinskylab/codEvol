@@ -28,7 +28,7 @@ setkey(bins, distclass)
 quartz(width=3, height=3)
 # pdf(width=3, height=3, file='analysis/figures/ld_decay_LOF_S_14.pdf')
 par(mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.5, 0), tcl=-0.2)
-bins[,plot(distclass, r2ave, ylim=c(0,0.7), type='o', xlab='Distance (bp)', ylab='Average correlation (r2)', cex=0.7, main='LOF_S_14')]
-bins[,lines(c(distclass, distclass), c(r2ave-1.96*r2se, r2ave+1.96*r2se)), by=distclass] # too small to be visible
+bins[,plot(distclass, r2ave, ylim=c(0,0.7), type='o', xlab='Distance (bp)', ylab='Average correlation (r2)', cex=0.7, main='LOF_S_14', log='x')]
+bins[,lines(c(distclass, distclass), c(r2ave-1.96*r2se, r2ave+1.96*r2se)), by=distclass] # 95% CI. too small to be visible
 
 dev.off()
