@@ -9,8 +9,10 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 
 # settings
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'; kmer <- 25
+pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'; kmer <- 150
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'; kmer <- 25
-pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 25 # myyr are placeholders since only one set of years for Canada
+#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 25 # myyr are placeholders since only one set of years for Canada
+#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 150 # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
@@ -28,16 +30,17 @@ targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 1907-2014: 176 (25kmer), 193 (150k)
-				# 1907-2011: 249 (25k)
+	nrow(nloci) # 1907-2014: 176 (25kmer), 193 (150k) (how many sample sizes)
+				# 1907-2011: 249 (25k), 267 (150k)
 				# 2011-2014: 162 (25k)
-				# Can: 		55 (25k)
+				# Can: 		55 (25k), 55 (150k)
 
 # sample sizes with >100 loci
 nloci[nloci>5000,]
 
 # check which sample sizes are already run
 nloci[,todo:=1] # set up a flag for which we should run
+nloci[,nlocitorun:=nloci] # number of loci left to run at each sample size
 
 for(i in 1:nrow(nloci)){
 	# check if the simulation files for this sample size exists
@@ -66,9 +69,10 @@ for(i in 1:nrow(nloci)){
 		# flag which ones still need to be run
 		if(sampleparts.n==0){
 			nloci[i,todo:=0]
+			nloci[i,nlocitorun:=0]
 		} else {
 			print(paste(myalcnt1, myalcnt2, 'Run', sampleparts.n, 'loci of', orig.n, 'loci originally'))
-			nloci[i,nloci:=sampleparts.n]
+			nloci[i,nlocitorun:=sampleparts.n]
 		}
 	} else {
 		nloci[i,todo:=0] # can't run this now because sim files don't exist
@@ -77,9 +81,12 @@ for(i in 1:nrow(nloci)){
 	}
 }
 	
-# how many files to run?
+# how many sample sizes to run?
 sum(nloci$todo)
 nrow(nloci) # compare to number we could run
+	
+# any sample sizes with < all loci to run?
+nloci[nlocitorun<nloci,]
 	
 # write out the shell script
 outfile <- 'scripts/wfs_nullmodel_submit_all_sbatch1.sh'

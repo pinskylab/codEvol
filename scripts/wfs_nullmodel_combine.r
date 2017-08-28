@@ -13,7 +13,9 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 #targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE); suffix='_07-14_150k' # Lof 1907-2014 150k
 #targ <- fread('data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); suffix='_07-11_25k' # Lof 1907-2011 25k
 #targ <- fread('data_29.06.17/Frequency_table_Lof11_Lof14_25k.txt', header=TRUE); suffix='_11-14_25k' # Lof 2011-2014 25k
-targ <- fread('data_11.07.17/Frequency_table_Can_40_Can_25k.txt', header=TRUE); suffix='_Can_25k' # Can 25k
+#targ <- fread('data_11.07.17/Frequency_table_Can_40_Can_25k.txt', header=TRUE); suffix='_Can_25k' # Can 25k
+#targ <- fread('data_11.07.17/Frequency_table_Can_40_Can_150k.txt', header=TRUE); suffix='_Can_150k' # Can 150k
+targ <- fread('analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt', header=TRUE); suffix='_Power_Lof_Ne46000_cnt46_44' # Can 150k
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
@@ -23,7 +25,7 @@ nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
 	nrow(nloci) # 1907-2014: 176 for 25kmer, 193 for 150kmer
 				# 1907-2011: 249 for 25kmer
 				# 2011-2014: 162 for 25kmer
-				# Can: 		55 for 25kmer
+				# Can: 		55 for 25kmer, 55 for 150kmer
 
 # read in files
 dat <- data.frame(cnt1=numeric(0), cnt2=numeric(0), locusnum=character(0), p=numeric(0), n=numeric(0))
@@ -61,6 +63,7 @@ dat <- dat[order(dat$locusnum),]
 
 # all loci analyzed?
 dim(targ)
+nrow(targ)
 nrow(targ) - nrow(dat) # number missing loci
 
 # NA values?

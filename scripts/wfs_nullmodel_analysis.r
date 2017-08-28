@@ -41,6 +41,11 @@ locnms <- fread('data/data_11.07.17/Frequency_table_Can_40_Can_25k.txt', header=
 load('analysis/wfs_nullmodel_pvals_Can_25k.rdata') # dat
 suffix <- '_Can_25k'
 
+	# 150kmer
+locnms <- fread('data/data_11.07.17/Frequency_table_Can_40_Can_150k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_Can_150k.rdata') # dat
+suffix <- '_Can_150k'
+
 # Then continue here
 
 
@@ -122,7 +127,7 @@ dat[,min(p.adj, na.rm=TRUE)]
 dat[,min(p.adj2, na.rm=TRUE)]
 
 # most diverged loci?
-pthresh <- 0.1
+pthresh <- 0.01
 sum(selinds <- dat$p.adj <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
 sum(dat$p.adj <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
 sum(dat$p.adj <pthresh & dat$CHROM %in% c('Unplaced')) # on Unplaced
@@ -245,6 +250,9 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 
 
 # Freq_1 vs. Freq_2 with pmax
+	#cnt1=46;cnt2=44 # for Lof
+	ct1=32;ct2=40 # for Can
+	
 	require(RColorBrewer)
 	colrmp <- colorRamp(brewer.pal(9, 'OrRd'))
 	colrmpfun <- function(x){
@@ -255,7 +263,7 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 	# just a single sample size
 	quartz(width=6,height=6)
 	# png(width=5, height=4, filename=paste('analysis/figures/wfs_nullmodel_Freq_1_vs_Freq_2_w_pmax_cnt46,44', suffix, '.png', sep=''), units='in', res=300)
-	dat[cnt1==46 & cnt2==44, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(pmax)/6), main=paste('null model analysis, cnt1=46, cnt2=44\n', suffix), xlim=c(0,1), ylim=c(0,1))]
+	dat[cnt1==ct1 & cnt2==ct2, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(pmax)/6), main=paste('null model analysis, cnt1=', ct1, 'cnt2=', ct2, '\n', suffix), xlim=c(0,1), ylim=c(0,1))]
 		# add a legend
 		points(rep(0,10), seq(0.6,0.8,length.out=10), col=colrmpfun(seq(0,1,length.out=10)), pch=16) 
 		text(rep(0.05,5), seq(0.6,0.8,length.out=5), labels=seq(0,6,length.out=5), cex=0.5)

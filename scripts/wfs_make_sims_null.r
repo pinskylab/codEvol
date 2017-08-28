@@ -1,9 +1,14 @@
+# Make simulations for the null model
+# best to run on cod node with nohup if many sample sizes to make
+
 # set parameters
 #pop <- 'Lof'; kmer <- 25; yr1<-'07'; yr2<-'14'
 #pop <- 'Lof'; kmer <- 150; yr1<-'07'; yr2<-'14'
 #pop <- 'Lof'; kmer <- 25; yr1<-'07'; yr2<-'11'
+#pop <- 'Lof'; kmer <- 150; yr1<-'07'; yr2<-'11'
 #pop <- 'Lof'; kmer <- 25; yr1<-'11'; yr2<-'14'
-pop <- 'Can'; kmer <- 150
+pop <- 'Lof'; kmer <- 150; yr1<-'11'; yr2<-'14'
+#pop <- 'Can'; kmer <- 150
 
 # load functions
 source('scripts/wfs.r')
