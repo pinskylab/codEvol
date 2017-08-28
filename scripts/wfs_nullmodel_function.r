@@ -1,6 +1,6 @@
 # Calculate probability of null model producing results as extreme as our observations
 # run after wfs_make_sims.r/wfs_process_sims.r and wfs_make_sims_null.r
-# This version set up to run for Lof or Can for a single sample size, taken as command line arguments
+# This version set up to run for Lof, Can, or Pow for a single sample size, taken as command line arguments
 # Set up to run for a specified pair of years (07, 11, or 14) if Lof is chosen
 # runs on cod node as a script with arguments (myalcnt1 myalcnt2 pop myyr1 myyr2 kmer maxcores)
 
@@ -23,8 +23,8 @@ myyr1 <- args[4]
 myyr2 <- args[5]
 kmer <- as.numeric(args[6])
 
-if(!(pop %in% c('Lof', 'Can'))){
-	stop('pop must be one of Lof or Can', call.=FALSE)
+if(!(pop %in% c('Lof', 'Can', 'Pow'))){
+	stop('pop must be one of Lof, Can, or Pow', call.=FALSE)
 }
 
 if(!(myyr1 %in% c('07', '11')) & pop == 'Lof'){
@@ -66,6 +66,9 @@ if(pop == 'Lof'){
 if(pop == 'Can'){
 	targfile <- paste('data_11.07.17/Frequency_table_Can_40_Can_', kmer, 'k.txt', sep='')
 }
+if(pop == 'Pow'){
+	targfile <- 'analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt'
+}
 targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
@@ -73,7 +76,7 @@ targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 # set up file names
 existingfilespattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep='') # regexp to test for existing p-value files
 existingfilesgsubpattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep='') # regexp to strip out all but locus numbers from existing file names
-if(pop == 'Lof'){
+if(pop %in% c('Lof', 'Pow')){
 	ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, sep=','), sep='') # ff file name for simulations
 }
 if(pop == 'Can'){
