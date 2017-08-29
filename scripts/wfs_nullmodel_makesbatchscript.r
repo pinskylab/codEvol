@@ -9,8 +9,9 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 
 # settings
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'; kmer <- 25
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'; kmer <- 150
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'; kmer <- 150
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'; kmer <- 25
+pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'; kmer <- 150
 #pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 25 # myyr are placeholders since only one set of years for Canada
 #pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 150 # myyr are placeholders since only one set of years for Canada
 
@@ -32,7 +33,7 @@ setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
 	nrow(nloci) # 1907-2014: 176 (25kmer), 193 (150k) (how many sample sizes)
 				# 1907-2011: 249 (25k), 267 (150k)
-				# 2011-2014: 162 (25k)
+				# 2011-2014: 162 (25k), 176 (150k)
 				# Can: 		55 (25k), 55 (150k)
 
 # sample sizes with >100 loci
