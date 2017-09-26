@@ -2,8 +2,8 @@
 # to run on cod node
 
 # set parameters
-pop <- 'Lof'; Ne <- 46000; c1 <- 46; c2 <- 44; gen=11 # see 7/5/2017 Ne calculation with wfabc_1
-#pop <- 'Can'; Ne<- 6000 # see 8/25/2017
+#pop <- 'Lof'; Ne <- 46000; c1 <- 46; c2 <- 44; gen=11 # see 7/5/2017 Ne calculation with wfabc_1
+pop <- 'Can'; Ne<- 5900; c1 <- 32; c2 <- 40; gen <- 8 # see 8/25/2017
 
 # load functions
 source('scripts/wfs.r')
