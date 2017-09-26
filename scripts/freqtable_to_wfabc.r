@@ -13,16 +13,26 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 # set up parameters
 ntimes <- 2
 
-# read in data (choose one)
-datNEA <- fread('data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE)
+# read in data
+datNEA <- fread('data_2017.09.22/Frequency_table_Lof07_Lof14.txt', header=TRUE)
 	setnames(datNEA, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 	outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc'
 	genNEA=11 # for 1907 vs. 2014. sample sizes
-datCAN <- fread('data_11.07.17/Frequency_table_Can_40_Can_150k.txt', header=TRUE)
+datCAN <- fread('data_2017.09.22/Frequency_table_CAN_40_TGA.txt', header=TRUE)
 	setnames(datCAN, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
-	outfileCAN <- 'analysis/Can_40_to_Can_150k.wfabc'
+	outfileCAN <- 'analysis/Can_40_to_Can.wfabc'
 	genCAN=8 # for 1940 to contemporary. Guess 8 generations
 
+# read in 25kmer filter
+loc25 <- fread('data_2017.09.22/25kmer_SNP_subset.tab')
+	setnames(loc25, 1:2, c('CHROM', 'POS'))
+
+# trim to loci that meet 25kmer filter
+setkey(datNEA, CHROM, POS)
+setkey(datCAN, CHROM, POS)
+setkey(loc25, CHROM, POS)
+datNEA <- datNEA[loc25, nomatch=0] # nomatch=0 so that non-matching rows are dropped
+datCAN <- datCAN[loc25, nomatch=0] # nomatch=0 so that non-matching rows are dropped
 	
 # trim out inversions and Unplaced
 #dat <- dat[!(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),]
