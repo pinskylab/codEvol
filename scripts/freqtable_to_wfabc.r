@@ -14,10 +14,17 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 ntimes <- 2
 
 # read in data
-datNEA <- fread('data_2017.09.22/Frequency_table_Lof07_Lof14.txt', header=TRUE)
+	# NEA: choose one
+#datNEA <- fread('data_2017.09.22/Frequency_table_Lof07_Lof14.txt', header=TRUE)
+#	setnames(datNEA, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
+#	outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc'
+#	genNEA=11 # for 1907 vs. 2014. sample sizes
+datNEA <- fread('data_2017.09.22/Frequency_table_Lof07_Lof11.txt', header=TRUE)
 	setnames(datNEA, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
-	outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc'
+	outfileNEA <- 'analysis/LOF_07_to_LOF_S_11.wfabc'
 	genNEA=11 # for 1907 vs. 2014. sample sizes
+
+	# CAN
 datCAN <- fread('data_2017.09.22/Frequency_table_CAN_40_TGA.txt', header=TRUE)
 	setnames(datCAN, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 	outfileCAN <- 'analysis/Can_40_to_Can.wfabc'
@@ -27,15 +34,33 @@ datCAN <- fread('data_2017.09.22/Frequency_table_CAN_40_TGA.txt', header=TRUE)
 loc25 <- fread('data_2017.09.22/25kmer_SNP_subset.tab')
 	setnames(loc25, 1:2, c('CHROM', 'POS'))
 
+# read in MAF0.2 filter (optional)
+maf02 <- fread('data_2017.09.22/MAF0.2_SNPs.tab', skip=1)
+	setnames(maf02, 1:6, c('CHROM', 'POS', 'N_ALLELES', 'N_CHR', 'FREQ_1', 'FREQ_2'))
+	outfileNEA <- 'analysis/LOF_07_to_LOF_S_14_MAF02.wfabc'
+	outfileCAN <- 'analysis/Can_40_to_Can_MAF02.wfabc'
+
 # trim to loci that meet 25kmer filter
 setkey(datNEA, CHROM, POS)
 setkey(datCAN, CHROM, POS)
 setkey(loc25, CHROM, POS)
+	nrow(datNEA)
+	nrow(datCAN)
 datNEA <- datNEA[loc25, nomatch=0] # nomatch=0 so that non-matching rows are dropped
 datCAN <- datCAN[loc25, nomatch=0] # nomatch=0 so that non-matching rows are dropped
+	nrow(datNEA)
+	nrow(datCAN)
+
+# trim to loci that meet MAF0.2 filter (optional)
+setkey(maf02, CHROM, POS)
+	nrow(datNEA)
+	nrow(datCAN)
+datNEA <- datNEA[maf02, nomatch=0] # nomatch=0 so that non-matching rows are dropped
+datCAN <- datCAN[maf02, nomatch=0] # nomatch=0 so that non-matching rows are dropped
+	nrow(datNEA)
+	nrow(datCAN)
 	
 # trim out inversions and Unplaced
-#dat <- dat[!(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),]
 datNEA <- datNEA[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
 datCAN <- datCAN[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
 
