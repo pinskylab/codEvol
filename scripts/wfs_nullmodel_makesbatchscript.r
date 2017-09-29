@@ -8,20 +8,18 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 }
 
 # settings
-#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'; kmer <- 25
-#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'; kmer <- 150
-#pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'; kmer <- 25
-pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'; kmer <- 150
+pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
+#pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
 #pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 25 # myyr are placeholders since only one set of years for Canada
-#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 150 # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
 if(pop == 'Lof'){
-	targfile <- paste('data_29.06.17/Frequency_table_Lof', myyr1, '_Lof', myyr2, '_', kmer, 'k.txt', sep='')
+	targfile <- paste('data_2017.09.22/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
 }
 if(pop == 'Can'){
-	targfile <- paste('data_11.07.17/Frequency_table_Can_40_Can_', kmer, 'k.txt', sep='')
+	targfile <- paste('data_2017.09.22/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
@@ -31,10 +29,10 @@ targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 1907-2014: 176 (25kmer), 193 (150k) (how many sample sizes)
-				# 1907-2011: 249 (25k), 267 (150k)
-				# 2011-2014: 162 (25k), 176 (150k)
-				# Can: 		55 (25k), 55 (150k)
+	nrow(nloci) # 1907-2014: 30 sample sizes
+				# 1907-2011: 
+				# 2011-2014: 
+				# Can: 		
 
 # sample sizes with >100 loci
 nloci[nloci>5000,]
@@ -95,5 +93,5 @@ outfile <- 'scripts/wfs_nullmodel_submit_all_sbatch1.sh'
 cat('#!/bin/bash\n', file=outfile, append=FALSE) # header
 
 for(i in which(nloci[,todo==1])){
-	cat(paste('sbatch --job-name=nlmd', nloci[i,alcnt1], ',', nloci[i,alcnt2], ' --cpus-per-task=', min(16, nloci[i,nloci]), ' scripts/wfs_nullmodel_sbatch.sh ', nloci[i,alcnt1], ' ', nloci[i, alcnt2], ' ', pop, ' ', myyr1, ' ', myyr2, ' ', kmer, ' ', min(16, nloci[i,nloci]), '\n', sep=''), file=outfile, append=TRUE)
+	cat(paste('sbatch --job-name=nlmd', nloci[i,alcnt1], ',', nloci[i,alcnt2], ' --cpus-per-task=', min(16, nloci[i,nloci]), ' scripts/wfs_nullmodel_sbatch.sh ', nloci[i,alcnt1], ' ', nloci[i, alcnt2], ' ', pop, ' ', myyr1, ' ', myyr2, ' ', min(16, nloci[i,nloci]), '\n', sep=''), file=outfile, append=TRUE)
 }

@@ -8,7 +8,7 @@ pop <- 'Lof'; yr1<-'07'; yr2<-'14'
 #pop <- 'Can'
 
 # load functions
-source('scripts/wfs.r')
+source('scripts/wfs_byf1samp.r')
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(parallel)
 	require(data.table)
@@ -21,16 +21,16 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 
 
-# read in data
+# read in Ne data
 if(pop=='Lof'){
 	nes <- read.table('analysis/LOF_07_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	freqfile <- paste('data_29.06.17/Frequency_table_Lof', yr1, '_Lof', yr2, '_', kmer, 'k.txt', sep='')
+	freqfile <- paste('data_2017.09.22/Frequency_table_Lof', yr1, '_Lof', yr2, '.txt', sep='')
 	nchrs <- fread(freqfile, header=TRUE) # read in frequency table data
 	gen <- 11
 }
 if(pop=='Can'){
-	nes <- read.table('analysis/Can_40_to_Can_150k.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	freqfile <- paste('data_11.07.17/Frequency_table_Can_40_Can_', kmer, 'k.txt', sep='')
+	nes <- read.table('analysis/Can_40_to_Can.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	freqfile <- paste('data_2017.09.22/Frequency_table_Can_40_TGA.txt', sep='')
 	nchrs <- fread(freqfile, header=TRUE)
 	gen <- 8
 }
@@ -38,7 +38,7 @@ if(pop=='Can'){
 setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 
 # parameters for the simulation
-nsims <- 10000000
+nsims <- 500000 # number of sims to run for each starting frequency in each sample size
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_1] # the sample sizes to simulate (first sample)
 c2s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_2]
 	print(c1s)
@@ -74,7 +74,7 @@ if(length(c1s)>0){
 	if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 		cl <- makeCluster(30) # set up 30-core cluster on a cod node
 	}
-	clusterExport(cl, c('wfs'))
+	clusterExport(cl, c('wfs_byf1samp'))
 
 
 	# check where this is to monitor temp file creation in the file system /tmp/Rtmpp__
@@ -82,10 +82,14 @@ if(length(c1s)>0){
 
 
 	# make simulations (parallel way)
-	for(i in 1:length(c1s)){
+	for(i in 1:length(c1s)){ # loop through each set of sample sizes
 		print(paste('Sample size', i, 'of', length(c1s), 'to do.'))
-		thisout <- parSapply(cl, 1:nsims, FUN=wfs, f1min=0, f1max=1, smin=0, smax=0, c1=c1s[i], c2=c2s[i], gen=gen, ne=nes, h=0.5, simplify=TRUE)
-			
+		
+		# make list of all possible starting sample frequencies and make nsims copies of each
+		f1samps=rep((0:c1s[i])/c1s[i], rep(nsims, c1s[i]+1))
+		
+		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp, smin=0, smax=0, c1=c1s[i], c2=c2s[i], gen=gen, ne=nes, h=0.5, simplify=TRUE)
+
 		thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
 	
 		# save to permanent file (semi-permanent.. but in my temp directory)

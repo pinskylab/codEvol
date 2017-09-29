@@ -2,18 +2,18 @@
 # run after wfs_make_sims.r/wfs_process_sims.r and wfs_make_sims_null.r
 # This version set up to run for Lof, Can, Pow, or PowCan for a single sample size, taken as command line arguments
 # Set up to run for a specified pair of years (07, 11, or 14) if Lof is chosen
-# runs on cod node as a script with arguments (myalcnt1 myalcnt2 pop myyr1 myyr2 kmer maxcores)
+# runs on cod node as a script with arguments (myalcnt1 myalcnt2 pop myyr1 myyr2 maxcores)
 
 # read command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 print(args)
 
-if (length(args)<6) {
-  stop("Have to specify myalcnt1, myalcnt2, pop, myyr1, myyr2, kmer", call.=FALSE)
-} else if (length(args)==6){
+if (length(args)<5) {
+  stop("Have to specify myalcnt1, myalcnt2, pop, myyr1, myyr2", call.=FALSE)
+} else if (length(args)==5){
 	maxcores <- 16 # default maximum cores (for abel)
-} else if (length(args)>6) {
-	maxcores <- as.numeric(args[7])
+} else if (length(args)>5) {
+	maxcores <- as.numeric(args[6])
 }
 
 myalcnt1 <- as.numeric(args[1])
@@ -21,7 +21,6 @@ myalcnt2 <- as.numeric(args[2])
 pop <- args[3]
 myyr1 <- args[4]
 myyr2 <- args[5]
-kmer <- as.numeric(args[6])
 
 if(!(pop %in% c('Lof', 'Can', 'Pow', 'PowCan'))){
 	stop('pop must be one of Lof, Can, Pow, or PowCan', call.=FALSE)
@@ -35,11 +34,8 @@ if(!(myyr2 %in% c('11', '14')) & pop == 'Lof'){
 	stop('myyr2 must be one of 11 or 14 if pop is Lof', call.=FALSE)
 }
 
-if(!(kmer %in% c(25, 150))){
-	stop('kmer must be one of 25 or 150', call.=FALSE)
-}
 
-print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'pop', pop, 'myyr1', myyr1, 'myyr2', myyr2, 'kmer', kmer, 'maxcores', maxcores))
+print(paste('myalcnt1', myalcnt1, 'myalcnt2', myalcnt2, 'pop', pop, 'myyr1', myyr1, 'myyr2', myyr2, 'maxcores', maxcores))
 print(Sys.info()["nodename"])
 
 
@@ -61,10 +57,10 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 # load observed data
 if(pop == 'Lof'){
-	targfile <- paste('data_29.06.17/Frequency_table_Lof', myyr1, '_Lof', myyr2, '_', kmer, 'k.txt', sep='')
+	targfile <- paste('data_2017.09.22/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
 }
 if(pop == 'Can'){
-	targfile <- paste('data_11.07.17/Frequency_table_Can_40_Can_', kmer, 'k.txt', sep='')
+	targfile <- paste('data_2017.09.22/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 if(pop == 'Pow'){
 	targfile <- 'analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt'
@@ -80,7 +76,7 @@ targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 existingfilespattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep='') # regexp to test for existing p-value files
 existingfilesgsubpattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep='') # regexp to strip out all but locus numbers from existing file names
 if(pop %in% c('Lof', 'Pow')){
-	ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, sep=','), sep='') # ff file name for simulations
+	ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, sep=','), sep='') # ff file name for Lof simulations
 }
 if(pop %in% c('Can', 'PowCan')){
 	ffnm <- paste('analysis/temp/wfs_simsnullCAN_ff', paste(myalcnt1, myalcnt2, sep=','), sep='')
@@ -94,16 +90,16 @@ if(pop %in% c('Can', 'PowCan')){
 nullmodtest <- function(locusnum, thistarg, thisout.ff, tol=1/100){
 
 	# find extreme simulations
-	stinds <- abs(thisout.ff['f1samp',] - thistarg[,f1samp])<tol # null model simulations that had the same starting sample frequency
-	delta <- thistarg[,f2samp] - thistarg[,f1samp]
+	stinds <- abs(thisout.ff['f1samp',] - thistarg[,f1samp]) < tol # null model simulations that had the same starting sample frequency
+	delta <- thistarg[,f2samp] - thistarg[,f1samp] # observed allele frequency change
 	if(delta>0){
-		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) >= delta - tol # simulations that also had as or greater allele frequency change
+		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) >= (delta - tol) # simulations that also had as or greater allele frequency change
 	} else {
-		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) <= delta + tol # simulations that also had as or more extreme allele frequency change
+		extinds <- (thisout.ff['f2samp',stinds] - thisout.ff['f1samp',stinds]) <= delta + tol # simulations that also had as or more extreme allele frequency change (for delta <= 0)
 	}
 	
- 	# calculate p-value
- 	p <- sum(extinds)/sum(stinds)
+ 	# calculate p-value (see North et al. 2002 Am J Hum Gen for why the +1s)
+ 	p <- (sum(extinds)+1)/(sum(stinds)+1)
  
 	return(c(locusnum=locusnum, p=p, n=sum(stinds)))
 }

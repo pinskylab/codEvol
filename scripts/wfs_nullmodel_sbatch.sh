@@ -22,5 +22,6 @@ module purge   # clear any inherited modules
 set -o errexit # exit on errors
 module load R/3.3.2
 
-## Run the abc calculations
-Rscript scripts/wfs_nullmodel_function.r $1 $2 $3 $4 $5 $6 $7
+## Run the p-value calculations
+# Arguments: myalcnt1 myalcnt2 pop myyr1 myyr2 maxcores
+Rscript scripts/wfs_nullmodel_function.r $1 $2 $3 $4 $5 $6
