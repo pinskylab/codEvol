@@ -33,24 +33,24 @@ datCAN <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE)
 	genCAN=8 # for 1940 to contemporary. Guess 8 generations
 
 # read in 25kmer filter
-loc25NEA <- fread('data_2017.11.24/Norway_25K_mer_positions.txt')
-loc25CAN <- fread('data_2017.11.24/Canada_25K_mer_positions.txt')
-
-# trim to loci that meet 25kmer filter
-setkey(datNEA, CHROM, POS)
-setkey(datNEA11, CHROM, POS)
-setkey(datCAN, CHROM, POS)
-setkey(loc25NEA, CHROM, POS)
-setkey(loc25CAN, CHROM, POS)
-	nrow(datNEA)
-	nrow(datNEA11)
-	nrow(datCAN)
-datNEA <- datNEA[loc25NEA, nomatch=0] # nomatch=0 so that non-matching rows are dropped
-datNEA11 <- datNEA11[loc25NEA, nomatch=0] # nomatch=0 so that non-matching rows are dropped
-datCAN <- datCAN[loc25CAN, nomatch=0] # nomatch=0 so that non-matching rows are dropped
-	nrow(datNEA)
-	nrow(datNEA11)
-	nrow(datCAN)
+#loc25NEA <- fread('data_2017.11.24/Norway_25K_mer_positions.txt')
+#loc25CAN <- fread('data_2017.11.24/Canada_25K_mer_positions.txt')
+#
+## trim to loci that meet 25kmer filter
+#setkey(datNEA, CHROM, POS)
+#setkey(datNEA11, CHROM, POS)
+#setkey(datCAN, CHROM, POS)
+#setkey(loc25NEA, CHROM, POS)
+#setkey(loc25CAN, CHROM, POS)
+#	nrow(datNEA)
+#	nrow(datNEA11)
+#	nrow(datCAN)
+#datNEA <- datNEA[loc25NEA, nomatch=0] # nomatch=0 so that non-matching rows are dropped
+#datNEA11 <- datNEA11[loc25NEA, nomatch=0] # nomatch=0 so that non-matching rows are dropped
+#datCAN <- datCAN[loc25CAN, nomatch=0] # nomatch=0 so that non-matching rows are dropped
+#	nrow(datNEA)
+#	nrow(datNEA11)
+#	nrow(datCAN)
 	
 # trim out inversions and Unplaced
 datNEA <- datNEA[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
