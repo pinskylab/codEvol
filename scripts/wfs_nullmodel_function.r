@@ -57,10 +57,10 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 # load observed data
 if(pop == 'Lof'){
-	targfile <- paste('data_2017.09.22/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
+	targfile <- paste('data_2017.11.24/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
 }
 if(pop == 'Can'){
-	targfile <- paste('data_2017.09.22/Frequency_table_CAN_40_TGA.txt', sep='')
+	targfile <- paste('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 if(pop == 'Pow'){
 	targfile <- 'analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt'

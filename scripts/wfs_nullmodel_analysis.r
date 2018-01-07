@@ -9,45 +9,33 @@ require(data.table)
 
 # Choose one set to read in
 	# 1907-2014
-	# 25kmer
-locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof14_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_07-14_25k.rdata') # dat (has p-values)
-suffix <- '_07-14_25k'
-locnms11 <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); 
-setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
-
-	# 150kmer
-locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof14_150k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_07-14_150k.rdata') # dat
-suffix <- '_07-14_150k'
-locnms11 <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof11_150k.txt', header=TRUE); 
+locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_07-14.rdata') # dat (has p-values)
+suffix <- '_07-14'
+locnms11 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); 
 setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
 
 	# 1907-2011
-	# 25kmer
-locnms <- fread('data/data_29.06.17/Frequency_table_Lof07_Lof11_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_07-11_25k.rdata') # dat
-suffix <- '_07-11_25k'
+locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_07-11.rdata') # dat
+suffix <- '_07-11'
 
 	# 2011-2014
-	# 25kmer
-locnms <- fread('data/data_29.06.17/Frequency_table_Lof11_Lof14_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_11-14_25k.rdata') # dat
-suffix <- '_11-14_25k'
+locnms <- fread('data_2017.11.24/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_11-14.rdata') # dat
+suffix <- '_11-14'
 
 	# Canada
-	# 25kmer
-locnms <- fread('data/data_11.07.17/Frequency_table_Can_40_Can_25k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_Can_25k.rdata') # dat
-suffix <- '_Can_25k'
+locnms <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+load('analysis/wfs_nullmodel_pvals_Can.rdata') # dat. the p-values.
+kmer25 <- fread('data_2017.11.24/Canada_25K_mer_positions.txt') # the 25kmer mask
+suffix <- '_Can'
 
-	# 150kmer
-locnms <- fread('data/data_11.07.17/Frequency_table_Can_40_Can_150k.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_Can_150k.rdata') # dat
-suffix <- '_Can_150k'
+# Then continue here:
 
-# Then continue here
-
+# prep for merging
+locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting and merging
+dat <- as.data.table(dat)
 
 # make a nucleotide position for the whole genome
 chrmax <- locnms[,.(len=max(POS)), by=CHROM]
@@ -58,27 +46,37 @@ setkey(chrmax, CHROM)
 locnms <- locnms[chrmax[,.(CHROM, start)], ]
 locnms[,POSgen:=POS+start]
 
-# trim locus names to match rest of data (if needed)
+	# trim locus names to match rest of data (if needed)
 #locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),] # trim out inversions
-locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting and merging
 
 	# make sure it matches
 	nrow(dat)
 	nrow(locnms)
 
 
-# merge
-dat <- as.data.table(dat)
+	# merge
 dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DIFF)], by='locusnum')
 
+# merge in 25kmer mask marker
+kmer25[,kmer25 := 1] # add a flag
+dat <- merge(dat, kmer25, by=c('CHROM', 'POS'), all.x=TRUE)
+dat[is.na(kmer25), kmer25:=0] # set NAs to 0
+	nrow(dat)
+	dat[,sum(kmer25)]
+
 # re-order columns
-setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'pmax', 'p.adj'))
+setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'kmer25', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'p.adj'))
 
 # mask out loci with known mapping problems (only Lof 25kmer 2014)
 #dat[CHROM=='LG08' & POS >= 16344554 & POS <=16347801, c("p", "pmax") :=list(NA, NA)] # polymorphic repetitive region: heterozygous individuals have 2x the coverage
 
-# re-calculate p.adj (after masking)
-dat[,p.adj2 := p.adjust(pmax, method='fdr')]
+# re-calculate p.adj (after masking out inversions and unplaced)
+#dat[,p.adj2 := NULL]
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.adj2 := p.adjust(p, method='fdr')]
+
+# re-calculate p.adj (after masking out inversions, unplaced, and loci that fail the 25-kmer filter)
+#dat[,p.adj2 := NULL]
+dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.adj3 := p.adjust(p, method='fdr')]
 
 
 # write out a nice version
@@ -86,7 +84,8 @@ write.table(dat[,.(CHROM, POS, p.adj, p.adj2)], file=paste('analysis/wfs_nullmod
 
 # calculate a running mean -log10(p-value) (FDR-adjusted)
 stp = 1e5
-meanp <- data.frame(mids=seq(stp/2, max(dat$POSgen), by=stp), p=rep(NA, length(mids)), p.adj=rep(NA, length(mids))) # for mean of p and p-adj
+mids <- seq(stp/2, max(dat$POSgen), by=stp)
+meanp <- data.frame(mids=mids, p=rep(NA, length(mids)), p.adj=rep(NA, length(mids))) # for mean of p and p-adj
 nrow(meanp)
 for(j in 1:nrow(meanp)){ # takes a couple minutes
 	if(j %% 100 == 0) cat(j)
@@ -101,7 +100,7 @@ for(j in 1:nrow(meanp)){ # takes a couple minutes
 
 # number of unique p-values for a single sample size
 # Need a different sample size if using Can
-numps <- dat[cnt1==46 & cnt2==44 & !is.na(p),length(unique(p)), by=.(Freq_1, Freq_2)]
+numps <- dat[cnt1==42 & cnt2==48 & !is.na(p),length(unique(p)), by=.(Freq_1, Freq_2)]
 	summary(numps) # should all be 1
 
 # number of unique p-values for all sample sizes and starting and ending frequencies
@@ -122,15 +121,49 @@ unique(numps$nump) # should all be 1
 ## basic analysis
 ##################
 dat[,min(p, na.rm=TRUE)]
-dat[,min(pmax, na.rm=TRUE)]
 dat[,min(p.adj, na.rm=TRUE)]
 dat[,min(p.adj2, na.rm=TRUE)]
 
-# most diverged loci?
+	# with kmer25 trimming
+dat[kmer25==1,min(p, na.rm=TRUE)]
+dat[kmer25==1,min(p.adj, na.rm=TRUE)] # all loci
+dat[kmer25==1,min(p.adj2, na.rm=TRUE)] # fdr adjust only loci outside of inversions and unplaced
+dat[kmer25==1,min(p.adj3, na.rm=TRUE)] # only 25kmer loci that are outside of inversions and unplaced
+
+
+# most diverged loci? using p.adj
+#pthresh <- 0.1
+#pthresh <- 0.01
+#sum(selinds <- dat$p.adj <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
+#sum(dat$p.adj <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
+#sum(dat$p.adj <pthresh & dat$CHROM %in% c('Unplaced')) # on Unplaced
+#
+#	# with kmer25 trimming
+#sum(selinds <- dat$p.adj < pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & dat$kmer25==1, na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
+#sum(dat$p.adj <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12') & dat$kmer25==1) # within inversions
+#sum(dat$p.adj <pthresh & dat$CHROM %in% c('Unplaced') & dat$kmer25==1) # on Unplaced
+
+# most diverged loci? using p.adj2 (after inversions and outliers removed)
+pthresh <- 0.1
 pthresh <- 0.01
-sum(selinds <- dat$p.adj <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
-sum(dat$p.adj <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
-sum(dat$p.adj <pthresh & dat$CHROM %in% c('Unplaced')) # on Unplaced
+sum(selinds <- dat$p.adj2 <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
+sum(dat$p.adj2 <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
+sum(dat$p.adj2 <pthresh & dat$CHROM %in% c('Unplaced')) # on Unplaced
+
+	# with kmer25 trimming
+sum(selinds <- dat$p.adj2 < pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & dat$kmer25==1, na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
+sum(dat$p.adj2 <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12') & dat$kmer25==1) # within inversions
+sum(dat$p.adj2 <pthresh & dat$CHROM %in% c('Unplaced') & dat$kmer25==1) # on Unplaced
+
+
+# most diverged loci? using p.adj3
+#pthresh <- 0.2
+#sum(selinds <- dat$p.adj3 <pthresh & !(dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
+#sum(dat$p.adj3 <pthresh & dat$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')) # within inversions
+#sum(dat$p.adj3 <pthresh & dat$CHROM %in% c('Unplaced')) # on Unplaced
+
+
+
 
 dat[selinds,]
 summary(dat$ABS_DIFF[selinds])
@@ -148,6 +181,7 @@ dat[selinds, table(CHROM)]
 
 	selinds2 <- which(cands$ndist < 10000 & !is.na(cands$ndist)) # loci close to a previous locus
 	selinds2 <- unique(sort(c(selinds2, selinds2-1))) # add locus before
+	length(selinds2) # how many outlier loci that are in clusters
 
 	# label each cluster
 	indx <- 1
@@ -158,6 +192,9 @@ dat[selinds, table(CHROM)]
 			if(cands[i+1,ndist>=100000 | is.na(ndist)]) indx <- indx+1
 		}
 	}
+
+	cands[!is.na(cluster),length(unique(cluster))] # how many clusters?
+	cands[,table(cluster)]
 
 	cands[selinds2,] # the outlier loci nearby to other outlier loci
 	
@@ -171,7 +208,7 @@ dat[selinds, table(CHROM)]
 	locnms11[CHROM=='LG06' & POS >= 2780283 & POS <=2866691,] # same region in 1907-2011
 
 # write out
-write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, pmax, p.adj)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
+write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, p.adj, p.adj2)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
 
 #####################
 ## plots
@@ -197,7 +234,7 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 
 	# zoom in on low p-values
 	# png(width=5, height=4, filename='analysis/figures/wfs_nullmodel_hist_padjvals_zoom.png', units='in', res=300)
-	hist(dat$p.adj, col='grey', breaks=2000, xlim=c(0,0.5), ylim=c(0,20), main='FDR-corrected p-values under null model')
+	hist(dat$p.adj, col='grey', breaks=2000, xlim=c(0,0.1), ylim=c(0,600), main='FDR-corrected p-values under null model')
 
 	dev.off()
 	
@@ -213,21 +250,21 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 
 	# png(width=5, height=4, filename='analysis/figures/wfs_nullmodel_pvals_vs_abs_diff.png', units='in', res=300)
 #	plot(dat$ABS_DIFF, -log10(dat$pmax),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=rgb(0.1,0.1,0.1, 0.2)) # grey
-	plot(dat$ABS_DIFF, -log10(dat$pmax),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=colrmpfun(dat[,cntmn/49])) # colored by harmonic mean sample size
+	plot(dat$ABS_DIFF, -log10(dat$p),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=colrmpfun(dat[,cntmn/49])) # colored by harmonic mean sample size
 #	plot(dat$ABS_DIFF, -log10(dat$pmax),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=colrmpfun(dat[,cntmin/48])) # colored by min sample size
-	plot(dat$Freq_2 - dat$Freq_1, -log10(dat$pmax),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=colrmpfun(dat[,Freq_1])) # colored Freq_1
+	plot(dat$Freq_2 - dat$Freq_1, -log10(dat$p),type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=colrmpfun(dat[,Freq_1])) # colored Freq_1
 	
 	dev.off()
 
 	# just a single sample size
 	# png(width=5, height=4, filename='analysis/figures/wfs_nullmodel_pvals_vs_abs_diff_cnt46,44.png', units='in', res=300)
-	dat[cnt1==46 & cnt2==44, plot(ABS_DIFF, -log10(pmax), type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=rgb(0.1,0.1,0.1,0.1), main='null model analysis, ctn1=46, cnt2=44')] # not colored
-	dat[cnt1==46 & cnt2==44, plot(Freq_2-Freq_1, -log10(pmax), type='p', cex=0.2, xlab='Frequency change', ylab='-log10(pmax)', col=colrmpfun(Freq_1), main='null model analysis, ctn1=46, cnt2=44')] # colored by Freq_1
+	dat[cnt1==46 & cnt2==44, plot(ABS_DIFF, -log10(p), type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col=rgb(0.1,0.1,0.1,0.1), main='null model analysis, ctn1=46, cnt2=44')] # not colored
+	dat[cnt1==42 & cnt2==48, plot(Freq_2-Freq_1, -log10(p), type='p', cex=0.2, xlab='Frequency change', ylab='-log10(pmax)', col=colrmpfun(Freq_1), main='null model analysis, ctn1=46, cnt2=44')] # colored by Freq_1
 	dev.off()
 
 	# just a single sample size and starting frequency
-	dat[cnt1==46 & cnt2==44 & abs((Freq_2-Freq_1)-(7/46-9/44))<0.01, plot(Freq_2-Freq_1, -log10(pmax), type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col='red', main='null model analysis, ctn1=46, cnt2=44', ylim=c(0,3))]
-	dat[cnt1==46 & cnt2==44 & abs(Freq_1-6/46) < 0.01 & abs(Freq_2-2/44)<40/44, plot(Freq_2-Freq_1, -log10(pmax), type='p', cex=0.2, xlab='ABS_DIFF', ylab='-log10(p)', col='blue', main='null model analysis, ctn1=46, cnt2=44')]
+	dat[cnt1==42 & cnt2==48 & abs((Freq_2-Freq_1)-(7/46-9/44))<0.01, plot(Freq_2-Freq_1, -log10(p), type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col='red', main='null model analysis, ctn1=46, cnt2=44', ylim=c(0,3))]
+	dat[cnt1==42 & cnt2==48 & abs(Freq_1-6/46) < 0.01 & abs(Freq_2-2/44)<40/44, plot(Freq_2-Freq_1, -log10(pmax), type='p', cex=0.2, xlab='ABS_DIFF', ylab='-log10(p)', col='blue', main='null model analysis, ctn1=46, cnt2=44')]
 	dat[cnt1==46 & cnt2==44 & abs(Freq_1-0.3) < 0.01, points(ABS_DIFF, -log10(pmax), type='p', cex=0.2, xlab='Frequency change', ylab='-log10(p)', col='green', main='null model analysis, ctn1=46, cnt2=44')]
 
 # FDR p-values vs. abs_diff
@@ -249,9 +286,11 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 		text(0.025, 4.2, 'Freq_2', cex=0.8)
 
 
-# Freq_1 vs. Freq_2 with pmax
+# Freq_1 vs. Freq_2 with p
 	#cnt1=46;cnt2=44 # for Lof
 	ct1=32;ct2=40 # for Can
+	inds = dat$kmer25==1; suff2='_25kmer' # for trimming to 25-kmer
+#	inds = TRUE; suff2='' # for not trimming
 	
 	require(RColorBrewer)
 	colrmp <- colorRamp(brewer.pal(9, 'OrRd'))
@@ -262,8 +301,8 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 
 	# just a single sample size
 	quartz(width=6,height=6)
-	# png(width=5, height=4, filename=paste('analysis/figures/wfs_nullmodel_Freq_1_vs_Freq_2_w_pmax_cnt46,44', suffix, '.png', sep=''), units='in', res=300)
-	dat[cnt1==ct1 & cnt2==ct2, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(pmax)/6), main=paste('null model analysis, cnt1=', ct1, 'cnt2=', ct2, '\n', suffix), xlim=c(0,1), ylim=c(0,1))]
+	# png(width=5, height=5, filename=paste('figures/wfs_nullmodel_Freq_1_vs_Freq_2_w_pmax_cnt', ct1, ',', ct2, suffix, suff2, '.png', sep=''), units='in', res=300)
+	dat[inds & cnt1==ct1 & cnt2==ct2, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(p)/6), main=paste('null model analysis, cnt1=', ct1, 'cnt2=', ct2, '\n', suffix, suff2), xlim=c(0,1), ylim=c(0,1))]
 		# add a legend
 		points(rep(0,10), seq(0.6,0.8,length.out=10), col=colrmpfun(seq(0,1,length.out=10)), pch=16) 
 		text(rep(0.05,5), seq(0.6,0.8,length.out=5), labels=seq(0,6,length.out=5), cex=0.5)
@@ -273,6 +312,9 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 
 
 # Freq_1 vs. Freq_2 with p.adj
+	#cnt1=46;cnt2=44 # for Lof
+	ct1=32;ct2=40 # for Can
+
 	require(RColorBrewer)
 	colrmp <- colorRamp(brewer.pal(9, 'OrRd'))
 	colrmpfun <- function(x){
@@ -283,7 +325,7 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 	# just a single sample size
 	quartz(width=6,height=6)
 	# png(width=5, height=4, filename=paste('analysis/figures/wfs_nullmodel_Freq_1_vs_Freq_2_w_p.adj_cnt46,44', suffix, '.png', sep=''), units='in', res=300)
-	dat[cnt1==46 & cnt2==44, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(p.adj)/2), main='null model analysis, cnt1=46, cnt2=44')]
+	dat[cnt1==ct1 & cnt2==ct2, plot(Freq_1, Freq_2, type='p', cex=0.8, pch=16, xlab='Freq_1', ylab='Freq_2', col=colrmpfun(-log10(p.adj)/3), main=paste('null model analysis, cnt1=', ct1, 'cnt2=', ct2, '\n', suffix))]
 		# add a legend
 		points(rep(0,10), seq(0.6,0.8,length.out=10), col=colrmpfun(seq(0,1,length.out=10)), pch=16) 
 		text(rep(0.05,5), seq(0.6,0.8,length.out=5), labels=seq(0,2,length.out=5), cex=0.5)
@@ -294,18 +336,21 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 	
 # -log10(p) vs. genome position
 	quartz(width=8, height=6)
-	# png(width=8, height=6, file=paste('analysis/figures/wfs_nullmodel_p_vs_position', suffix, '.png', sep=''), res=300, units='in')
-	plot(dat$POSgen, -log10(dat$p),type='p', cex=0.2, xlab='Genome position', ylab='-log10(p)', col=rgb(0.1,0.1,0.1, 0.2))
+	# png(width=8, height=6, file=paste('figures/wfs_nullmodel_p_vs_position', suffix, '.png', sep=''), res=300, units='in')
+	plot(dat$POSgen, -log10(dat$p),type='p', cex=0.2, xlab='Genome position', ylab='-log10(p)', col=rgb(0.1,0.1,0.1, 0.2), ylim=c(-0.2,6))
 #		abline(h=-log10(0.0001), col='red', lty=2)
+
+		# add 25kmer loci outliers
+		dat[kmer25==1 & p.adj2<0.1,points(POSgen, -log10(p), cex=0.4, col='red')]
 
 		# add LG labels
 	col = 'red'
 	lgs <- sort(unique(dat[,CHROM]))
 	for(j in 1:length(lgs)){
 		rng <- range(dat[CHROM==lgs[j], POSgen])
-		if(j %% 2 == 0) lines(x=rng, y=c(0,0), col=col, lwd=2)
-		if(j %% 2 == 1) lines(x=rng, y=c(0.05,0.05), col=col, lwd=2)
-		text(x=mean(rng), y=0.1, labels=lgs[j], col=col, cex=0.5)
+		if(j %% 2 == 0) lines(x=rng, y=c(-0.1,-0.1), col=col, lwd=2)
+		if(j %% 2 == 1) lines(x=rng, y=c(-0.05,-0.05), col=col, lwd=2)
+		text(x=mean(rng), y=-0.18, labels=lgs[j], col=col, cex=0.5)
 	
 	}
 
@@ -318,7 +363,7 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 # -log10(p) vs. genome position (zoom)
 	quartz(width=8, height=6)
 	xlims=c(1.432e8, 1.439e8)
-	# png(width=8, height=6, file=paste('analysis/figures/wfs_nullmodel_p_vs_position_zoom', suffix, '.png', sep=''), res=300, units='in')
+	# png(width=8, height=6, file=paste('figures/wfs_nullmodel_p_vs_position_zoom', suffix, '.png', sep=''), res=300, units='in')
 	plot(dat$POSgen, -log10(dat$p),type='p', cex=0.2, xlab='Genome position', ylab='-log10(p)', col=rgb(0.1,0.1,0.1, 0.2), xlim=xlims)
 #		abline(h=-log10(0.0001), col='red', lty=2)
 
@@ -340,10 +385,9 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 # -log10(p.adj) vs. genome position
 	col='red'
 	quartz(width=8, height=6)
-	# png(width=8, height=6, file=paste('analysis/figures/wfs_nullmodel_padj_vs_position', suffix, '.png', sep=''), res=300, units='in')
+	# png(width=8, height=6, file=paste('figures/wfs_nullmodel_padj_vs_position', suffix, '.png', sep=''), res=300, units='in')
 	plot(dat$POSgen, -log10(dat$p.adj),type='p', cex=0.2, xlab='Genome position', ylab='-log10(FDR-adjusted p)', col=rgb(0.1,0.1,0.1, 0.2))
 		abline(h=-log10(0.05), col='red', lty=2)
-		abline(h=-log10(0.03), col='red', lty=3)
 
 		# add LG labels
 	lgs <- sort(unique(dat[,CHROM]))
@@ -362,28 +406,15 @@ write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, c
 
 
 
-# -log10(p.adj) vs. genome position (zoom)
+# -log10(p.adj) vs. genome position for one chromosome (zoom)
 	col='red'
 	quartz(width=8, height=6)
-	xlims <- c(2.135e8, 2.137e8) # LG08
-	xlims <- c(1.42e8, 1.44e8) # LG06
-	# png(width=8, height=6, file=paste('analysis/figures/wfs_nullmodel_padj_vs_position_zoomLG08', suffix, '.png', sep=''), res=300, units='in')
-	plot(dat$POSgen, -log10(dat$p.adj),type='p', cex=0.2, xlab='Genome position', ylab='-log10(FDR-adjusted p)', col=rgb(0.1,0.1,0.1, 0.2), xlim=xlims, main='Zoom in on outliers')
+	xlims <- c(00000, 22000000); chrom='LG19' # LG19
+	# png(width=8, height=6, file=paste('figures/wfs_nullmodel_padj_vs_position_zoomLG19', suffix, '.png', sep=''), res=300, units='in')
+	dat[CHROM==chrom, plot(POS,-log10(p.adj),type='p', cex=0.2, xlab='Genome position', ylab='-log10(FDR-adjusted p)', col=rgb(0.1,0.1,0.1, 0.8), xlim=xlims, main=paste('Zoom in on outliers on', chrom))]
 		abline(h=-log10(0.05), col='red', lty=2)
-		abline(h=-log10(0.03), col='red', lty=3)
 
-		# add LG labels
-	lgs <- sort(unique(dat[,CHROM]))
-	for(j in 1:length(lgs)){
-		rng <- range(dat[CHROM==lgs[j], POSgen])
-		if(j %% 2 == 0) lines(x=rng, y=c(0,0), col=col, lwd=2)
-		if(j %% 2 == 1) lines(x=rng, y=c(0.015,0.015), col=col, lwd=2)
-		text(x=mean(rng), y=0.03, labels=lgs[j], col=col, cex=0.5)
-	
-	}
-
-		# add mean p
-	lines(meanp$mids, meanp$p.adj, col='orange')
+	# harder to add meanp since based on POS rather than POSgen
 
 	dev.off()
 

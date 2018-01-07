@@ -8,18 +8,18 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 }
 
 # settings
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
-#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00'; kmer <- 25 # myyr are placeholders since only one set of years for Canada
+pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
 if(pop == 'Lof'){
-	targfile <- paste('data_2017.09.22/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
+	targfile <- paste('data_2017.11.24/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
 }
 if(pop == 'Can'){
-	targfile <- paste('data_2017.09.22/Frequency_table_CAN_40_TGA.txt', sep='')
+	targfile <- paste('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
@@ -29,13 +29,11 @@ targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 # how many loci at each sample size
 setkey(targ, alcnt1, alcnt2)
 nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2)]
-	nrow(nloci) # 1907-2014: 30 sample sizes
-				# 1907-2011: 
-				# 2011-2014: 
-				# Can: 		
+	nrow(nloci) # 1907-2011-2014: 
+				# Can: 90 sample sizes
 
 # sample sizes with >100 loci
-nloci[nloci>5000,]
+nloci[nloci>5000,] # Can: 60 sample sizes
 
 # check which sample sizes are already run
 nloci[,todo:=1] # set up a flag for which we should run
@@ -46,7 +44,12 @@ for(i in 1:nrow(nloci)){
 	myalcnt1 <- nloci[i,alcnt1]
 	myalcnt2 <- nloci[i,alcnt2]
 	
-	exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims
+	if(pop=='Lof'){
+		exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims
+	}
+	if(pop=='Can'){
+		exist <- file.exists(paste('analysis/temp/wfs_simsnullCAN_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims	
+	}
 
 	if(exist){
 		# find the chunk of loci of the specified sample size to operate on
