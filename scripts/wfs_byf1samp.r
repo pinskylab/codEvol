@@ -47,42 +47,10 @@ wfs_byf1samp <- function(f1samp=0.5, smin=-1, smax=1, c1=58, c2=48, gen=20, ne=1
 
 	f2samp <- rbinom(1,c2,f2)/c2 # second sample allele frequency
 
-	# calculate summary statistics (Foll et al. 2015 Molecular Ecology Resources)
-#	stats <- sumstats(f1samp, f2samp, c1, c2, gen)
 	
 	# return values
-#	out <- c(ne=thisne, f1=f1, s=s, gen=gen, f2=f2, f1samp=f1samp, f2samp=f2samp, fsdprime=stats[1], fsiprime=stats[2])
 	out <- c(ne=thisne, f1=f1, s=s, gen=gen, f2=f2, f1samp=f1samp, f2samp=f2samp)
 	return(out)
 }
 
 
-sumstats <- function(f1samp, f2samp, c1, c2, gen){
-
-	x <- min(f1samp, 1-f1samp) # minor allele frequency
-	y <- min(f2samp, 1-f2samp)
-	z <- (x+y)/2
-	if(z>0){ # as long as one MAF > 0
-		fs <- (x-y)^2/(z*(1-z))
-		nstar <- 2/(1/c1 + 1/c2) # harmonic mean sample size
-	
-		if(f1samp>f2samp){ # focal allele is decreasing
-			fsdprime <- (fs*(1-1/(2*nstar))-2/nstar)/(gen*(1+fs/4)*(1-1/c2))
-			fsiprime <- 0	
-		}
-		if(f1samp<f2samp){ # increasing
-			fsdprime <- 0
-			fsiprime <- (fs*(1-1/(2*nstar))-2/nstar)/(gen*(1+fs/4)*(1-1/c2))
-		}
-		if(f1samp==f2samp){ # staying the same
-			fsdprime <- (fs*(1-1/(2*nstar))-2/nstar)/(gen*(1+fs/4)*(1-1/c2))
-			fsiprime <- (fs*(1-1/(2*nstar))-2/nstar)/(gen*(1+fs/4)*(1-1/c2))
-		}
-	}
-	if(z==0){ # otherwise, z==0 and Fs is undefined
-		fsdprime <- NA
-		fsiprime <- NA
-	}
-
-	return(c(fsdprime=fsdprime, fsiprime=fsiprime))
-}
