@@ -17,7 +17,7 @@ nchrs <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE) # to fig
 setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 
 # parameters
-nsims <- 10000000
+nsims <- 100000
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_1] # the sample sizes to simulate (first sample)
 c2s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_2]
 	print(c1s)
