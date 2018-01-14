@@ -11,19 +11,32 @@ require(data.table)
 	# 1907-2014
 locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 load('analysis/wfs_nullmodel_pvals_07-14.rdata') # dat (has p-values)
-suffix <- '_07-14'
 locnms11 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); 
+kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
 setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
+suffix <- '_07-14'
 
 	# 1907-2011
 locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 load('analysis/wfs_nullmodel_pvals_07-11.rdata') # dat
+kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
 suffix <- '_07-11'
 
 	# 2011-2014
 locnms <- fread('data_2017.11.24/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 load('analysis/wfs_nullmodel_pvals_11-14.rdata') # dat
+kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
 suffix <- '_11-14'
+
+	# 1907-2011-2014
+locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+locnms2 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms2, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_3', 'Freq_3', 'ABS_DIFF2'))
+setkey(locnms, CHROM, POS, N_CHR_1, Freq_1)
+setkey(locnms2, CHROM, POS, N_CHR_1, Freq_1)
+locnms <- locnms[locnms2,]
+load('analysis/wfs_nullmodel_pvals_07-11-14.rdata') # dat
+kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
+suffix <- '_07-11-14'
 
 	# Canada
 locnms <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
@@ -55,7 +68,8 @@ locnms[,POSgen:=POS+start]
 
 
 	# merge
-dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DIFF)], by='locusnum')
+if(suffix != '_07-11-14') dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DIFF)], by='locusnum')
+if(suffix == '_07-11-14') dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, Freq_3, ABS_DIFF, ABS_DIFF2)], by='locusnum')
 
 # merge in 25kmer mask marker
 kmer25[,kmer25 := 1] # add a flag
@@ -65,7 +79,8 @@ dat[is.na(kmer25), kmer25:=0] # set NAs to 0
 	dat[,sum(kmer25)]
 
 # re-order columns
-setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'kmer25', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'p.adj'))
+if(suffix != '_07-11-14') setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'kmer25', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'p.adj'))
+if(suffix == '_07-11-14') setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'kmer25', 'n', 'cnt1', 'cnt2', 'cnt3', 'Freq_1', 'Freq_2', 'Freq_3', 'ABS_DIFF', 'ABS_DIFF2', 'p', 'p.adj'))
 
 # mask out loci with known mapping problems (only Lof 25kmer 2014)
 #dat[CHROM=='LG08' & POS >= 16344554 & POS <=16347801, c("p", "pmax") :=list(NA, NA)] # polymorphic repetitive region: heterozygous individuals have 2x the coverage
@@ -85,13 +100,14 @@ write.table(dat[,.(CHROM, POS, p.adj, p.adj2)], file=paste('analysis/wfs_nullmod
 # calculate a running mean -log10(p-value) (FDR-adjusted)
 stp = 1e5
 mids <- seq(stp/2, max(dat$POSgen), by=stp)
-meanp <- data.frame(mids=mids, p=rep(NA, length(mids)), p.adj=rep(NA, length(mids))) # for mean of p and p-adj
+meanp <- data.frame(mids=mids, p=rep(NA, length(mids)), p.adj=rep(NA, length(mids)), p.adj2=rep(NA, length(mids))) # for mean of p and p-adj
 nrow(meanp)
 for(j in 1:nrow(meanp)){ # takes a couple minutes
 	if(j %% 100 == 0) cat(j)
 	inds <- dat$POSgen >= (meanp$mids[j]-stp/2) & dat$POSgen < (meanp$mids[j]+stp/2)
 	meanp$p[j] <- mean(-log10(dat$p[inds]))
 	meanp$p.adj[j] <- mean(-log10(dat$p.adj[inds]))
+	meanp$p.adj2[j] <- mean(-log10(dat$p.adj2[inds]))
 }
 
 ######################
@@ -100,20 +116,33 @@ for(j in 1:nrow(meanp)){ # takes a couple minutes
 
 # number of unique p-values for a single sample size
 # Need a different sample size if using Can
-numps <- dat[cnt1==42 & cnt2==48 & !is.na(p),length(unique(p)), by=.(Freq_1, Freq_2)]
+if(suffix != '_07-11-14') numps <- dat[cnt1==42 & cnt2==48 & !is.na(p),length(unique(p)), by=.(Freq_1, Freq_2)]
+if(suffix == '_07-11-14') numps <- dat[cnt1==42 & cnt2==48 & cnt3==40 & !is.na(p),length(unique(p)), by=.(Freq_1, Freq_2, Freq_3)]
 	summary(numps) # should all be 1
 
 # number of unique p-values for all sample sizes and starting and ending frequencies
-cnts <- unique(dat[,.(cnt1, cnt2)], by=c('cnt1', 'cnt2'))
+if(suffix != '_07-11-14') cnts <- unique(dat[,.(cnt1, cnt2)], by=c('cnt1', 'cnt2'))
+if(suffix == '_07-11-14') cnts <- unique(dat[,.(cnt1, cnt2, cnt3)], by=c('cnt1', 'cnt2', 'cnt3'))
 
-numps <- dat[!is.na(p) & cnt1==cnts[1,cnt1] & cnt2==cnts[1,cnt2], .(nump=length(unique(p))), by=.(Freq_1, Freq_2)]
-numps[,':=' (cnt1=cnts[1,cnt1], cnt2=cnts[1,cnt2])]
+if(suffix != '_07-11-14'){
+	numps <- dat[!is.na(p) & cnt1==cnts[1,cnt1] & cnt2==cnts[1,cnt2], .(nump=length(unique(p))), by=.(Freq_1, Freq_2)]
+	numps[,':=' (cnt1=cnts[1,cnt1], cnt2=cnts[1,cnt2])]
+	for(i in 2:nrow(cnts)){
+		temp <- dat[!is.na(p) & cnt1==cnts[i,cnt1] & cnt2==cnts[i,cnt2], .(nump=length(unique(p))), by=.(Freq_1, Freq_2)]
+		temp[,':=' (cnt1=cnts[i,cnt1], cnt2=cnts[i,cnt2])]
+		numps <- rbind(numps, temp)
+	}
+} 
+if(suffix == '_07-11-14'){
+	numps <- dat[!is.na(p) & cnt1==cnts[1,cnt1] & cnt2==cnts[1,cnt2] & cnt3==cnts[1,cnt3], .(nump=length(unique(p))), by=.(Freq_1, Freq_2, Freq_3)]
+	numps[,':=' (cnt1=cnts[1,cnt1], cnt2=cnts[1,cnt2], cnt3=cnts[1,cnt3])]
+	for(i in 2:nrow(cnts)){
+		temp <- dat[!is.na(p) & cnt1==cnts[i,cnt1] & cnt2==cnts[i,cnt2] & cnt3==cnts[i,cnt3], .(nump=length(unique(p))), by=.(Freq_1, Freq_2, Freq_3)]
+		temp[,':=' (cnt1=cnts[i,cnt1], cnt2=cnts[i,cnt2], cnt3=cnts[i,cnt3])]
+		numps <- rbind(numps, temp)
+	}
+} 
 
-for(i in 2:nrow(cnts)){
-	temp <- dat[!is.na(p) & cnt1==cnts[i,cnt1] & cnt2==cnts[i,cnt2], .(nump=length(unique(p))), by=.(Freq_1, Freq_2)]
-	temp[,':=' (cnt1=cnts[i,cnt1], cnt2=cnts[i,cnt2])]
-	numps <- rbind(numps, temp)
-}
 
 unique(numps$nump) # should all be 1
 
@@ -197,7 +226,8 @@ dat[selinds, table(CHROM)]
 	cands[,table(cluster)]
 
 	cands[selinds2,] # the outlier loci nearby to other outlier loci
-	
+	cands[selinds2, .(CHROM, POS, cnt1, cnt2, cnt3, Freq_1, Freq_2, Freq_3, p, p.adj, p.adj2, ndist, cluster)][!(Freq_1 %in% c(0,1)),]
+
 	# examine all loci in a region
 		# LG08
 	dat[CHROM=='LG08' & POS >= 16344554 & POS <=16347801,]
@@ -208,7 +238,8 @@ dat[selinds, table(CHROM)]
 	locnms11[CHROM=='LG06' & POS >= 2780283 & POS <=2866691,] # same region in 1907-2011
 
 # write out
-write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, p.adj, p.adj2)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
+if(suffix != '_07-11-14') write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, p.adj, p.adj2)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
+if(suffix == '_07-11-14') write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, cnt3, Freq_1, Freq_2, Freq_3, ABS_DIFF, p, n, p.adj, p.adj2)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
 
 #####################
 ## plots
