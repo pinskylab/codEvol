@@ -89,7 +89,7 @@ cex=0.5
 
 # plot binned data
 quartz(width=3, height=3)
-# pdf(width=3, height=3, file='analysis/figures/ld_decay.pdf')
+# pdf(width=3, height=3, file='figures/ld_decay.pdf')
 par(mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
 bins[pop=='LOF_07',plot(distclass, r2ave, ylim=c(0,0.7), type='o', xlab='Distance (bp)', ylab='Average correlation (r2)', cex=cex, main='LD decay', log='x', col=cols[1])]
 bins[pop=='LOF_S_11',lines(distclass, r2ave, type='o', cex=cex, col=cols[2])]
