@@ -133,6 +133,20 @@ dat[kmer25==1 & dpFlag==1,sum(!is.na(cnt07) & !is.na(cntCan40))] # both
 
 dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(cnt07) & !is.na(cntCan40))] # both
 
+
+# do the same SNPs appear as outliers in both?
+ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),.N]
+nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),sum(pLof<1e-3)]
+nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pLof),sum(pCan<1e-3)]
+ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(pCan<1e-3 & pLof<1e-3)]
+nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
+nLof
+nCan
+ncomb # number in both
+nexp
+
+binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot)
+
 # examine combined p-values in various classes
 dat[,range(p.comb, na.rm=TRUE)]
 dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),range(p.comb, na.rm=TRUE)]
