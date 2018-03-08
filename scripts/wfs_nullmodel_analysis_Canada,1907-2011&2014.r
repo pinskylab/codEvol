@@ -103,14 +103,20 @@ dat[,dpFlag := dpLofFlag & dpCanFlag]
 
 dat[,p.comb := pchisq(-2 * sum(log(c(pLof, pCan))),df=2*2,lower=FALSE), by=1:nrow(dat)]
 
-# FDR-correct
+##################################
+# FDR-correct p-values
+##################################
+
+# FDR-correct each population separately
+# after masking out inversions and unplaced
+dat[kmer25==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.Lof.adj3 := p.adjust(pLof, method='fdr')] 
+dat[kmer25==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.Can.adj3 := p.adjust(pCan, method='fdr')]
+
+# For combined p-value
 dat[,p.comb.adj := p.adjust(p.comb, method='fdr')]
 dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.comb.adj2 := p.adjust(p.comb, method='fdr')] # after masking out inversions and unplaced
 dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.comb.adj3 := p.adjust(p.comb, method='fdr')] # after masking out inversions and unplaced
 
-# FDR-correct each population separately
-dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.Lof.adj3 := p.adjust(pLof, method='fdr')] # after masking out inversions and unplaced
-dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.Can.adj3 := p.adjust(pCan, method='fdr')] # after masking out inversions and unplaced
 
 
 #########################
@@ -133,9 +139,16 @@ dat[kmer25==1 & dpFlag==1,sum(!is.na(cnt07) & !is.na(cntCan40))] # both
 
 dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(cnt07) & !is.na(cntCan40))] # both
 
+# outliers in either
+dat[,sum(p.Lof.adj3 <= 0.2, na.rm=TRUE)]
+	dat[kmer25==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), hist(pLof)]
+	dat[p.Lof.adj3 <= 0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof, p.Lof.adj3)]
+dat[,sum(p.Can.adj3 <= 0.2, na.rm=TRUE)]
+	dat[kmer25==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), hist(pCan)]
+	dat[p.Can.adj3 <= 0.2, .(CHROM, POS, Freq_Can40, Freq_CanMod, pCan, p.Can.adj3)]
 
-# do the same SNPs appear as outliers in both?
-ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),.N]
+# do the same SNPs appear as outliers in both? p value approach
+ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan) & !is.na(pLof),.N]
 nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),sum(pLof<1e-3)]
 nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pLof),sum(pCan<1e-3)]
 ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(pCan<1e-3 & pLof<1e-3)]
@@ -145,7 +158,29 @@ nCan
 ncomb # number in both
 nexp
 
-binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot)
+dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<1e-3 & pLof<1e-3,.(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pCan, pLof)]
+
+binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations
+binom.test(x=5, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each cluster separately
+
+
+# do the same SNPs appear as outliers in both? FDR-corrected p value approach
+ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(p.Can.adj3) & !is.na(p.Lof.adj3),.N]
+nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(p.Can.adj3),sum(p.Lof.adj3<=0.55)]
+nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(p.Lof.adj3),sum(p.Can.adj3<=0.55)]
+ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(p.Can.adj3<=0.55 & p.Lof.adj3<=0.55)]
+nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
+nLof
+nCan
+ncomb # number in both
+nexp
+
+dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<1e-3 & pLof<1e-3,]
+
+binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each locus separately
+
+
+
 
 # examine combined p-values in various classes
 dat[,range(p.comb, na.rm=TRUE)]
@@ -239,6 +274,7 @@ dat[p.comb.adj3<0.2,]
 
 # mark outliers based on fdr-corrected p-values (not distance to other loci)
 # don't include the inversions or unplaced or those outside kmer25
+# EXPAND THIS: SINGLE POP OUTLIERS, OVERLAP IN SINGLE-POP OUTLIERS, NON-HISTORICAL 0/1 OUTLIERS, DEPTH FILTER
 	# combined 1907-2011 and 1907-2014
 dat[,outlier07_11_14_Can := 0]
 dat[p.comb.adj3<0.2, outlier07_11_14_Can := 1]
