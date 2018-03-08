@@ -98,6 +98,56 @@ dev.off()
 
 
 #################################
+# plot histograms of single-population p-values
+#################################
+require(RColorBrewer)
+cols <- brewer.pal(8, 'RdYlBu')
+bks <- seq(0,10,by=0.25)
+pch=16
+
+# histogram
+histCan <- dat[, hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histCan_25k <- dat[kmer25==1, hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histCan_25k_dp <- dat[kmer25==1 & dpCanFlag==1, hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histCan_25k_dp_chr <- dat[kmer25==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),  hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+
+histLof <- dat[, hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histLof_25k <- dat[kmer25==1, hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histLof_25k_dp <- dat[kmer25==1 & dpLofFlag==1, hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histLof_25k_dp_chr <- dat[kmer25==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),  hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+
+
+#hist_null <- hist(-log10(runif(1000000,0,1)), breaks=bks, plot=FALSE) # null model: uniform (resampling approach)
+null <- data.frame(mids=seq(0.125,10,by=0.25), density=NA) # null model: exact calculation of uniform expectation with log10 bins set by bks
+	for(i in 1:nrow(null)){
+		null$density[i] <- (10^(-bks[i]) - 10^(-bks[i+1]))/(bks[i+1]-bks[i])
+	}
+
+quartz(width=5, height=5)
+# pdf(width=5, height=5, file='figures/pLof_pCan_hist.pdf')
+par(las=1, cex.axis=0.8, tcl=-0.2, mgp=c(2.5,0.5, 0), mai=c(0.75, 0.75, 0.2, 0.1))
+
+with(histCan_25k_dp_chr, plot(mids, density/sum(density), type='o', col=cols[1], cex=0.5, xlab='-log10(p)', ylab='Proportion of loci', log='y', main='Null model p-values', ylim=c(1e-6, 1e-0), xlim=c(0,10), pch=pch))
+with(histLof_25k_dp_chr, lines(mids, density/sum(density), type='o', col=cols[8], cex=0.5, pch=pch))
+
+with(histCan_25k_dp, lines(mids, density/sum(density), type='o', col=cols[2], cex=0.5, pch=pch))
+with(histLof_25k_dp, lines(mids, density/sum(density), type='o', col=cols[7], cex=0.5, pch=pch))
+
+with(histCan_25k, lines(mids, density/sum(density), type='o', col=cols[3], cex=0.5, pch=pch))
+with(histLof_25k, lines(mids, density/sum(density), type='o', col=cols[6], cex=0.5, pch=pch))
+
+with(histCan, lines(mids, density/sum(density), type='o', col=cols[4], cex=0.5, pch=pch))
+with(histLof, lines(mids, density/sum(density), type='o', col=cols[5], cex=0.5, pch=pch))
+
+with(null, lines(mids, density/sum(density), type='o', col='light grey', cex=0.5, pch=4))
+
+legend('topright', legend=c('Can pass k,dp,chr', 'Can pass k,dp', 'Can pass k', 'Can all', 'null', 'Lof pass k,dp,chr', 'Lof pass k,dp', 'Lof pass k', 'Lof all'), lwd=1, pch=c(rep(16,4),4, rep(16,4)), col=c(cols[1:4], 'light grey', cols[8:5]), cex=0.7, bty='n', ncol=2)
+
+
+dev.off()
+
+
+#################################
 # plot histograms of combined p-values
 #################################
 require(RColorBrewer)
