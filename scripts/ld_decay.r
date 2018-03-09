@@ -9,7 +9,7 @@ require(RColorBrewer)
 # calculate LD decay
 ######################
 
-# read in data
+# read in data on cod node
 dat14 <- fread('zcat analysis/LOF_S_14.geno.ld')
 dat11 <- fread('zcat analysis/LOF_S_11.geno.ld')
 dat07 <- fread('zcat analysis/LOF_07.geno.ld')
