@@ -188,20 +188,3 @@ legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada', '25k', '
 
 
 dev.off()
-
-
-###################################
-# plot correlations among regions
-###################################
-	# 07-11 and 07-14
-dat11_14[,plot(ABS_DIFF_0711, ABS_DIFF_0714, col=rgb(0,0,0,0.5), pch=16, cex=0.3)]
-	dat11_14[,cor.test(ABS_DIFF_0711, ABS_DIFF_0714)]
-
-	# CAN and 07-14
-datCAN_14[,plot(ABS_DIFF_40TGA, ABS_DIFF_0714, col=rgb(0,0,0,0.5), pch=16, cex=0.3)]
-	datCAN_14[,cor.test(ABS_DIFF_40TGA, ABS_DIFF_0714)]
-
-	datCAN_14[ABS_DIFF_40TGA>0.3 & ABS_DIFF_0714>0.3,]
-	
-	# all 3 comparisons
-	datCAN_11_14[ABS_DIFF_40TGA>0.3 & ABS_DIFF_0711>0.3 & ABS_DIFF_0714>0.3,]
