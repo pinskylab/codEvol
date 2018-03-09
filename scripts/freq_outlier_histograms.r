@@ -101,24 +101,37 @@ dev.off()
 # plot histograms of single-population p-values
 #################################
 require(RColorBrewer)
-cols <- brewer.pal(8, 'RdYlBu')
+cols <- brewer.pal(9, 'Set1')
 bks <- seq(0,10,by=0.25)
-pch=16
+pchs=c(1,16)
+cex=0.7
 
 # histogram
 histCan <- dat[, hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
 histCan_25k <- dat[kmer25==1, hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
 histCan_25k_dp <- dat[kmer25==1 & dpCanFlag==1, hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histCan_25k_dp_nunpl <- dat[kmer25==1 & dpCanFlag==1 & !(CHROM %in% c('Unplaced')),  hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and unplaced filter
 histCan_25k_dp_chr <- dat[kmer25==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),  hist(-log10(pCan), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+
+histCan_n25k <- dat[kmer25==0, hist(-log10(pCan), breaks=bks, plot=FALSE)] # fail 25kmer filter
+histCan_ndp <- dat[dpCanFlag==0, hist(-log10(pCan), breaks=bks, plot=FALSE)] # fail depth filter
+histCan_25k_dp_unpl <- dat[kmer25==1 & dpCanFlag==1 & CHROM %in% c('Unplaced'), hist(-log10(pCan), breaks=bks, plot=FALSE)] # unplaced
+histCan_25k_dp_inv <- dat[kmer25==1 & dpCanFlag==1 & CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12'), hist(-log10(pCan), breaks=bks, plot=FALSE)] # inversions but pass kmer and depth filters
 
 histLof <- dat[, hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
 histLof_25k <- dat[kmer25==1, hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
 histLof_25k_dp <- dat[kmer25==1 & dpLofFlag==1, hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+histLof_25k_dp_nunpl <- dat[kmer25==1 & dpLofFlag==1 & !(CHROM %in% c('Unplaced')),  hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and unplaced filter
 histLof_25k_dp_chr <- dat[kmer25==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),  hist(-log10(pLof), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+
+histLof_n25k <- dat[kmer25==0, hist(-log10(pLof), breaks=bks, plot=FALSE)] # fail 25kmer filter
+histLof_ndp <- dat[dpLofFlag==0, hist(-log10(pLof), breaks=bks, plot=FALSE)] # fail depth filter
+histLof_25k_dp_unpl <- dat[kmer25==1 & dpLofFlag==1 & CHROM %in% c('Unplaced'), hist(-log10(pLof), breaks=bks, plot=FALSE)] # unplaced
+histLof_25k_dp_inv <- dat[kmer25==1 & dpLofFlag==1 & CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12'), hist(-log10(pLof), breaks=bks, plot=FALSE)] # inversions but pass kmer and depth filters
 
 
 #hist_null <- hist(-log10(runif(1000000,0,1)), breaks=bks, plot=FALSE) # null model: uniform (resampling approach)
-null <- data.frame(mids=seq(0.125,10,by=0.25), density=NA) # null model: exact calculation of uniform expectation with log10 bins set by bks
+null <- data.frame(mids=seq((bks[2]-bks[1])/2,10,by=bks[2]-bks[1]), density=NA) # null model: exact calculation of uniform expectation with log10 bins set by bks
 	for(i in 1:nrow(null)){
 		null$density[i] <- (10^(-bks[i]) - 10^(-bks[i+1]))/(bks[i+1]-bks[i])
 	}
@@ -127,21 +140,29 @@ quartz(width=5, height=5)
 # pdf(width=5, height=5, file='figures/pLof_pCan_hist.pdf')
 par(las=1, cex.axis=0.8, tcl=-0.2, mgp=c(2.5,0.5, 0), mai=c(0.75, 0.75, 0.2, 0.1))
 
-with(histCan_25k_dp_chr, plot(mids, density/sum(density), type='o', col=cols[1], cex=0.5, xlab='-log10(p)', ylab='Proportion of loci', log='y', main='Null model p-values', ylim=c(1e-6, 1e-0), xlim=c(0,10), pch=pch))
-with(histLof_25k_dp_chr, lines(mids, density/sum(density), type='o', col=cols[8], cex=0.5, pch=pch))
+with(histCan_25k_dp_chr, plot(mids, density/sum(density), type='o', col=cols[1], cex=cex, xlab='-log10(p)', ylab='Proportion of loci', log='y', main='WFS Drift-only model p-values', ylim=c(1e-6, 1e-0), xlim=c(0,6), pch=pchs[1]))
+with(histCan_25k_dp_nunpl, lines(mids, density/sum(density), type='o', col=cols[2], cex=cex, pch=pchs[1]))
+with(histCan_25k_dp, lines(mids, density/sum(density), type='o', col=cols[3], cex=cex, pch=pchs[1])) # right over 25k_dp_nunpl
+with(histCan_25k, lines(mids, density/sum(density), type='o', col=cols[4], cex=cex, pch=pchs[1]))
+with(histCan, lines(mids, density/sum(density), type='o', col=cols[5], cex=cex, pch=pchs[1]))
+with(histCan_n25k, lines(mids, density/sum(density), type='o', col=cols[6], cex=cex, pch=pchs[1]))
+with(histCan_ndp, lines(mids, density/sum(density), type='o', col=cols[7], cex=cex, pch=pchs[1])) # right over n25k
+with(histCan_25k_dp_unpl, lines(mids, density/sum(density), type='o', col=cols[8], cex=cex, pch=pchs[1])) # no outliers or low p-values
+with(histCan_25k_dp_inv, lines(mids, density/sum(density), type='o', col=cols[9], cex=cex, pch=pchs[1]))
 
-with(histCan_25k_dp, lines(mids, density/sum(density), type='o', col=cols[2], cex=0.5, pch=pch))
-with(histLof_25k_dp, lines(mids, density/sum(density), type='o', col=cols[7], cex=0.5, pch=pch))
+with(histLof_25k_dp_chr, lines(mids, density/sum(density), type='o', col=cols[1], cex=cex, pch=pchs[2]))
+with(histLof_25k_dp_nunpl, lines(mids, density/sum(density), type='o', col=cols[2], cex=cex, pch=pchs[2]))
+with(histLof_25k_dp, lines(mids, density/sum(density), type='o', col=cols[3], cex=cex, pch=pchs[2]))
+with(histLof_25k, lines(mids, density/sum(density), type='o', col=cols[4], cex=cex, pch=pchs[2]))
+with(histLof, lines(mids, density/sum(density), type='o', col=cols[5], cex=cex, pch=pchs[2]))
+with(histLof_n25k, lines(mids, density/sum(density), type='o', col=cols[6], cex=cex, pch=pchs[2]))
+with(histLof_ndp, lines(mids, density/sum(density), type='o', col=cols[7], cex=cex, pch=pchs[2]))
+with(histLof_25k_dp_unpl, lines(mids, density/sum(density), type='o', col=cols[8], cex=cex, pch=pchs[2]))
+with(histLof_25k_dp_inv, lines(mids, density/sum(density), type='o', col=cols[9], cex=cex, pch=pchs[2]))
 
-with(histCan_25k, lines(mids, density/sum(density), type='o', col=cols[3], cex=0.5, pch=pch))
-with(histLof_25k, lines(mids, density/sum(density), type='o', col=cols[6], cex=0.5, pch=pch))
+with(null, lines(mids, density/sum(density), type='o', col='light grey', cex=cex, pch=4))
 
-with(histCan, lines(mids, density/sum(density), type='o', col=cols[4], cex=0.5, pch=pch))
-with(histLof, lines(mids, density/sum(density), type='o', col=cols[5], cex=0.5, pch=pch))
-
-with(null, lines(mids, density/sum(density), type='o', col='light grey', cex=0.5, pch=4))
-
-legend('topright', legend=c('Can pass k,dp,chr', 'Can pass k,dp', 'Can pass k', 'Can all', 'null', 'Lof pass k,dp,chr', 'Lof pass k,dp', 'Lof pass k', 'Lof all'), lwd=1, pch=c(rep(16,4),4, rep(16,4)), col=c(cols[1:4], 'light grey', cols[8:5]), cex=0.7, bty='n', ncol=2)
+legend('topright', legend=c('pass k,dp,unpl,inv', 'pass k,dp,unpl', 'pass k,dp', 'pass k', 'all', 'fail k', 'fail dp', 'unplaced pass k,dp', 'inversions pass k,dp', 'null', 'Can', 'Lof'), lwd=1, pch=c(rep(16,9),4, pchs), col=c(cols, 'light grey', 'black', 'black'), cex=0.7, bty='n', ncol=2)
 
 
 dev.off()
@@ -159,19 +180,19 @@ hist_allk <- dat[, hist(-log10(p.comb), breaks=bks, plot=FALSE)] # all loci
 
 hist_25k <- dat[kmer25==1, hist(-log10(p.comb), breaks=bks, plot=FALSE)] # 25kmer filter
 
-hist_25k_dp <- dat[kmer25==1 & dpLofFlag==1, hist(-log10(p.comb), breaks=bks, plot=FALSE)] # 25kmer and depth filter
+hist_25k_dp <- dat[kmer25==1 & dpFlag==1, hist(-log10(p.comb), breaks=bks, plot=FALSE)] # 25kmer and depth filter
 
-hist_25k_dp_chr <- dat[kmer25==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),  hist(-log10(p.comb), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
+hist_25k_dp_chr <- dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),  hist(-log10(p.comb), breaks=bks, plot=FALSE)] # 25kmer, depth, and chromosome filter
 
 hist_n25k <- dat[kmer25==0, hist(-log10(p.comb), breaks=bks, plot=FALSE)] # fail 25kmer filter
 
-hist_ndp <- dat[dpLofFlag==0, hist(-log10(p.comb), breaks=bks, plot=FALSE)] # fail depth filter
+hist_ndp <- dat[dpFlag==0, hist(-log10(p.comb), breaks=bks, plot=FALSE)] # fail depth filter
 
 hist_nchr <- dat[CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced'), hist(-log10(p.comb), breaks=bks, plot=FALSE)] # fail chromosome filter
 hist_unpl <- dat[CHROM %in% c('Unplaced'), hist(-log10(p.comb), breaks=bks, plot=FALSE)] # unplaced
 hist_inv <- dat[CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12'), hist(-log10(p.comb), breaks=bks, plot=FALSE)] # inversions
 
-hist_25k_dp_inv <- dat[kmer25==1 & dpLofFlag==1 &CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12'), hist(-log10(p.comb), breaks=bks, plot=FALSE)] # inversions but pass kmer and depth filters
+hist_25k_dp_inv <- dat[kmer25==1 & dpFlag==1 &CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12'), hist(-log10(p.comb), breaks=bks, plot=FALSE)] # inversions but pass kmer and depth filters
 
 #hist_null <- hist(-log10(runif(1000000,0,1)), breaks=bks, plot=FALSE) # null model: uniform (resampling approach)
 null <- data.frame(mids=seq(0.125,10,by=0.25), density=NA) # null model: exact calculation of uniform expectation with log10 bins set by bks
