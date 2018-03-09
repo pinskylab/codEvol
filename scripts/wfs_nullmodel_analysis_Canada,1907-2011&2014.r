@@ -272,20 +272,36 @@ dat[, sum(p.comb.adj3 < 0.001, na.rm=TRUE)]
 dat[p.comb.adj3<0.2,]
 
 
-# mark outliers based on fdr-corrected p-values (not distance to other loci)
-# don't include the inversions or unplaced or those outside kmer25
-# EXPAND THIS: SINGLE POP OUTLIERS, OVERLAP IN SINGLE-POP OUTLIERS, NON-HISTORICAL 0/1 OUTLIERS, DEPTH FILTER
-	# combined 1907-2011 and 1907-2014
-dat[,outlier07_11_14_Can := 0]
-dat[p.comb.adj3<0.2, outlier07_11_14_Can := 1]
-	dat[,sum(outlier07_11_14_Can, na.rm=TRUE)]
-
-
 # plot outliers based on allele frequency change in both populations
 par(mfrow=c(1,2))
-dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),][sample(.N,5000), plot(abs((Freq_11 +Freq_14)/2 - Freq_07), abs(Freq_CanMod - Freq_Can40), main='all that pass filters\n(sample of 5000)', xlim=c(0,0.5), ylim=c(0,0.5))]
+dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),][sample(.N,10000), plot(abs((Freq_11 +Freq_14)/2 - Freq_07), abs(Freq_CanMod - Freq_Can40), main='all that pass filters\n(sample of 5000)', xlim=c(0,0.5), ylim=c(0,0.5), col=rgb(0,0,0,0.2), cex=0.5)]
 dat[p.comb.adj3<0.2 & kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), plot(abs((Freq_11 +Freq_14)/2 - Freq_07), abs(Freq_CanMod - Freq_Can40), main='outliers p.comb.adj2<0.05', xlim=c(0,0.5), ylim=c(0,0.5))]
 
+
+##################
+# mark outliers
+##################
+
+# fdr-corrected p-values (not distance to other loci)
+# don't include the inversions or unplaced or those outside kmer25 or that fail depth filter
+	# combined 1907-2011 and 1907-2014 and Can
+dat[,outlierLof_Can_q02 := 0]
+dat[p.comb.adj3<0.2, outlierLof_Can_q02 := 1]
+	dat[,sum(outlierLof_Can_q02, na.rm=TRUE)]
+
+# fdr-corrected p-values in each pop
+dat[,outlierLof_q02 := 0]
+dat[p.Lof.adj3<0.2, outlierLof_q02 := 1]
+	dat[,sum(outlierLof_q02, na.rm=TRUE)]
+
+dat[,outlierCan_q02 := 0]
+dat[p.Can.adj3<0.2, outlierCan_q02 := 1]
+	dat[,sum(outlierCan_q02, na.rm=TRUE)]
+
+# loci with low p-values in both populations
+dat[,outlierLofandCan_p0001 := 0]
+dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pLof<0.001 & pCan<0.001, outlierLofandCan_p0001 := 1]
+	dat[,sum(outlierLofandCan_p0001, na.rm=TRUE)]
 
 # write out tab-separated for Bastiaan
 outfile <- paste('analysis/wfs_nullmodel_outliers_07-11-14_Can_', kmer, 'k.tsv.gz', sep='')
