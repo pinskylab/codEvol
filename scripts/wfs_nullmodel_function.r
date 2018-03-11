@@ -39,7 +39,7 @@ if(!(myyr2 %in% c('11', '14', '1114')) & pop == 'Lof'){
 	stop('myyr2 must be one of 11, 14, or 1114 if pop is Lof', call.=FALSE)
 }
 
-if(myyr2 != '1114' & !is.null(myalcnt3)){
+if(myyr2 != '1114' & exists("myalcnt3")){
 	stop('Specifying myalcnt3 only makes sense if myyr2 is 1114 (all 3 years)')
 }
 
