@@ -9,10 +9,10 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load data
-#targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
+targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
 #targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); suffix='_07-11' # Lof 1907-2011
 #targ <- fread('data_2017.11.24/Frequency_table_Lof11_Lof14.txt', header=TRUE); suffix='_11-14' # Lof 2011-2014
-targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); targ2 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-11-14' # Lof 1907-2011-2014
+#targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); targ2 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-11-14' # Lof 1907-2011-2014
 #targ <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE); suffix='_Can' # Can
 #targ <- fread('analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt', header=TRUE); suffix='_Power_Lof_Ne46000_cnt46_44' # Lof power analysis
 #targ <- fread('analysis/Frequency_table_PowerSims_Can_Ne5900_cnt32_40.txt', header=TRUE); suffix='_Power_Can_Ne5900_cnt32_40' # Can power analysis
@@ -35,7 +35,7 @@ if(suffix == '_07-11-14'){
 	setkey(targ, alcnt1, alcnt2, alcnt3)
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
-	nrow(nloci) # 1907-2014: 30
+	nrow(nloci) # 1907-2014: 120
 				# 1907-2011: 
 				# 2011-2014: 
 				# 1907-2011-2014: 1145

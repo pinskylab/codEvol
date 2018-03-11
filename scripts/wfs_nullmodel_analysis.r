@@ -9,40 +9,40 @@ require(data.table)
 
 # Choose one set to read in
 	# 1907-2014
-locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_07-14.rdata') # dat (has p-values)
-locnms11 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); 
-kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
-setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
-suffix <- '_07-14'
+	locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+	load('analysis/wfs_nullmodel_pvals_07-14.rdata') # dat (has p-values)
+	locnms11 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); 
+	kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
+	setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
+	suffix <- '_07-14'
 
 	# 1907-2011
-locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_07-11.rdata') # dat
-kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
-suffix <- '_07-11'
+	locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+	load('analysis/wfs_nullmodel_pvals_07-11.rdata') # dat
+	kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
+	suffix <- '_07-11'
 
 	# 2011-2014
-locnms <- fread('data_2017.11.24/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_11-14.rdata') # dat
-kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
-suffix <- '_11-14'
+	locnms <- fread('data_2017.11.24/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+	load('analysis/wfs_nullmodel_pvals_11-14.rdata') # dat
+	kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
+	suffix <- '_11-14'
 
 	# 1907-2011-2014
-locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-locnms2 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms2, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_3', 'Freq_3', 'ABS_DIFF2'))
-setkey(locnms, CHROM, POS, N_CHR_1, Freq_1)
-setkey(locnms2, CHROM, POS, N_CHR_1, Freq_1)
-locnms <- locnms[locnms2,]
-load('analysis/wfs_nullmodel_pvals_07-11-14.rdata') # dat
-kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
-suffix <- '_07-11-14'
+	locnms <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+	locnms2 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms2, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_3', 'Freq_3', 'ABS_DIFF2'))
+	setkey(locnms, CHROM, POS, N_CHR_1, Freq_1)
+	setkey(locnms2, CHROM, POS, N_CHR_1, Freq_1)
+	locnms <- locnms[locnms2,]
+	load('analysis/wfs_nullmodel_pvals_07-11-14.rdata') # dat
+	kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask
+	suffix <- '_07-11-14'
 
 	# Canada
-locnms <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_Can.rdata') # dat. the p-values.
-kmer25 <- fread('data_2017.11.24/Canada_25K_mer_positions.txt') # the 25kmer mask
-suffix <- '_Can'
+	locnms <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+	load('analysis/wfs_nullmodel_pvals_Can.rdata') # dat. the p-values.
+	kmer25 <- fread('data_2017.11.24/Canada_25K_mer_positions.txt') # the 25kmer mask
+	suffix <- '_Can'
 
 # Then continue here:
 
@@ -152,6 +152,7 @@ unique(numps$nump) # should all be 1
 dat[,min(p, na.rm=TRUE)]
 dat[,min(p.adj, na.rm=TRUE)]
 dat[,min(p.adj2, na.rm=TRUE)]
+dat[,min(p.adj3, na.rm=TRUE)]
 
 	# with kmer25 trimming
 dat[kmer25==1,min(p, na.rm=TRUE)]
