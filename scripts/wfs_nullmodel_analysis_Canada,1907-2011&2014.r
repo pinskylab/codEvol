@@ -43,16 +43,21 @@ locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting and merging
 setkey(datLof, CHROM, POS)
 setkey(datCan, CHROM, POS)
 dat <- merge(datCan, datLof, all=TRUE)[, .(CHROM, POS, cnt07, cnt11, cnt14, cntCan40, cntCanMod, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof, pCan)]
+
+	# make sure the merge worked
 	nrow(dat)
 	nrow(datLof)
+	dat[,.(sum(!is.na(Freq_07)), sum(!is.na(Freq_11)), sum(!is.na(Freq_14)))] # should match nrow(datLof)
 	nrow(datCan)
+	dat[,.(sum(!is.na(Freq_Can40)), sum(!is.na(Freq_CanMod)))] # should match nrow(datCan)
+	dat[,sum(!is.na(Freq_07) & !is.na(Freq_Can40))] # genotyped in both
 	
 ################
 # add kmer25
 ################
 kmer='25' # flag for file names
 
-kmer25Lof <- fread('data_2017.11.24/Norway_25K_mer_positions.txt')
+kmer25Lof <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # loci that pass ther kmer25 mapping filter
 kmer25Can <- fread('data_2017.11.24/Canada_25K_mer_positions.txt')
 
 setkey(kmer25Lof, CHROM, POS)
@@ -62,11 +67,16 @@ kmer25 <- merge(kmer25Lof, kmer25Can, all=TRUE) # merge and keep all
 	nrow(kmer25Can)
 	nrow(kmer25)
 
-kmer25[,kmer25 := 1] # add a flag
+kmer25[,kmer25 := 1] # add a flag for loci that pass kmer25 filter
 dat <- merge(dat, kmer25, by=c('CHROM', 'POS'), all.x=TRUE)
 dat[is.na(kmer25), kmer25:=0] # set NAs to 0
+
+	# make sure the merge worked
 	nrow(dat)
-	dat[,sum(kmer25)]
+	dat[,sum(kmer25)] == nrow(kmer25) # should match
+	dat[!is.na(Freq_07), sum(kmer25)] == nrow(kmer25Lof)
+	dat[!is.na(Freq_Can40), sum(kmer25)] == nrow(kmer25Can)
+	dat[!is.na(Freq_07) & !is.na(Freq_Can40),sum(kmer25)]
 
 #########################
 # add depth statistic
@@ -83,10 +93,10 @@ depthstat <- merge(dpLof, dpCan, all=TRUE)
 dat <- merge(dat, depthstat, by=c('CHROM', 'POS'), all.x=TRUE)
 	nrow(dat)
 
-dat[,dpLofFlag := dpstatLof < quantile(dpstatLof, na.rm=TRUE, probs=0.95)]
-	dat[is.na(dpLofFlag), dpLofFlag := FALSE]
+dat[,dpLofFlag := dpstatLof < quantile(dpstatLof, na.rm=TRUE, probs=0.95)] # TRUE if not a depth outlier (outlier are top 5%)
+	dat[is.na(dpLofFlag), dpLofFlag := FALSE] # FALSE if locus not genotyped
 dat[,dpCanFlag := dpstatCan < quantile(dpstatCan, na.rm=TRUE, probs=0.95)]
-	dat[is.na(dpCanFlag), dpCanFlag := FALSE]
+	dat[is.na(dpCanFlag), dpCanFlag := FALSE] 
 
 	dat[,sum(dpLofFlag)]
 	dat[,sum(dpLofFlag)]/dat[,sum(!is.na(dpstatLof))] # should be 0.95
@@ -117,6 +127,40 @@ dat[,p.comb.adj := p.adjust(p.comb, method='fdr')]
 dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.comb.adj2 := p.adjust(p.comb, method='fdr')] # after masking out inversions and unplaced
 dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.comb.adj3 := p.adjust(p.comb, method='fdr')] # after masking out inversions and unplaced
 
+
+##################
+# mark outliers
+##################
+
+# fdr-corrected p-values (not distance to other loci)
+# don't include the inversions or unplaced or those outside kmer25 or that fail depth filter
+	# combined 1907-2011 and 1907-2014 and Can
+dat[,outlierLof_Can_q02 := 0]
+dat[p.comb.adj3<0.2, outlierLof_Can_q02 := 1]
+	dat[,sum(outlierLof_Can_q02, na.rm=TRUE)]
+
+# fdr-corrected p-values in each pop
+dat[,outlierLof_q02 := 0]
+dat[p.Lof.adj3<0.2, outlierLof_q02 := 1]
+	dat[,sum(outlierLof_q02, na.rm=TRUE)]
+
+dat[,outlierCan_q02 := 0]
+dat[p.Can.adj3<0.2, outlierCan_q02 := 1]
+	dat[,sum(outlierCan_q02, na.rm=TRUE)]
+
+# loci with low p-values in both populations
+dat[,outlierLofandCan_p0001 := 0]
+dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pLof<0.001 & pCan<0.001, outlierLofandCan_p0001 := 1]
+	dat[,sum(outlierLofandCan_p0001, na.rm=TRUE)]
+
+
+#############
+# write out
+#############
+# write out tab-separated so Bastiaan can read easily
+outfile <- paste('analysis/wfs_nullmodel_outliers_07-11-14_Can_', kmer, 'k.tsv.gz', sep='')
+outfile
+write.table(dat, file=gzfile(outfile), sep='\t', row.names=FALSE, quote=FALSE)
 
 
 #########################
@@ -276,34 +320,3 @@ dat[p.comb.adj3<0.2,]
 par(mfrow=c(1,2))
 dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),][sample(.N,10000), plot(abs((Freq_11 +Freq_14)/2 - Freq_07), abs(Freq_CanMod - Freq_Can40), main='all that pass filters\n(sample of 5000)', xlim=c(0,0.5), ylim=c(0,0.5), col=rgb(0,0,0,0.2), cex=0.5)]
 dat[p.comb.adj3<0.2 & kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), plot(abs((Freq_11 +Freq_14)/2 - Freq_07), abs(Freq_CanMod - Freq_Can40), main='outliers p.comb.adj2<0.05', xlim=c(0,0.5), ylim=c(0,0.5))]
-
-
-##################
-# mark outliers
-##################
-
-# fdr-corrected p-values (not distance to other loci)
-# don't include the inversions or unplaced or those outside kmer25 or that fail depth filter
-	# combined 1907-2011 and 1907-2014 and Can
-dat[,outlierLof_Can_q02 := 0]
-dat[p.comb.adj3<0.2, outlierLof_Can_q02 := 1]
-	dat[,sum(outlierLof_Can_q02, na.rm=TRUE)]
-
-# fdr-corrected p-values in each pop
-dat[,outlierLof_q02 := 0]
-dat[p.Lof.adj3<0.2, outlierLof_q02 := 1]
-	dat[,sum(outlierLof_q02, na.rm=TRUE)]
-
-dat[,outlierCan_q02 := 0]
-dat[p.Can.adj3<0.2, outlierCan_q02 := 1]
-	dat[,sum(outlierCan_q02, na.rm=TRUE)]
-
-# loci with low p-values in both populations
-dat[,outlierLofandCan_p0001 := 0]
-dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pLof<0.001 & pCan<0.001, outlierLofandCan_p0001 := 1]
-	dat[,sum(outlierLofandCan_p0001, na.rm=TRUE)]
-
-# write out tab-separated for Bastiaan
-outfile <- paste('analysis/wfs_nullmodel_outliers_07-11-14_Can_', kmer, 'k.tsv.gz', sep='')
-outfile
-write.table(dat, file=gzfile(outfile), sep='\t', row.names=FALSE, quote=FALSE)
