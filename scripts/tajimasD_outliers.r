@@ -21,12 +21,20 @@ outl <- fread("zcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # 
 #datMod <- fread('analysis/CANMod.Tajima.D')
 
 	# for 100 bp windows
-bp <- 100
-dat14 <- fread('analysis/LOF_S_14_100bp.Tajima.D')
-dat11 <- fread('analysis/LOF_S_11_100bp.Tajima.D')
-dat07 <- fread('analysis/LOF_07_100bp.Tajima.D')
-dat40 <- fread('analysis/CAN40_100bp.Tajima.D')
-datMod <- fread('analysis/CANMod_100bp.Tajima.D')
+#bp <- 100
+#dat14 <- fread('analysis/LOF_S_14_100bp.Tajima.D')
+#dat11 <- fread('analysis/LOF_S_11_100bp.Tajima.D')
+#dat07 <- fread('analysis/LOF_07_100bp.Tajima.D')
+#dat40 <- fread('analysis/CAN40_100bp.Tajima.D')
+#datMod <- fread('analysis/CANMod_100bp.Tajima.D')
+
+	# for 1000 bp windows (also masked)
+bp <- 1000
+dat14 <- fread('analysis/LOF_S_14_1000bp_mask.Tajima.D')
+dat11 <- fread('analysis/LOF_S_11_1000bp_mask.Tajima.D')
+dat07 <- fread('analysis/LOF_07_1000bp_mask.Tajima.D')
+dat40 <- fread('analysis/CAN40_1000bp_mask.Tajima.D')
+datMod <- fread('analysis/CANMod_1000bp_mask.Tajima.D')
 
 # add nearest XX bp bin start
 # dat14[,sort(unique(substr(BIN_START, nchar(BIN_START)-1, nchar(BIN_START))))]
@@ -35,6 +43,9 @@ if(bp == 50) {# (either 00, 20, 40, 60, or 80)
 }
 if(bp == 100) {# (all 00)
 	outl[,BIN_START := floor(POS/100)*100] 
+}
+if(bp == 1000) {# (all 000)
+	outl[,BIN_START := floor(POS/1000)*1000] 
 }
 
 # remove inversions and unplaced (also remove unmappable?)
@@ -48,7 +59,7 @@ outl <- outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced'))]
 
 # merge in outlier information to dat
 # use q<0.3 for more loci in calculations
-nrow(dat14) # 920397 (50bp) 721949 (100bp)
+nrow(dat14) # 920397 (50bp) 721949 (100bp) 136809 (1000bp)
 nrow(dat11) # 825344
 nrow(dat07) # 819717
 nrow(dat40) # 625016
@@ -211,6 +222,7 @@ datMod[,summary(outlier)]
 		datMod[CHROM==dat40$CHROM[i] & abs(BIN_START-dat40$BIN_START[i]) <= 5000, ':=' (distclass=abs(BIN_START-dat40$BIN_START[i]), disttype='notoutlier')]
 	}
 
+
 # trim to unique rows (distance bins near outliers or not outliers)
 nrow(dat14) # 330524
 nrow(dat11)
@@ -224,10 +236,10 @@ dat07t <- unique(dat07[!is.na(TajimaD)], by=c('CHROM', 'BIN_START', 'TajimaD', '
 dat40t <- unique(dat40[!is.na(TajimaD)], by=c('CHROM', 'BIN_START', 'TajimaD', 'distclass', 'disttype'))
 datModt <- unique(datMod[!is.na(TajimaD)], by=c('CHROM', 'BIN_START', 'TajimaD', 'distclass', 'disttype'))
 
-nrow(dat14t) # 294275 (50bp) 221475 (100bp)
+nrow(dat14t) # 294275 (50bp) 221475 (100bp) 133329 (1000bp)
 nrow(dat11t)
 nrow(dat07t)
-nrow(dat40t) # 229878 (50bp) 182012 (100bp)
+nrow(dat40t) # 229878 (50bp) 182012 (100bp) 120795 (1000bp)
 nrow(datModt)
 
 
@@ -284,6 +296,7 @@ require(mgcv)
 # read in data
 #bins <- fread('analysis/TajimaD_outliers.csv', ); bp=50
 bins <- fread('analysis/TajimaD_outliers_100bp.csv', ); bp=100
+bins <- fread('analysis/TajimaD_outliers_1000bp.csv', ); bp=1000
 
 # calculate smooth fits
 smooth14 <- bins[pop=='LOF_S_14' & disttype=='outlier', predict(loess(Dave ~ I(distclass)), se=TRUE)]
@@ -304,9 +317,11 @@ cex=0.5
 lwd=2
 ylims <- bins[!is.na(disttype),range(c(Dave-1.96*Dse, Dave+1.96*Dse), na.rm=TRUE)]
 
-# plot binned data
+
+
+### plot data with loess smoothers
 quartz(width=6, height=3)
-# pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp.pdf', sep=''))
+# pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp_loess.pdf', sep=''))
 par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
 
 	# Lof
@@ -362,6 +377,50 @@ bins[pop=='CAN40' & disttype=='outlier',lines(distclass, smooth40$fit, cex=cex, 
 		# lines notoutlier
 bins[pop=='CANMod' & disttype=='notoutlier',lines(distclass, smoothModn$fit, cex=cex, col=cols[4], lwd=lwd, lty=3)]
 bins[pop=='CAN40' & disttype=='notoutlier',lines(distclass, smooth40n$fit, cex=cex, col=cols[5], lwd=lwd, lty=3)]
+
+legend('topright', legend=c('CANMod', 'CAN40', 'Outlier', 'Not outlier'), col=c(cols[4:5], 'black', 'black'), lty=c(1,1,1,3), bty='n', cex=0.4)
+
+dev.off()
+
+
+
+
+
+### plot binned data
+quartz(width=6, height=3)
+# pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp.pdf', sep=''))
+par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
+
+	# Lof
+bins[pop=='LOF_S_14' & disttype=='outlier',plot(distclass, Dave, ylim=ylims, type='l', xlab='Distance (bp)', ylab="Tajima's D", cex=cex, main='Lof', log='', col=cols[1], lwd=lwd)]
+bins[pop=='LOF_S_11' & disttype=='outlier',lines(distclass+100, Dave, type='l', cex=cex, col=cols[2], lwd=lwd)]
+bins[pop=='LOF_07' & disttype=='outlier',lines(distclass+200, Dave, type='l', cex=cex, col=cols[3], lwd=lwd)]
+
+bins[pop=='LOF_S_14' & disttype=='nooutlier',lines(distclass, Dave, type='l', cex=cex, col=cols[1], lty=3, lwd=lwd)]
+bins[pop=='LOF_S_11' & disttype=='nooutlier',lines(distclass+100, Dave, type='l', cex=cex, col=cols[2], lty=3, lwd=lwd)]
+bins[pop=='LOF_07' & disttype=='notoutlier',lines(distclass+200, Dave, type='l', cex=cex, col=cols[3], lty=3, lwd=lwd)]
+
+bins[pop=='LOF_S_14' & disttype=='outlier',lines(c(distclass, distclass), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[1]), by=distclass] # 95% CI on the mean.
+bins[pop=='LOF_S_11' & disttype=='outlier',lines(c(distclass+100, distclass+100), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[2]), by=distclass]
+bins[pop=='LOF_07' & disttype=='outlier',lines(c(distclass+200, distclass+200), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[3]), by=distclass]
+
+bins[pop=='LOF_S_14' & disttype=='notoutlier',lines(c(distclass, distclass), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[1]), by=distclass]
+bins[pop=='LOF_S_11' & disttype=='notoutlier',lines(c(distclass+100, distclass+100), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[2]), by=distclass]
+bins[pop=='LOF_07' & disttype=='notoutlier',lines(c(distclass+200, distclass+200), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[3]), by=distclass]
+
+legend('topright', legend=c('LOF_S_14', 'LOF_S_11', 'LOF_07', 'Outlier', 'Not outlier'), col=c(cols[1:3], 'black', 'black'), lty=c(rep(1,4), 3), bty='n', cex=0.4)
+
+	# Canada
+bins[pop=='CANMod' & disttype=='outlier',plot(distclass, Dave, ylim=ylims, type='l', xlab='Distance (bp)', ylab="Tajima's D", cex=cex, main='Can', log='', col=cols[4], lwd=lwd)]
+bins[pop=='CAN40' & disttype=='outlier',lines(distclass+100, Dave, type='l', cex=cex, col=cols[5], lwd=lwd)]
+
+bins[pop=='CANMod' & disttype=='notoutlier',lines(distclass, Dave, type='l', cex=cex, col=cols[4], lty=3, lwd=lwd)]
+bins[pop=='CAN40' & disttype=='notoutlier',lines(distclass+100, Dave, type='l', cex=cex, col=cols[5], lty=3, lwd=lwd)]
+
+bins[pop=='CANMod' & disttype=='outlier',lines(c(distclass, distclass), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[4]), by=distclass]
+bins[pop=='CAN40' & disttype=='outlier',lines(c(distclass+100, distclass+100), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[5]), by=distclass]
+bins[pop=='CANMod' & disttype=='notoutlier',lines(c(distclass, distclass), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[4]), by=distclass]
+bins[pop=='CAN40' & disttype=='notoutlier',lines(c(distclass+100, distclass+100), c(Dave-1.96*Dse, Dave+1.96*Dse), col=cols[5]), by=distclass]
 
 legend('topright', legend=c('CANMod', 'CAN40', 'Outlier', 'Not outlier'), col=c(cols[4:5], 'black', 'black'), lty=c(1,1,1,3), bty='n', cex=0.4)
 
