@@ -245,12 +245,25 @@ outfile
 write.table(dat, file=gzfile(outfile), sep='\t', row.names=FALSE, quote=FALSE)
 
 
-#write out for Udi: just the ranked p-values
-outfile <- paste('analysis/wfs_nullmodel_outliers_Udi.tsv.gz', sep='')
-outfile
-out <- dat[kmer25==1 & (dpLofFlag==TRUE | dpCanFlag==TRUE) & CHROM != "Unplaced", .(CHROM, POS, pLof0714, pLof071114, pCan, p.comb0714Can, p.comb071114Can)]
-write.table(out, file=gzfile(outfile), sep='\t', row.names=FALSE, quote=FALSE)
+#write out for Udi: just the ranked p-values, dropping Unplaced and SNPs that fail kmer25 filter and SNPs that fail depth filter in both populations
+# have to write out each population separately so that locus trimming is done appropriately	
+outfile1 <- paste('analysis/wfs_nullmodel_outliers_Udi_Lof.tsv.gz', sep='')
+outfile1
+out1 <- dat[kmer25==1 & dpLofFlag==TRUE & CHROM != "Unplaced" & !is.na(pLof0714), .(CHROM, POS, pLof0714, pLof071114)]
+nrow(out1)
+write.table(out1, file=gzfile(outfile1), sep='\t', row.names=FALSE, quote=FALSE)
 
+outfile2 <- paste('analysis/wfs_nullmodel_outliers_Udi_Can.tsv.gz', sep='')
+outfile2
+out2 <- dat[kmer25==1 & dpCanFlag==TRUE & CHROM != "Unplaced" & !is.na(pCan), .(CHROM, POS, pCan)]
+nrow(out2)
+write.table(out2, file=gzfile(outfile2), sep='\t', row.names=FALSE, quote=FALSE)
+
+outfile3 <- paste('analysis/wfs_nullmodel_outliers_Udi_comb.tsv.gz', sep='')
+outfile3
+out3 <- dat[kmer25==1 & dpCanFlag==TRUE & dpLofFlag==TRUE & CHROM != "Unplaced" & !is.na(p.comb071114Can), .(CHROM, POS, p.comb0714Can, p.comb071114Can)]
+nrow(out3)
+write.table(out3, file=gzfile(outfile3), sep='\t', row.names=FALSE, quote=FALSE)
 
 #########################
 # examine
@@ -310,28 +323,21 @@ dat[,sum(outlierCan_q3)]
 
 
 # number of outliers: combined p-values
-# NEEDS TO BE UPDATED TO NEW COLUMN NAMES
-	# p.comb.adj2 < X
-dat[, sum(p.comb.adj2 < 0.1, na.rm=TRUE)]
-dat[, sum(p.comb.adj2 < 0.01, na.rm=TRUE)]
-dat[, sum(p.comb.adj2 < 0.001, na.rm=TRUE)]
-dat[, sum(p.comb.adj2 < 0.0001, na.rm=TRUE)]
-dat[, sum(p.comb.adj2 < 0.00001, na.rm=TRUE)]
+	# with inversions
+dat[, sum(q2.comb0714Can<0.2, na.rm=TRUE)]
+	dat[q2.comb0714Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan, outlierLof0714_Can_q2, outlierLof071114_Can_q2)]
 
-dat[kmer25==1, sum(p.comb.adj2 < 0.2, na.rm=TRUE)]
-dat[kmer25==1, sum(p.comb.adj2 < 0.01, na.rm=TRUE)]
-dat[kmer25==1, sum(p.comb.adj2 < 0.0001, na.rm=TRUE)]
+dat[, sum(q2.comb071114Can<0.2, na.rm=TRUE)]
+	dat[q2.comb071114Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan, outlierLof0714_Can_q2, outlierLof071114_Can_q2)]
 
-dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), sum(p.comb.adj2 < 0.2, na.rm=TRUE)]
+	# without inversions
+dat[, sum(q3.comb0714Can<0.2, na.rm=TRUE)]
+	dat[q3.comb0714Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan, outlierLof071114_Can_q3)]
 
-	# p.comb.adj3 < X (filter on kmer25, depth, chromosome)
-dat[, sum(p.comb.adj3 < 0.2, na.rm=TRUE)]
-dat[, sum(p.comb.adj3 < 0.1, na.rm=TRUE)]
-dat[, sum(p.comb.adj3 < 0.01, na.rm=TRUE)]
-dat[, sum(p.comb.adj3 < 0.001, na.rm=TRUE)]
+dat[, sum(q3.comb071114Can<0.2, na.rm=TRUE)]
+	dat[q3.comb071114Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan, outlierLof0714_Can_q3)]
 
-# examine specific outliers
-dat[p.comb.adj3<0.2,]
+
 
 
 ####################################################################
