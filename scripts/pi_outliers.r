@@ -360,7 +360,7 @@ bins <- fread('analysis/pi_outliers.csv', )
 cols <- brewer.pal(5, 'Set1')
 cex=0.5
 lwd=2
-ylims <- bins[!is.na(disttype),range(piave)]
+ylims <- bins[!is.na(disttype),range(c(piave-1.96*pise, piave+1.96*pise), na.rm=TRUE)]
 
 # plot binned data
 quartz(width=6, height=3)
@@ -387,7 +387,7 @@ bins[pop=='LOF_07' & disttype=='notoutlier',lines(c(distclass, distclass), c(pia
 legend('topright', legend=c('LOF_S_14', 'LOF_S_11', 'LOF_07', 'Outlier', 'Not outlier'), col=c(cols[1:3], 'black', 'black'), lty=c(rep(1,4), 3), bty='n', cex=0.4)
 
 	# Canada
-bins[pop=='CANMod' & disttype=='outlier',plot(distclass, piave, ylim=c(0,1), type='l', xlab='Distance (bp)', ylab='Pi per site', cex=cex, main='Can', log='x', col=cols[4], lwd=lwd)]
+bins[pop=='CANMod' & disttype=='outlier',plot(distclass, piave, ylim=ylims, type='l', xlab='Distance (bp)', ylab='Pi per site', cex=cex, main='Can', log='x', col=cols[4], lwd=lwd)]
 bins[pop=='CAN40' & disttype=='outlier',lines(distclass, piave, type='l', cex=cex, col=cols[5], lwd=lwd)]
 
 bins[pop=='CANMod' & disttype=='notoutlier',lines(distclass, piave, type='l', cex=cex, col=cols[4], lty=3, lwd=lwd)]
