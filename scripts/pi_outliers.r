@@ -1,8 +1,8 @@
 # compare pi near outlier loci and near non-outlier loci
 # account for which loci can be called as SNPs/not SNPs
 
-#outliertype <- 'bypop' # use p.Lof.adj3 and p.Can.adj3 to define outlier loci < 0.3
-outliertype <- 'combinedpop' # use p.comb.adj3 < 0.2
+#outliertype <- 'bypop' # use q3.Lof071114 and q3.Can < 0.3 to define outlier loci
+outliertype <- 'combinedpop' # use q3.comb071114Can < 0.3
 
 
 ######################
