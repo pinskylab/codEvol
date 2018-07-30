@@ -1,6 +1,9 @@
 # compare pi near outlier loci and near non-outlier loci
 # account for which loci can be called as SNPs/not SNPs
 
+#outliertype <- 'bypop' # use p.Lof.adj3 and p.Can.adj3 to define outlier loci < 0.3
+outliertype <- 'combinedpop' # use p.comb.adj3 < 0.2
+
 
 ######################
 # calculate pi in windows
@@ -31,15 +34,31 @@ nrow(dat07)
 nrow(dat40) # 1018417
 nrow(datMod)
 
-dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=p.Lof.adj3<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+if(outliertype == 'bypop'){
+	print(outliertype)
+	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 
-dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=p.Lof.adj3<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 	
-dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=p.Lof.adj3<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 
-dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=p.Can.adj3<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 
-datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=p.Can.adj3<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+}
+
+if(outliertype == 'combinedpop'){
+	print(outliertype)
+	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+
+	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+	
+	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+
+	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+
+	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+}
 
 nrow(dat14)
 nrow(dat11)
@@ -68,7 +87,7 @@ nrow(datMod)
 
 # how many outlier comparisons?
 # WHY SO MANY NAs IN THE OUTLIER COLUMN? APPARENTLY WEREN'T ANY FOR THE LD CALCULATIONS
-dat14[,summary(outlier)]
+dat14[,summary(outlier)] # 32 (p.comb.adj3<0.3)
 dat11[,summary(outlier)]
 dat07[,summary(outlier)]
 dat40[,summary(outlier)]
@@ -188,7 +207,7 @@ datMod[,summary(outlier)]
 			dat07 <- rbind(dat07, mono)
 		}		
 	}
-	dim(dat14) #470947
+	dim(dat14) #470947 (bypop, <0.3) 439719 (combinedpop <0.3)
 	dim(dat11)
 	dim(dat07)
 
@@ -223,7 +242,7 @@ datMod[,summary(outlier)]
 			datMod <- rbind(datMod, mono)
 		}		
 	}
-	dim(dat40) # 317928
+	dim(dat40) # 317928 (bypop <0.3) 344800 (combinedpop <0.3)
 	dim(datMod)
 	
 
@@ -265,12 +284,12 @@ datMod[,summary(outlier)]
 			dat07 <- rbind(dat07, mono)
 		}
 	}
-	dim(dat14) # 2284776
+	dim(dat14) # 2284776 (bypop <0.3) 2464192 (combinedpop <0.3)
 	dim(dat11)
 	dim(dat07)
 
 		# Canada
-	dim(dat40) # 317928
+	dim(dat40) # 317928 (bypop <0.3) 344800 (combinedpop <0.3)
 	dim(datMod)
 	for(i in which(dat40$notoutlier)){
 		cat(which(i==which(dat40$notoutlier)))
@@ -302,7 +321,7 @@ datMod[,summary(outlier)]
 			datMod <- rbind(datMod, mono)
 		}
 	}
-	dim(dat40) # 2154018
+	dim(dat40) # 2154018 (bypop <0.3) 2409593 (combinedpop <0.3)
 	dim(datMod)
 
 
@@ -335,6 +354,7 @@ setkey(binsMod, disttype, distclass)
 # examine
 bins14[,.(disttype,distclass,piave, pisd, pin, pise)]
 bins07[,.(disttype,distclass,piave, pisd, pin, pise)]
+bins40[,.(disttype,distclass,piave, pisd, pin, pise)]
 
 # label by population
 bins14[,pop:='LOF_S_14']
@@ -347,7 +367,8 @@ binsMod[,pop:='CANMod']
 bins <- rbind(bins07, bins11, bins14, bins40, binsMod)
 
 # write out
-write.csv(bins, file='analysis/pi_outliers.csv', row.names=FALSE)
+write.csv(bins, file=paste('analysis/pi_outliers_', outliertype, '.csv', sep=''), row.names=FALSE)
+
 
 ###############
 # plot
@@ -356,7 +377,8 @@ write.csv(bins, file='analysis/pi_outliers.csv', row.names=FALSE)
 require(RColorBrewer)
 require(data.table)
 
-bins <- fread('analysis/pi_outliers.csv', )
+# bins <- fread('analysis/pi_outliers.csv', ); outliertype <- 'bypop'
+bins <- fread('analysis/pi_outliers_combinedpop.csv', ); outliertype <- 'combinedpop'
 cols <- brewer.pal(5, 'Set1')
 cex=0.5
 lwd=2
@@ -364,7 +386,7 @@ ylims <- bins[!is.na(disttype),range(c(piave-1.96*pise, piave+1.96*pise), na.rm=
 
 # plot binned data
 quartz(width=6, height=3)
-# pdf(width=6, height=3, file='figures/pi_decay_outliers.pdf')
+# pdf(width=6, height=3, file=paste('figures/pi_decay_outliers_', outliertype, '.pdf', sep=''))
 par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
 
 	# Lof

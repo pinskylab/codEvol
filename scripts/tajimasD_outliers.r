@@ -1,5 +1,8 @@
 # compare Tajima's D near outlier loci and near non-outlier loci
 
+#outliertype <- 'bypop' # use p.Lof.adj3 and p.Can.adj3 to define outlier loci < 0.3
+outliertype <- 'combinedpop' # use p.comb.adj3 < 0.2
+
 
 ######################
 # calculate Tajima's D in windows
@@ -65,15 +68,31 @@ nrow(dat07) # 819717
 nrow(dat40) # 625016
 nrow(datMod) #634704
 
-dat14 <- merge(dat14, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=p.Lof.adj3<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+if(outliertype == 'bypop'){
+	print('bypop')
+	dat14 <- merge(dat14, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
 
-dat11 <- merge(dat11, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=p.Lof.adj3<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+	dat11 <- merge(dat11, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
 	
-dat07 <- merge(dat07, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=p.Lof.adj3<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+	dat07 <- merge(dat07, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
 
-dat40 <- merge(dat40, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=p.Can.adj3<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+	dat40 <- merge(dat40, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
 
-datMod <- merge(datMod, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=p.Can.adj3<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+	datMod <- merge(datMod, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+}
+if(outliertype == 'combinedpop'){
+	print('combinedpop')
+	dat14 <- merge(dat14, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+
+	dat11 <- merge(dat11, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+	
+	dat07 <- merge(dat07, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+
+	dat40 <- merge(dat40, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+
+	datMod <- merge(datMod, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+}
+
 
 nrow(dat14) # 1370545
 nrow(dat11) # 2006940
@@ -96,10 +115,10 @@ nrow(dat40) # 254047
 nrow(datMod) 
 
 # how many outlier comparisons?
-dat14[,summary(outlier)] # 60
+dat14[,summary(outlier)] # 60 (bypop) 32 (combinedpop)
 dat11[,summary(outlier)]
 dat07[,summary(outlier)]
-dat40[,summary(outlier)] # 5
+dat40[,summary(outlier)] # 5 (bypop) 32 (combinedpop)
 datMod[,summary(outlier)]
 
 # set up 1000 not-outlier loci
@@ -269,6 +288,7 @@ setkey(binsMod, disttype, distclass)
 
 # examine
 bins14[,.(disttype,distclass,Dave, Dsd, Dn, Dse)]
+bins07[,.(disttype,distclass,Dave, Dsd, Dn, Dse)]
 bins40[,.(disttype,distclass,Dave, Dsd, Dn, Dse)]
 binsMod[,.(disttype,distclass,Dave, Dsd, Dn, Dse)]
 
@@ -283,7 +303,7 @@ binsMod[,pop:='CANMod']
 bins <- rbind(bins07, bins11, bins14, bins40, binsMod)
 
 # write out
-write.csv(bins, file=paste('analysis/TajimaD_outliers_', bp, 'bp.csv', sep=''), row.names=FALSE)
+write.csv(bins, file=paste('analysis/TajimaD_outliers_', bp, 'bp_', outliertype, '.csv', sep=''), row.names=FALSE)
 
 ###############
 # plot
@@ -294,9 +314,10 @@ require(data.table)
 require(mgcv)
 
 # read in data
-#bins <- fread('analysis/TajimaD_outliers.csv', ); bp=50
-bins <- fread('analysis/TajimaD_outliers_100bp.csv', ); bp=100
-bins <- fread('analysis/TajimaD_outliers_1000bp.csv', ); bp=1000
+#bins <- fread('analysis/TajimaD_outliers.csv', ); bp=50; outliertype='bypop'
+#bins <- fread('analysis/TajimaD_outliers_100bp.csv', ); bp=100; outliertype='bypop'
+#bins <- fread('analysis/TajimaD_outliers_1000bp.csv', ); bp=1000; outliertype='bypop'
+bins <- fread('analysis/TajimaD_outliers_1000bp_combinedpop.csv', ); bp=1000; outliertype='combinedpop'
 
 # calculate smooth fits
 smooth14 <- bins[pop=='LOF_S_14' & disttype=='outlier', predict(loess(Dave ~ I(distclass)), se=TRUE)]
@@ -321,7 +342,7 @@ ylims <- bins[!is.na(disttype),range(c(Dave-1.96*Dse, Dave+1.96*Dse), na.rm=TRUE
 
 ### plot data with loess smoothers
 quartz(width=6, height=3)
-# pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp_loess.pdf', sep=''))
+# pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp_loess_', outliertype, '.pdf', sep=''))
 par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
 
 	# Lof
@@ -388,7 +409,7 @@ dev.off()
 
 ### plot binned data
 quartz(width=6, height=3)
-# pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp.pdf', sep=''))
+# pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp_', outliertype, '.pdf', sep=''))
 par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
 
 	# Lof
