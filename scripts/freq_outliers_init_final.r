@@ -12,7 +12,7 @@ require(data.table) # not on cod node
 
 # read in WFS drift null model outlier values for all populations (combined by wfs_nullmodel_analysis_Canada,1907-2011&2014.r)
 #outl <- fread("zcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on cod node 270MB file
-outl <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on mac 270MB file
+outl <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on mac 108MB file
 #	outl
 
 # remove inversions and unplaced (also remove unmappable?)
