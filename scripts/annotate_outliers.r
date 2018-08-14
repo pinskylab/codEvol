@@ -2,13 +2,19 @@
 
 require(PopGenome)
 require(data.table)
-require(rtracklayer) # source("https://bioconductor.org/biocLite.R"); biocLite("rtracklayer")
+#require(rtracklayer) # source("https://bioconductor.org/biocLite.R"); biocLite("rtracklayer")
 
-# read in WFS drift null model outlier values for all populations (combined by wfs_nullmodel_analysis_Canada,1907-2011&2014.r)
+##############################
+# Read in WFS drift null model outlier values for all populations (combined by wfs_nullmodel_analysis_Canada,1907-2011&2014.r)
+##############################
 nullmod <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on mac 108MB file
 	outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can_q3==1, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, q3.Lof071114, q3.Can, q3.comb071114Can)] # the outliers
 	dim(outl)
 
+
+###################
+# Get codon information
+###################
 # NOT WORKING: read in genome data with readData(). folder has:
 # 	All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Canada.vcf
 # 	All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf
@@ -61,9 +67,6 @@ nullmod <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz"
 	dim(g@region.data@biallelic.matrix[[1]]) # size of the matrix of major and minor alleles. Two rows for each individual
 	g@region.data@biallelic.matrix[[1]][1:10,1:20] # look at the matrix of major and minor alleles. Two rows for each individual. not working.
 
-	# define populations
-#	g5 <- set.populations(g, list(LOF07=c('BM_209', 'BM_211', 'BM_213', 'BM_214', 'BM_216', 'BM_217', 'BM_218', 'BM_219', 'BM_220', 'BM_221', 'BM_222', 'BM_223', 'BM_224', 'BM_225', 'BM_226', 'BM_227', 'BM_230', 'BM_231', 'BM_232', 'BM_234', 'BM_236', 'BM_237', 'BM_239', 'BM_240', 'BM_241', 'BM_242', 'BM_243', 'BM_244'), LOF11=c('LOF1103001', 'LOF1103002', 'LOF1103003', 'LOF1103004', 'LOF1103005', 'LOF1103006', 'LOF1103007', 'LOF1103008', 'LOF1103009', 'LOF1103010', 'LOF1103011', 'LOF1103012', 'LOF1103013', 'LOF1103014', 'LOF1103015', 'LOF1103016', 'LOF1103017', 'LOF1103018', 'LOF110301', 'LOF1103020', 'LOF1103021', 'LOF1103022', 'LOF1103023', 'LOF1103024'), LOF14=c('LOF1403001', 'LOF1403002', 'LOF1403003', 'LOF1403004', 'LOF1403005', 'LOF1403006', 'LOF1403007', 'LOF1403008', 'LOF1403009', 'LOF1403010', 'LOF1403011', 'LOF1403012', 'LOF1403013', 'LOF1403014', 'LOF1403015', 'LOF1403016', 'LOF1403017', 'LOF1403018', 'LOF1403019', 'LOF1403020', 'LOF1403021', 'LOF1403022', 'LOF1403023', 'LOF1403024')), diploid=TRUE)
-
 	# set reference. used to define codons. 
 	# very annoying that each chr must be own file. used scripts/split_fasta.sh to make them.
 	g3 <- set.synnonsyn(g3, ref.chr='../genome_data/LG03.fasta', save.codons=TRUE)
@@ -94,15 +97,21 @@ codons <- lapply(g, get.codons, 1) # fails for end of LG16 for some reason
 	# print codons for the outliers
 	outlcodons <- NULL
 	for(chr in sort(unique(outl[,CHROM]))){
-		this <- merge(codons[[chr]], outl[CHROM==chr,], by.x='Position', by.y='POS')
+		this <- merge(codons[[chr]], outl[CHROM==chr,c('CHROM', 'POS')], by.x='Position', by.y='POS')
 		if(nrow(this)>0){
-			if(is.null(outlcodons)) outlcodons <- cbind(data.frame(CHROM=chr), this)
-			else outlcodons <- rbind(outlcodons, cbind(data.frame(CHROM=chr), this))
+			if(is.null(outlcodons)){
+				outlcodons <- this
+			} else {
+				outlcodons <- rbind(outlcodons, this)
+			}
 		}
 	}	
 	outlcodons
 	
 
+##########################
+# Get annotation from GFF
+##########################
 # DOESN'T WORK: get GFF information by SNPs using PopGenome package
 # can position be a range?? I don't think so
 # doesn't seem to return much useful information
@@ -116,20 +125,77 @@ codons <- lapply(g, get.codons, 1) # fails for end of LG16 for some reason
 #		}
 #	}
 	
-# Read in GFF file
+# Read in GFF file to get gene names and annotations
 gff <- fread("../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff", header=F)
 setnames(gff, c('seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'))
 
+	# function to search for a string, remove it, and return the rest. Return NA if not found.
+	grepstrip <- function(x, strip, na=NA){
+		val <- grep(strip, x, value=TRUE)
+		if(length(val)>0){
+			return(gsub(strip, '', val))
+		} else {
+			return(na)
+		}
+	}
+
+# Annotate with gene names and nearby genes
 	anno <- NULL
 	for(i in 1:nrow(outl)){
-		j <- gff[,which(seqname==outl[i,CHROM] & start < outl[i,POS] & end > outl[i,POS] & feature!='contig')]
+		j <- gff[,which(seqname==outl[i,CHROM] & start < outl[i,POS] & end > outl[i,POS] & feature!='contig')] # find all entries that overlap this position
+		k <- gff[,which(seqname==outl[i,CHROM] & start < (outl[i,POS]+25000) & end > (outl[i,POS]-25000) & feature!='contig')] # find all entries within 25kb of this position
+		k <- setdiff(k,j)
 		if(length(j)>0){
-			if(is.null(anno)) anno <- cbind(data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS]), gff[j,])
-			else anno <- rbind(anno, cbind(data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS]), gff[j,]))
+			pieces <- strsplit(gff[j,attribute], split=';')
+			fts <- paste(gff[j,feature], collapse=';')
+			sts <- paste(gff[j,start], collapse=';')
+			ends <- paste(gff[j,end], collapse=';')
+			strnds <- paste(gff[j,strand], collapse=';')
+			frms <- paste(gff[j,frame], collapse=';')
+			ids <- paste(sapply(pieces, FUN=grepstrip, 'ID='), collapse=';')
+			nms <- paste(sapply(pieces, FUN=grepstrip, 'Name='), collapse=';')
+			prnt <- paste(sapply(pieces, FUN=grepstrip, 'Parent='), collapse=';')
+			sim <- paste(setdiff(unique(sapply(pieces, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
 		} else {
-			if(is.null(anno)) anno <- cbind(data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], seqname='', source='', feature='', start='', end='', score='', strand='', frame='', attribute=''))
-			else anno <- rbind(anno, cbind(data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], seqname='', source='', feature='', start='', end='', score='', strand='', frame='', attribute='')))
-		
+			fts <- sts <- ends <- strnds <- frms <- ids <- nms <- prnt <- sim <- ''
+		}
+		if(length(k)>0){
+			pieces2 <- strsplit(gff[k,attribute], split=';')
+			near <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
+		} else {
+			near <- ''
+		}			
+					
+		if(is.null(anno)){
+			anno <- data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], feature=fts, start=sts, end=ends, strand=strnds, frame=frms, ID=ids, Names=nms, Parent=prnt, Within=sim, Near=near)
+		} else {
+			anno <- rbind(anno, data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], feature=fts, start=sts, end=ends, strand=strnds, frame=frms, ID=ids, Names=nms, Parent=prnt, Within=sim, Near=near))
 		}
 	}
 	anno
+	
+
+##########################################	
+# Combine SNP effects and annotations
+##########################################	
+anno2 <- merge(anno, outlcodons, by.y=c('CHROM', 'Position'), by.x=c('CHROM', 'POS'), all.x=TRUE)
+anno2 <- merge(anno2, outl)
+anno2 <- as.data.frame(apply(anno2, MARGIN=2, function(x){x[is.na(x)] <- ''; return(x)}))
+anno2 <- anno2[, c("CHROM", "POS", "q3.Lof071114", "q3.Can", "q3.comb071114Can", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "Within", "Near")] # reorder columns
+anno2
+
+
+########################
+# Summary statistics
+########################
+	length(grep('gene', anno2$feature))/nrow(anno2) # fraction in genes
+	length(grep('CDS', anno2$feature))/nrow(anno2) # fraction in genes
+	sum(anno2$Near != '')/nrow(anno2) # fraction within 25kb of genes
+	length(unique(c(grep('gene', anno2$feature), which(anno2$Near != ''))))/nrow(anno2) # fraction in OR within 25kb of genes
+	
+	
+############
+# Write out
+############
+
+write.csv(anno2, file='analysis/outlier_annotation.csv', row.names=FALSE)
