@@ -56,7 +56,7 @@ datCAN_11_14 <- datCAN_14[dat11, .(CHROM, POS, POSgen, N_CHR_Can40, N_CHR_CanMod
 cols = c('black', 'blue', 'red')
 #dat14[,plot(POSgen, ABS_DIFF, pch=16, cex=0.3)]
 quartz(height=4, width=8)
-# png(height=4, width=8, units='in', res=300, file='analysis/figures/abs_diff_vs_pos_NEA_CAN_raw.png')
+# png(height=4, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_NEA_CAN_raw.png')
 dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='l', lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
 dat11[,lines(POSgen/1e6, ABS_DIFF_0711, lwd=0.3, col=cols[2])]
 datCAN[,lines(POSgen/1e6, ABS_DIFF_Can, lwd=0.3, col=cols[3])]
@@ -142,7 +142,7 @@ require(RColorBrewer)
 cols = c('black', 'blue', 'red')
 #cols = brewer.pal(4, 'BrBG') # for 25k and 150k, 2011 and 2014
 quartz(height=4, width=8)
-# png(height=4, width=8, units='in', res=300, file=paste('analysis/figures/abs_diff_vs_pos_NEA&CAN_runmean', windsz, '.png', sep=''))
+# png(height=4, width=8, units='in', res=300, file=paste('figures/abs_diff_vs_pos_NEA&CAN_runmean', windsz, '.png', sep=''))
 dat14mean[,plot(mids/1e6, mean, type='l', lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=ylims, col=cols[1], main=paste('Running mean', windsz))] # for 1e6 window
 dat11mean[,lines(mids/1e6, mean, lwd=0.3, col=cols[2])] # for 1e6 window
 datCANmean[,lines(mids/1e6, mean, lwd=0.3, col=cols[3])] # for 1e6 window
@@ -172,7 +172,7 @@ lg1 <- 'LG04'; xlims1 <- c(11755415,11755733); nm1<-'LG04 11755415-733'
 cols = c('black', 'blue', 'red')
 
 quartz(height=4, width=8)
-# png(height=4, width=8, units='in', res=300, file='analysis/figures/abs_diff_vs_pos_outlierszoom_NEA&CAN.png')
+# png(height=4, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_outlierszoom_NEA&CAN.png')
 par(mfrow=c(1,1), mai=c(0.7, 0.7, 0.2, 0.1), las=1, mgp=c(2.5, 1,0))
 
 lg <- lg1; xlims <- xlims1
