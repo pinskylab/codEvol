@@ -249,21 +249,27 @@ write.table(dat, file=gzfile(outfile), sep='\t', row.names=FALSE, quote=FALSE)
 # have to write out each population separately so that locus trimming is done appropriately	
 outfile1 <- paste('analysis/wfs_nullmodel_outliers_Udi_Lof.tsv.gz', sep='')
 outfile1
-out1 <- dat[kmer25==1 & dpLofFlag==TRUE & CHROM != "Unplaced" & !is.na(pLof0714), .(CHROM, POS, pLof0714, pLof071114)]
+out1 <- dat[kmer25==1 & dpLofFlag==TRUE & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.Lof071114), .(CHROM, POS, q3.Lof071114)]
 nrow(out1)
 write.table(out1, file=gzfile(outfile1), sep='\t', row.names=FALSE, quote=FALSE)
 
 outfile2 <- paste('analysis/wfs_nullmodel_outliers_Udi_Can.tsv.gz', sep='')
 outfile2
-out2 <- dat[kmer25==1 & dpCanFlag==TRUE & CHROM != "Unplaced" & !is.na(pCan), .(CHROM, POS, pCan)]
+out2 <- dat[kmer25==1 & dpCanFlag==TRUE & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.Can), .(CHROM, POS, q3.Can)]
 nrow(out2)
 write.table(out2, file=gzfile(outfile2), sep='\t', row.names=FALSE, quote=FALSE)
 
 outfile3 <- paste('analysis/wfs_nullmodel_outliers_Udi_comb.tsv.gz', sep='')
 outfile3
-out3 <- dat[kmer25==1 & dpCanFlag==TRUE & dpLofFlag==TRUE & CHROM != "Unplaced" & !is.na(p.comb071114Can), .(CHROM, POS, p.comb0714Can, p.comb071114Can)]
+out3 <- dat[kmer25==1 & dpCanFlag==TRUE & dpLofFlag==TRUE & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.comb071114Can), .(CHROM, POS, q3.comb071114Can)]
 nrow(out3)
 write.table(out3, file=gzfile(outfile3), sep='\t', row.names=FALSE, quote=FALSE)
+
+outfile4 <- paste('analysis/wfs_nullmodel_outliers_Udi_union.tsv.gz', sep='')
+outfile4
+out4 <- dat[kmer25==1 & (dpCanFlag==TRUE | dpLofFlag==TRUE) & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & (!is.na(q3.Lof071114) | !is.na(q3.Can) | !is.na(q3.comb071114Can)), .(CHROM, POS, q3.union = pmin(q3.Lof071114, q3.Can, q3.comb071114Can, na.rm=TRUE))]
+nrow(out4)
+write.table(out4, file=gzfile(outfile4), sep='\t', row.names=FALSE, quote=FALSE)
 
 #########################
 # examine
