@@ -1,9 +1,5 @@
 # compare initial and final allele frequencies near outlier loci and near non-outlier loci
 
-#outliertype <- 'bypop' # use q3.Lof071114 and q3.Can < 0.2 to define outlier loci
-outliertype <- 'combinedpop' # use q3.comb071114Can < 0.2
-
-
 ######################
 # calculate initial and final allele frequencies
 ######################
@@ -97,6 +93,10 @@ outl[Freq_07 >= Freq_14, ':=' (Freq_07low=1-Freq_07, Freq_11low=1-Freq_11, Freq_
 outl[Freq_Can40 < Freq_CanMod, ':=' (Freq_Can40low=Freq_Can40, Freq_CanModlow=Freq_CanMod)]
 outl[Freq_Can40 >= Freq_CanMod, ':=' (Freq_Can40low=1-Freq_Can40, Freq_CanModlow=1-Freq_CanMod)]
 
+
+# write out
+out <- outl[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can_q3==1 | notoutlierLof==TRUE | notoutlierCAN==TRUE, .(CHROM, POS, outlierLof071114_q3, outlierCan_q3, outlierLof071114_Can_q3, notoutlierLof, notoutlierCAN, Freq_07low, Freq_Can40low, Freq_11low, Freq_14low, Freq_CanModlow)]
+write.csv(out, file='analysis/freq_init_final_outliers.csv')
 
 ###############
 # plot
