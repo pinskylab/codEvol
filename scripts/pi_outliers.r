@@ -2,8 +2,11 @@
 # account for which loci can be called as SNPs/not SNPs
 
 #outliertype <- 'bypop' # use q3.Lof071114 and q3.Can < 0.3 to define outlier loci
-outliertype <- 'combinedpop' # use q3.comb071114Can < 0.3
+#outliertype <- 'combinedpop' # use q3.comb071114Can < 0.3
+outliertype <- 'union' # use q3.comb071114Can < 0.2 | q3.Lof071114 < 0.2 | q3.Can < 0.2
 
+dpfilter <- TRUE
+mapfilter <- TRUE
 
 ######################
 # calculate pi in windows
@@ -26,39 +29,63 @@ datMod <- fread('analysis/CANMod.sites.pi')
 allsites <- fread('zcat all_sites_data_29_06_18/AllSites.kept.sites.kmer25.gz') # gzipped file
 setkey(allsites, CHROM, POS)
 
+# define outlier information
+# use q<0.3 for more loci in LD calculations (except union Norway)
+if(outliertype == 'bypop' & dpfilter==TRUE & mapfilter==TRUE){
+	outl[, outlierLof:=q3.Lof071114<0.3]
+	outl[, outlierCan:=q3.Can<0.3]
+}
+
+if(outliertype == 'combinedpop' & dpfilter==TRUE & mapfilter==TRUE){
+	outl[, outlierLof:=q3.comb071114Can<0.3]
+	outl[, outlierCan:=q3.comb071114Can<0.3]
+}
+
+if(outliertype == 'union' & dpfilter==TRUE & mapfilter==TRUE){
+	outl[, outlierLof:=(q3.comb071114Can<0.2 | q3.Lof071114<0.2)]
+	outl[, outlierCan:=(q3.comb071114Can<0.2 | q3.Can<0.2)]
+}
+
+if(outliertype == 'union' & dpfilter==FALSE & mapfilter==TRUE){
+	print('No depth filter!')
+
+	# have to do new FDR adjustments if we relax these filters
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Lof071114 := p.adjust(pLof071114, method='fdr')]
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Can := p.adjust(pCan, method='fdr')]
+
+	outl[, outlierLof:=(q4.comb071114Can<0.2 | q4.Lof071114<0.2)]
+	outl[, outlierCan:=(q4.comb071114Can<0.2 | q4.Can<0.2)]
+}
+
+if(outliertype == 'union' & dpfilter==FALSE & mapfilter==FALSE){
+	print('No depth or map filter!')
+
+	# have to do new FDR adjustments if we relax these filters
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Lof071114 := p.adjust(pLof071114, method='fdr')]
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Can := p.adjust(pCan, method='fdr')]
+
+	outl[, outlierLof:=(q4.comb071114Can<0.2 | q4.Lof071114<0.2)]
+	outl[, outlierCan:=(q4.comb071114Can<0.2 | q4.Can<0.2)]
+}
+
+outl[,sum(outlierLof, na.rm=TRUE)] # 59 (union<0.2) 182 (union<0.2 no dpfilter)
+outl[,sum(outlierCan, na.rm=TRUE)] # 27 (union<0.2) 94 (union<0.2 no dpfilter)
+
+
 # merge in outlier information to dat
-# use q<0.3 for more loci in pi calculations
 nrow(dat14) # 1402283
 nrow(dat11)
 nrow(dat07)
 nrow(dat40) # 1018417
 nrow(datMod)
 
-if(outliertype == 'bypop'){
-	print(outliertype)
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-}
-
-if(outliertype == 'combinedpop'){
-	print(outliertype)
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-}
+dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHROM', 'POS'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 
 nrow(dat14)
 nrow(dat11)
@@ -73,21 +100,34 @@ nrow(dat07)
 nrow(dat40)
 nrow(datMod)
 
-dat14 <- dat14[kmer25==TRUE & dpLofFlag==TRUE,]
-dat11 <- dat11[kmer25==TRUE & dpLofFlag==TRUE,]
-dat07 <- dat07[kmer25==TRUE & dpLofFlag==TRUE,]
-dat40 <- dat40[kmer25==TRUE & dpCanFlag==TRUE,]
-datMod <- datMod[kmer25==TRUE & dpCanFlag==TRUE,]
+if(dpfilter==TRUE & mapfilter==TRUE){
+	dat14 <- dat14[kmer25==TRUE & dpLofFlag==TRUE,]
+	dat11 <- dat11[kmer25==TRUE & dpLofFlag==TRUE,]
+	dat07 <- dat07[kmer25==TRUE & dpLofFlag==TRUE,]
+	dat40 <- dat40[kmer25==TRUE & dpCanFlag==TRUE,]
+	datMod <- datMod[kmer25==TRUE & dpCanFlag==TRUE,]
+}
+if(dpfilter==FALSE & mapfilter==TRUE){
+	print('No depth filter!')
+	dat14 <- dat14[kmer25==TRUE,]
+	dat11 <- dat11[kmer25==TRUE,]
+	dat07 <- dat07[kmer25==TRUE,]
+	dat40 <- dat40[kmer25==TRUE,]
+	datMod <- datMod[kmer25==TRUE,]
+}
+if(dpfilter==FALSE & mapfilter==FALSE){
+	print('No depth or map filter!')
+}
 
-nrow(dat14) # 408771
+nrow(dat14) # 408771 (both filters) 429195 (no dpfilter)
 nrow(dat11)
 nrow(dat07)
-nrow(dat40) # 313787
+nrow(dat40) # 313787 (both filters) 329301 (no dpfilter)
 nrow(datMod)
 
 # how many outlier comparisons?
 # WHY SO MANY NAs IN THE OUTLIER COLUMN? APPARENTLY WEREN'T ANY FOR THE LD CALCULATIONS
-dat14[,summary(outlier)] # 32 (p.comb.adj3<0.3)
+dat14[,summary(outlier)] # should be same as in outl
 dat11[,summary(outlier)]
 dat07[,summary(outlier)]
 dat40[,summary(outlier)]
@@ -137,7 +177,7 @@ datMod[,summary(outlier)]
 	datMod[paste(CHROM, POS) %in% notoutl, notoutlier:=TRUE] # label the not-outliers
 
 
-	dat14[,summary(notoutlier)]
+	dat14[,summary(notoutlier)] # should be 1000
 	dat11[,summary(notoutlier)]
 	dat07[,summary(notoutlier)]
 	dat40[,summary(notoutlier)]
@@ -207,7 +247,7 @@ datMod[,summary(outlier)]
 			dat07 <- rbind(dat07, mono)
 		}		
 	}
-	dim(dat14) #470947 (bypop, <0.3) 439719 (combinedpop <0.3)
+	dim(dat14) #470947 (bypop, <0.3) 439719 (combinedpop <0.3) 457134 (union <0.2) 572543 (union<0.2 no dpfilter)
 	dim(dat11)
 	dim(dat07)
 
@@ -242,7 +282,7 @@ datMod[,summary(outlier)]
 			datMod <- rbind(datMod, mono)
 		}		
 	}
-	dim(dat40) # 317928 (bypop <0.3) 344800 (combinedpop <0.3)
+	dim(dat40) # 317928 (bypop <0.3) 344800 (combinedpop <0.3) 332813 (union <0.2) 416130 (union<0.2 no dpfilter)
 	dim(datMod)
 	
 
@@ -252,7 +292,7 @@ datMod[,summary(outlier)]
 	dim(dat11)
 	dim(dat07)
 	for(i in which(dat14$notoutlier)){
-		cat(which(i==which(dat14$notoutlier)))
+		cat(which(i==which(dat14$notoutlier))) # count to 1000. takes 20 min?
 		
 		dists <- dat14[CHROM==dat14$CHROM[i], abs(POS-dat14$POS[i])]
 		distclasses <- floor(dists/stp1)*stp1+stp1/2 # calculate a distance class
@@ -284,7 +324,7 @@ datMod[,summary(outlier)]
 			dat07 <- rbind(dat07, mono)
 		}
 	}
-	dim(dat14) # 2284776 (bypop <0.3) 2464192 (combinedpop <0.3)
+	dim(dat14) # 2284776 (bypop <0.3) 2464192 (combinedpop <0.3) 2527202 (union<0.2) 2581456 (union<0.2 no dpfilter)
 	dim(dat11)
 	dim(dat07)
 
@@ -321,7 +361,7 @@ datMod[,summary(outlier)]
 			datMod <- rbind(datMod, mono)
 		}
 	}
-	dim(dat40) # 2154018 (bypop <0.3) 2409593 (combinedpop <0.3)
+	dim(dat40) # 2154018 (bypop <0.3) 2409593 (combinedpop <0.3) 2387167 (union<0.2) 2382518 (union<0.2 no dpfilter)
 	dim(datMod)
 
 
@@ -367,7 +407,11 @@ binsMod[,pop:='CANMod']
 bins <- rbind(bins07, bins11, bins14, bins40, binsMod)
 
 # write out
-write.csv(bins, file=paste('analysis/pi_outliers_', outliertype, '.csv', sep=''), row.names=FALSE)
+if(dpfilter==TRUE & mapfilter==TRUE) outfile <- paste('analysis/pi_outliers_', outliertype, '.csv', sep='')
+if(dpfilter==FALSE & mapfilter==TRUE) outfile <- paste('analysis/pi_outliers_', outliertype, '_nodpfilter.csv', sep='')
+if(dpfilter==FALSE & mapfilter==FALSE) outfile <- paste('analysis/pi_outliers_', outliertype, '_nodpfilter_nomapfilter.csv', sep='')
+outfile
+write.csv(bins, file=outfile)
 
 
 ###############
@@ -378,7 +422,9 @@ require(RColorBrewer)
 require(data.table)
 
 # bins <- fread('analysis/pi_outliers.csv', ); outliertype <- 'bypop'
-bins <- fread('analysis/pi_outliers_combinedpop.csv', ); outliertype <- 'combinedpop'
+#bins <- fread('analysis/pi_outliers_combinedpop.csv', ); outliertype <- 'combinedpop'
+#bins <- fread('analysis/pi_outliers_union.csv', ); outliertype <- 'union'
+bins <- fread('analysis/pi_outliers_union_nodpfilter.csv', ); outliertype <- 'union_nodpfilter'
 cols <- brewer.pal(5, 'Set1')
 cex=0.5
 lwd=2

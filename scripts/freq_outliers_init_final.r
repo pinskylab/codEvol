@@ -11,12 +11,12 @@ require(data.table) # not on cod node
 outl <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on mac 108MB file
 #	outl
 
-# remove inversions and unplaced (also remove unmappable?)
+# remove inversions and unplaced
 outl <- outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced'))]
 
 # remove low-quality rows (SNPs that fail a filter)
 # dont' filter on coverage since that is population-specific. apply that later (and already included in outlier determination column)
-outl <- outl[kmer25==1,]
+outl <- outl[kmer25==1,] # filter on mappability
 
 nrow(outl) # 415238
 
@@ -24,18 +24,18 @@ nrow(outl) # 415238
 outl[,table(outlierLof071114_q3)] # 40
 outl[,table(outlierCan_q3)] # 4
 outl[,table(outlierLof071114_Can_q3)] # 23
+outl[,table(outlierLof071114_Can_q3 | outlierLof071114_q3)] # 59 Norway union
+outl[,table(outlierLof071114_Can_q3 | outlierCan_q3)] # 27 Canada union
 
 # set up 1000 not-outlier loci
-	outl[,nearoutlierLof:=FALSE]
-	outl[,nearoutlierCAN:=FALSE]
-	outl[,nearoutlierComb:=FALSE]
-
-	# for Norway
-	outl[outlierLof071114_q3==1, nearoutlierLof:=TRUE] # mark loci that are outliers
-	for(i in outl[,which(outlierLof071114_q3==1)]) { # add loci that are <= 5000 bp from outliers
-		outl[CHROM==outl$CHROM[i] & abs(POS - outl$POS[i]) <= 5000, nearoutlierLof:=TRUE]
+	outl[,nearoutlier:=FALSE] # to mark loci near outliers in any population
+	outl[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can_q3==1, nearoutlier:=TRUE] # first mark loci that are outliers
+	for(i in outl[,which(outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can_q3==1)]) { # add loci that are <= 5000 bp from outliers
+		outl[CHROM==outl$CHROM[i] & abs(POS - outl$POS[i]) <= 5000, nearoutlier:=TRUE]
 	}
-	allloci <- outl[nearoutlierLof==FALSE & !is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_14), .(CHROM, POS)] # list of all loci that aren't near outliers
+
+	# non-outliers for Norway
+	allloci <- outl[nearoutlier==FALSE & !is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_14), .(CHROM, POS)] # list of all loci that aren't near outliers
 	allloci$dist = NA
 	allloci$dist[2:nrow(allloci)] <- allloci$POS[2:nrow(allloci)] - allloci$POS[1:(nrow(allloci)-1)] # calculate distance to next locus to the left
 		dim(allloci)
@@ -49,11 +49,7 @@ outl[,table(outlierLof071114_Can_q3)] # 23
 
 
 	# for Canada
-	outl[outlierCan_q3==1, nearoutlierCAN:=TRUE]
-	for(i in outl[,which(outlierCan_q3==1)]) {
-		outl[CHROM==outl$CHROM[i] & abs(POS - outl$POS[i]) <= 5000, nearoutlierCAN:=TRUE]
-	}
-	allloci <- outl[nearoutlierCAN==FALSE & !is.na(Freq_Can40) & !is.na(Freq_CanMod), .(CHROM, POS)]
+	allloci <- outl[nearoutlier==FALSE & !is.na(Freq_Can40) & !is.na(Freq_CanMod), .(CHROM, POS)]
 	allloci$dist = NA
 	allloci$dist[2:nrow(allloci)] <- allloci$POS[2:nrow(allloci)] - allloci$POS[1:(nrow(allloci)-1)]
 		dim(allloci)
@@ -66,11 +62,7 @@ outl[,table(outlierLof071114_Can_q3)] # 23
 	outl[is.na(notoutlierCAN), notoutlierCAN:=FALSE]
 
 	# for Combined
-	outl[outlierLof071114_Can_q3==1, nearoutlierCAN:=TRUE]
-	for(i in outl[,which(outlierLof071114_Can_q3==1)]) {
-		outl[CHROM==outl$CHROM[i] & abs(POS - outl$POS[i]) <= 5000, nearoutlierCAN:=TRUE]
-	}
-	allloci <- outl[nearoutlierComb==FALSE & !is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40) & !is.na(Freq_CanMod), .(CHROM, POS)]
+	allloci <- outl[nearoutlier==FALSE & !is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40) & !is.na(Freq_CanMod), .(CHROM, POS)]
 	allloci$dist = NA
 	allloci$dist[2:nrow(allloci)] <- allloci$POS[2:nrow(allloci)] - allloci$POS[1:(nrow(allloci)-1)]
 		dim(allloci)
@@ -104,6 +96,7 @@ write.csv(out, file='analysis/freq_init_final_outliers.csv')
 require(RColorBrewer)
 require(data.table)
 
+out <- fread('analysis/freq_init_final_outliers.csv')
 
 # plotting parameters
 cols <- brewer.pal(5, 'Set1')
@@ -119,31 +112,62 @@ par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.
 
 	# Initial
 		# outlier single pop
-outl[outlierLof071114_q3==1,plot(density(Freq_07low, from=0, to=1), ylim=ylims, xlim=c(0,1), type='l', xlab='Initial allele frequency', ylab='Density', main='', log='', col=cols[1], lwd=2)]
-outl[outlierCan_q3==1,lines(density(Freq_Can40low, from=0, to=1, adjust=0.1), col=cols[2], lwd=2)]
+out[outlierLof071114_q3==1,plot(density(Freq_07low, from=0, to=1), ylim=ylims, xlim=c(0,1), type='l', xlab='Initial allele frequency', ylab='Density', main='', log='', col=cols[1], lwd=2)]
+out[outlierCan_q3==1,lines(density(Freq_Can40low, from=0, to=1, adjust=0.1), col=cols[2], lwd=2)]
 		# outlier combined pop
-outl[outlierLof071114_Can_q3==1,lines(density(Freq_07low, from=0, to=1), col=cols[1], lwd=2, lty=2)]
-outl[outlierLof071114_Can_q3==1,lines(density(Freq_Can40low, from=0, to=1, adjust=1), col=cols[2], lwd=2, lty=2)]
+out[outlierLof071114_Can_q3==1,lines(density(Freq_07low, from=0, to=1), col=cols[1], lwd=2, lty=2)]
+out[outlierLof071114_Can_q3==1,lines(density(Freq_Can40low, from=0, to=1, adjust=1), col=cols[2], lwd=2, lty=2)]
 		# notoutlier
-outl[notoutlierLof==TRUE,lines(density(Freq_07low, from=0, to=1), col=cols[1], lty=3)]
-outl[notoutlierCAN==TRUE,lines(density(Freq_Can40low, from=0, to=1), col=cols[2], lty=3)]
+out[notoutlierLof==TRUE,lines(density(Freq_07low, from=0, to=1), col=cols[1], lty=3)]
+out[notoutlierCAN==TRUE,lines(density(Freq_Can40low, from=0, to=1), col=cols[2], lty=3)]
 
 legend('topright', legend=c('LOF_07', 'CAN40', 'Outlier single pop', 'Outlier combined', 'Not outlier'), col=c(cols[c(1,2)], 'black', 'black', 'black'), lty=c(rep(1,3), 2, 3), bty='n', cex=0.5)
 
 	# Final
 		# outlier single pop
-outl[outlierLof071114_q3==1,plot(density(Freq_14low, from=0, to=1), ylim=ylims, xlim=c(0,1), type='l', xlab='Final allele frequency', ylab='Density', main='', log='', col=cols[1], lwd=2)]
-outl[outlierLof071114_q3==1,lines(density(Freq_11low, from=0, to=1), col=cols[3], lwd=2)]
-outl[outlierCan_q3==1,lines(density(Freq_CanModlow, from=0, to=1, adjust=50), col=cols[2], lwd=2)]
+out[outlierLof071114_q3==1,plot(density(Freq_14low, from=0, to=1), ylim=ylims, xlim=c(0,1), type='l', xlab='Final allele frequency', ylab='Density', main='', log='', col=cols[1], lwd=2)]
+out[outlierLof071114_q3==1,lines(density(Freq_11low, from=0, to=1), col=cols[3], lwd=2)]
+out[outlierCan_q3==1,lines(density(Freq_CanModlow, from=0, to=1, adjust=50), col=cols[2], lwd=2)]
 		# outlier combined pop
-outl[outlierLof071114_Can_q3==1,lines(density(Freq_14low, from=0, to=1), col=cols[1], lwd=2, lty=2)]
-outl[outlierLof071114_Can_q3==1,lines(density(Freq_11low, from=0, to=1), col=cols[3], lwd=2, lty=2)]
-outl[outlierLof071114_Can_q3==1,lines(density(Freq_CanModlow, from=0, to=1, adjust=1), col=cols[2], lwd=2, lty=2)]
+out[outlierLof071114_Can_q3==1,lines(density(Freq_14low, from=0, to=1), col=cols[1], lwd=2, lty=2)]
+out[outlierLof071114_Can_q3==1,lines(density(Freq_11low, from=0, to=1), col=cols[3], lwd=2, lty=2)]
+out[outlierLof071114_Can_q3==1,lines(density(Freq_CanModlow, from=0, to=1, adjust=1), col=cols[2], lwd=2, lty=2)]
 		# notoutlier
-outl[notoutlierLof==TRUE,lines(density(Freq_14low, from=0, to=1), col=cols[1], lty=3)]
-outl[notoutlierLof==TRUE,lines(density(Freq_11low, from=0, to=1), col=cols[3], lty=3)]
-outl[notoutlierCAN==TRUE,lines(density(Freq_CanModlow, from=0, to=1), col=cols[2], lty=3)]
+out[notoutlierLof==TRUE,lines(density(Freq_14low, from=0, to=1), col=cols[1], lty=3)]
+out[notoutlierLof==TRUE,lines(density(Freq_11low, from=0, to=1), col=cols[3], lty=3)]
+out[notoutlierCAN==TRUE,lines(density(Freq_CanModlow, from=0, to=1), col=cols[2], lty=3)]
 
 legend('topright', legend=c('LOF_S_14', 'LOF_S_11', 'CANMod', 'Outlier single pop', 'Outlier combined', 'Not outlier'), col=c(cols[c(1,3,2)], 'black', 'black', 'black'), lty=c(rep(1,4), 2, 3), bty='n', cex=0.5)
+
+dev.off()
+
+
+
+### plot density of initial and final frequencies: Union of single-population and combined outliers
+quartz(width=6, height=3)
+# pdf(width=6, height=3, file='figures/freq_init_final_outliers_union.pdf')
+par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
+
+	# Initial
+		# outlier single pop
+out[outlierLof071114_q3==1 | outlierLof071114_Can_q3==1,plot(density(Freq_07low, from=0, to=1), ylim=ylims, xlim=c(0,1), type='l', xlab='Initial allele frequency', ylab='Density', main='', log='', col=cols[1], lwd=2)]
+out[outlierCan_q3==1 | outlierLof071114_Can_q3==1,lines(density(Freq_Can40low, from=0, to=1), col=cols[2], lwd=2)]
+		# notoutlier
+out[notoutlierLof==TRUE,lines(density(Freq_07low, from=0, to=1), col=cols[1], lty=3)]
+out[notoutlierCAN==TRUE,lines(density(Freq_Can40low, from=0, to=1), col=cols[2], lty=3)]
+
+legend('topright', legend=c('LOF_07', 'CAN40', 'Outlier', 'Not outlier'), col=c(cols[c(1,2)], 'black', 'black'), lty=c(rep(1,3), 3), bty='n', cex=0.5)
+
+	# Final
+		# outlier single pop
+out[outlierLof071114_q3==1 | outlierLof071114_Can_q3==1,plot(density(Freq_14low, from=0, to=1), ylim=ylims, xlim=c(0,1), type='l', xlab='Final allele frequency', ylab='Density', main='', log='', col=cols[1], lwd=2)]
+out[outlierLof071114_q3==1 | outlierLof071114_Can_q3==1,lines(density(Freq_11low, from=0, to=1), col=cols[3], lwd=2)]
+out[outlierCan_q3==1 | outlierLof071114_Can_q3==1,lines(density(Freq_CanModlow, from=0, to=1), col=cols[2], lwd=2)]
+		# notoutlier
+out[notoutlierLof==TRUE,lines(density(Freq_14low, from=0, to=1), col=cols[1], lty=3)]
+out[notoutlierLof==TRUE,lines(density(Freq_11low, from=0, to=1), col=cols[3], lty=3)]
+out[notoutlierCAN==TRUE,lines(density(Freq_CanModlow, from=0, to=1), col=cols[2], lty=3)]
+
+legend('topright', legend=c('LOF_S_14', 'LOF_S_11', 'CANMod', 'Outlier', 'Not outlier'), col=c(cols[c(1,3,2)], 'black', 'black'), lty=c(rep(1,4), 3), bty='n', cex=0.5)
 
 dev.off()

@@ -1,7 +1,13 @@
 # compare Tajima's D near outlier loci and near non-outlier loci
 
 #outliertype <- 'bypop' # use q3.Lof071114 and q3.Can < 0.3 to define outlier loci
-outliertype <- 'combinedpop' # use q3.comb071114Can < 0.3
+#outliertype <- 'combinedpop' # use q3.comb071114Can < 0.3
+outliertype <- 'union' # use q3.comb071114Can < 0.2 | q3.Lof071114 < 0.2 | q3.Can < 0.2
+
+#dpfilter <- TRUE
+dpfilter <- FALSE
+
+mapfilter <- TRUE
 
 
 ######################
@@ -60,38 +66,67 @@ datMod <- datMod[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced'))]
 outl <- outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced'))]
 
 
+# define outlier information
+# use q<0.3 for more loci in some calculations
+if(outliertype == 'bypop' & dpfilter==TRUE & mapfilter==TRUE){
+	print('bypop')
+	outl[, outlierLof:=q3.Lof071114<0.3]
+	outl[, outlierCan:=q3.Can<0.3]
+}
+
+if(outliertype == 'combinedpop' & dpfilter==TRUE & mapfilter==TRUE){
+	print('combinedpop')
+	outl[, outlierLof:=q3.comb071114Can<0.3]
+	outl[, outlierCan:=q3.comb071114Can<0.3]
+}
+
+if(outliertype == 'union' & dpfilter==TRUE & mapfilter==TRUE){
+	outl[, outlierLof:=(q3.comb071114Can<0.2 | q3.Lof071114<0.2)]
+	outl[, outlierCan:=(q3.comb071114Can<0.2 | q3.Can<0.2)]
+}
+
+if(outliertype == 'union' & dpfilter==FALSE & mapfilter==TRUE){
+	print('union')
+	print('No depth filter!')
+
+	# have to do new FDR adjustments if we relax these filters
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Lof071114 := p.adjust(pLof071114, method='fdr')]
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Can := p.adjust(pCan, method='fdr')]
+
+	outl[, outlierLof:=(q4.comb071114Can<0.2 | q4.Lof071114<0.2)]
+	outl[, outlierCan:=(q4.comb071114Can<0.2 | q4.Can<0.2)]
+}
+
+if(outliertype == 'union' & dpfilter==FALSE & mapfilter==FALSE){
+	print('union')
+	print('No depth or map filter!')
+
+	# have to do new FDR adjustments if we relax these filters
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Lof071114 := p.adjust(pLof071114, method='fdr')]
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Can := p.adjust(pCan, method='fdr')]
+
+	outl[, outlierLof:=(q4.comb071114Can<0.2 | q4.Lof071114<0.2)]
+	outl[, outlierCan:=(q4.comb071114Can<0.2 | q4.Can<0.2)]
+}
+
+outl[,sum(outlierLof, na.rm=TRUE)] # 59 (union<0.2) 182 (union<0.2 no dpfilter)
+outl[,sum(outlierCan, na.rm=TRUE)] # 27 (union<0.2) 94 (union<0.2 no dpfilter)
+
+
 # merge in outlier information to dat
-# use q<0.3 for more loci in calculations
 nrow(dat14) # 920397 (50bp) 721949 (100bp) 136809 (1000bp)
 nrow(dat11) # 825344
 nrow(dat07) # 819717
 nrow(dat40) # 625016
 nrow(datMod) #634704
 
-if(outliertype == 'bypop'){
-	print('bypop')
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-	
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-
-	datMod <- merge(datMod, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-}
-if(outliertype == 'combinedpop'){
-	print('combinedpop')
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-	
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-
-	datMod <- merge(datMod, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
-}
+dat14 <- merge(dat14, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+dat11 <- merge(dat11, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+dat07 <- merge(dat07, outl[,.(CHROM, POS, BIN_START, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+dat40 <- merge(dat40, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
+datMod <- merge(datMod, outl[,.(CHROM, POS, BIN_START, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHROM', 'BIN_START'), by.y=c('CHROM', 'BIN_START'), all=TRUE)
 
 
 nrow(dat14) # 1370545
@@ -102,16 +137,30 @@ nrow(datMod) # 1858579
 
 # remove low-quality rows (SNPs that fail a filter)
 # note: could also remove all bins with SNPs that fail a filter
-dat14 <- dat14[kmer25==1 & dpLofFlag==TRUE,]
-dat11 <- dat11[kmer25==1 & dpLofFlag==TRUE,]
-dat07 <- dat07[kmer25==1 & dpLofFlag==TRUE,]
-dat40 <- dat40[kmer25==1 & dpCanFlag==TRUE,]
-datMod <- datMod[kmer25==1 & dpCanFlag==TRUE,]
+if(dpfilter==TRUE & mapfilter==TRUE){
+	dat14 <- dat14[kmer25==1 & dpLofFlag==TRUE,]
+	dat11 <- dat11[kmer25==1 & dpLofFlag==TRUE,]
+	dat07 <- dat07[kmer25==1 & dpLofFlag==TRUE,]
+	dat40 <- dat40[kmer25==1 & dpCanFlag==TRUE,]
+	datMod <- datMod[kmer25==1 & dpCanFlag==TRUE,]
+}
+if(dpfilter==FALSE & mapfilter==TRUE){
+	print('No depth filter!')
+	dat14 <- dat14[kmer25==1,]
+	dat11 <- dat11[kmer25==1,]
+	dat07 <- dat07[kmer25==1,]
+	dat40 <- dat40[kmer25==1,]
+	datMod <- datMod[kmer25==1,]
+}
+if(dpfilter==FALSE & mapfilter==FALSE){
+	print('No depth or map filter!')
+}
 
-nrow(dat14) # 330524
+
+nrow(dat14) # 330524 (both filters) 415238 (no depth filter)
 nrow(dat11) 
 nrow(dat07) 
-nrow(dat40) # 254047
+nrow(dat40) # 254047 (both filters) 415238 (no depth filter)
 nrow(datMod) 
 
 # how many outlier comparisons?
@@ -209,7 +258,7 @@ datMod[,summary(outlier)]
 	# from each outlier
 	# note this will write over any outliers whose 5000 bp overlap any earlier values
 		# Norway
-	dim(dat14) # 330524
+	dim(dat14) # 330524 (both filters) 415238 (no dpfilter)
 	dim(dat11)
 	dim(dat07)
 	for(i in which(dat14$outlier)){
@@ -219,7 +268,7 @@ datMod[,summary(outlier)]
 	}
 
 		# Canada
-	dim(dat40) # 254047
+	dim(dat40) # 254047 (both filters) 415238 (no dpfilter)
 	dim(datMod)
 	for(i in which(dat40$outlier)){
 		dat40[CHROM==dat40$CHROM[i] & abs(BIN_START-dat40$BIN_START[i]) <= 5000, ':=' (distclass=abs(BIN_START-dat40$BIN_START[i]), disttype='outlier')]
@@ -255,10 +304,10 @@ dat07t <- unique(dat07[!is.na(TajimaD)], by=c('CHROM', 'BIN_START', 'TajimaD', '
 dat40t <- unique(dat40[!is.na(TajimaD)], by=c('CHROM', 'BIN_START', 'TajimaD', 'distclass', 'disttype'))
 datModt <- unique(datMod[!is.na(TajimaD)], by=c('CHROM', 'BIN_START', 'TajimaD', 'distclass', 'disttype'))
 
-nrow(dat14t) # 294275 (50bp) 221475 (100bp) 133329 (1000bp)
+nrow(dat14t) # 294275 (50bp) 221475 (100bp) 133329 (1000bp) 136498 (1000bp no dpfilter)
 nrow(dat11t)
 nrow(dat07t)
-nrow(dat40t) # 229878 (50bp) 182012 (100bp) 120795 (1000bp)
+nrow(dat40t) # 229878 (50bp) 182012 (100bp) 120795 (1000bp) 123765 (1000bp no dpfilter)
 nrow(datModt)
 
 
@@ -303,7 +352,11 @@ binsMod[,pop:='CANMod']
 bins <- rbind(bins07, bins11, bins14, bins40, binsMod)
 
 # write out
-write.csv(bins, file=paste('analysis/TajimaD_outliers_', bp, 'bp_', outliertype, '.csv', sep=''), row.names=FALSE)
+if(dpfilter==TRUE & mapfilter==TRUE) outfile <- paste('analysis/TajimaD_outliers_', bp, 'bp_', outliertype, '.csv', sep='')
+if(dpfilter==FALSE & mapfilter==TRUE) outfile <- paste('analysis/TajimaD_outliers_', bp, 'bp_', outliertype, '_nodpfilter.csv', sep='')
+if(dpfilter==FALSE & mapfilter==FALSE) outfile <- paste('analysis/TajimaD_outliers_', bp, 'bp_', outliertype, '_nodpfilter_nomapfilter.csv', sep='')
+outfile
+write.csv(bins, file=outfile, row.names=FALSE)
 
 ###############
 # plot
@@ -317,8 +370,20 @@ require(mgcv)
 #bins <- fread('analysis/TajimaD_outliers.csv', ); bp=50; outliertype='bypop'
 #bins <- fread('analysis/TajimaD_outliers_100bp.csv', ); bp=100; outliertype='bypop'
 #bins <- fread('analysis/TajimaD_outliers_1000bp.csv', ); bp=1000; outliertype='bypop'
-bins <- fread('analysis/TajimaD_outliers_1000bp_combinedpop.csv', ); bp=1000; outliertype='combinedpop'
+#bins <- fread('analysis/TajimaD_outliers_1000bp_combinedpop.csv', ); bp=1000; outliertype='combinedpop'
+#bins <- fread('analysis/TajimaD_outliers_1000bp_union.csv', ); bp=1000; outliertype='union'
+bins <- fread('analysis/TajimaD_outliers_1000bp_union_nodpfilter.csv', ); bp=1000; outliertype='union_nodpfilter'
 
+# plotting parameters
+cols <- brewer.pal(5, 'Set1')
+colstrans <- paste(cols, '55', sep='')
+cex=0.5
+lwd=2
+ylims <- bins[!is.na(disttype),range(c(Dave-1.96*Dse, Dave+1.96*Dse), na.rm=TRUE)]
+
+
+
+### plot data with loess smoothers
 # calculate smooth fits
 smooth14 <- bins[pop=='LOF_S_14' & disttype=='outlier', predict(loess(Dave ~ I(distclass)), se=TRUE)]
 smooth11 <- bins[pop=='LOF_S_11' & disttype=='outlier', predict(loess(Dave ~ I(distclass)), se=TRUE)]
@@ -331,16 +396,6 @@ smoothMod <- bins[pop=='CANMod' & disttype=='outlier', predict(loess(Dave ~ I(di
 smooth40n <- bins[pop=='CAN40' & disttype=='notoutlier', predict(loess(Dave ~ I(distclass)), se=TRUE)]
 smoothModn <- bins[pop=='CANMod' & disttype=='notoutlier', predict(loess(Dave ~ I(distclass)), se=TRUE)]
 
-# plotting parameters
-cols <- brewer.pal(5, 'Set1')
-colstrans <- paste(cols, '55', sep='')
-cex=0.5
-lwd=2
-ylims <- bins[!is.na(disttype),range(c(Dave-1.96*Dse, Dave+1.96*Dse), na.rm=TRUE)]
-
-
-
-### plot data with loess smoothers
 quartz(width=6, height=3)
 # pdf(width=6, height=3, file=paste('figures/TajimasD_decay_outliers_', bp, 'bp_loess_', outliertype, '.pdf', sep=''))
 par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)

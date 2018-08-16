@@ -2,7 +2,16 @@
 
 # flags
 #outliertype <- 'bypop' # use q3.Lof071114 and q3.Can < 0.3 to define outlier loci
-outliertype <- 'combinedpop' # use q3.comb071114Can < 0.3
+#outliertype <- 'combinedpop' # use q3.comb071114Can < 0.3
+outliertype <- 'union' # use q3.comb071114Can < 0.2 | q3.Lof071114 < 0.2 | q3.Can < 0.3 (<0.2 if no dpfilter)
+
+dpfilter <- TRUE
+#dpfilter <- FALSE
+
+mapfilter <- TRUE
+#mapfilter <- FALSE
+
+if((mapfilter==FALSE & dpfilter==TRUE) | ((dpfilter==FALSE | mapfilter==FALSE) & outliertype != 'union')) warning('NO CODE YET for this flag combination. THINK CAREFULLY')
 
 ######################
 # calculate LD decay
@@ -14,7 +23,7 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
 outl <- fread("zcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz")
 #	outl
 
-# read in LD data on cod node
+# read in LD data on cod node (each file about 600MB)
 dat14 <- fread('zcat analysis/LOF_S_14.geno.ld')
 dat11 <- fread('zcat analysis/LOF_S_11.geno.ld')
 dat07 <- fread('zcat analysis/LOF_07.geno.ld')
@@ -35,47 +44,73 @@ dat07[,dist:=abs(POS2-POS1)]
 dat40[,dist:=abs(POS2-POS1)]
 datMod[,dist:=abs(POS2-POS1)]
 
+# define outlier information
+# use q<0.3 for more loci in LD calculations (except union Norway)
+if(outliertype == 'bypop' & dpfilter==TRUE & mapfilter==TRUE){
+	outl[, outlierLof:=q3.Lof071114<0.3]
+	outl[, outlierCan:=q3.Can<0.3]
+}
+
+if(outliertype == 'combinedpop' & dpfilter==TRUE & mapfilter==TRUE){
+	outl[, outlierLof:=q3.comb071114Can<0.3]
+	outl[, outlierCan:=q3.comb071114Can<0.3]
+}
+
+if(outliertype == 'union' & dpfilter==TRUE & mapfilter==TRUE){
+	outl[, outlierLof:=(q3.comb071114Can<0.2 | q3.Lof071114<0.2)]
+	outl[, outlierCan:=(q3.comb071114Can<0.3 | q3.Can<0.3)]
+}
+
+if(outliertype == 'union' & dpfilter==FALSE & mapfilter==TRUE){
+	print('No depth filter!')
+
+	# have to do new FDR adjustments if we relax these filters
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Lof071114 := p.adjust(pLof071114, method='fdr')]
+	outl[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Can := p.adjust(pCan, method='fdr')]
+
+	outl[, outlierLof:=(q4.comb071114Can<0.2 | q4.Lof071114<0.2)]
+	outl[, outlierCan:=(q4.comb071114Can<0.2 | q4.Can<0.2)]
+}
+
+if(outliertype == 'union' & dpfilter==FALSE & mapfilter==FALSE){
+	print('No depth or map filter!')
+
+	# have to do new FDR adjustments if we relax these filters
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Lof071114 := p.adjust(pLof071114, method='fdr')]
+	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.Can := p.adjust(pCan, method='fdr')]
+
+	outl[, outlierLof:=(q4.comb071114Can<0.2 | q4.Lof071114<0.2)]
+	outl[, outlierCan:=(q4.comb071114Can<0.2 | q4.Can<0.2)]
+}
+
+outl[,sum(outlierLof, na.rm=TRUE)] # 59 (union<0.2) 182 (union<0.2 no dpfilter)
+outl[,sum(outlierCan, na.rm=TRUE)] # 27 (union<0.2) 37 (union<0.3) 112 (union<0.2 no dpfilter)
+
+
 # merge in outlier information
-# use q<0.3 for more loci in LD calculations
 nrow(dat14) # 19706634
 nrow(dat11)
 nrow(dat07)
 nrow(dat40) # 9918703
 nrow(datMod)
 
-if(outliertype == 'bypop'){
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE) # on POS1
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE) # on POS2
+dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE) # on POS1
+dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE) # on POS2
 
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 	
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.Lof071114<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=outlierLof)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 
-	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.Can<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-}
+datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
+datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=outlierCan)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
 
-if(outliertype == 'combinedpop'){
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE) # on POS1
-	dat14 <- merge(dat14, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE) # on POS2
-
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	dat11 <- merge(dat11, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	dat07 <- merge(dat07, outl[,.(CHROM, POS, kmer25, dpLofFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	dat40 <- merge(dat40, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-
-	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS1'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-	datMod <- merge(datMod, outl[,.(CHROM, POS, kmer25, dpCanFlag, outlier=q3.comb071114Can<0.3)], by.x=c('CHR', 'POS2'), by.y=c('CHROM', 'POS'), all.x=TRUE)
-}
 
 nrow(dat14) # 19706634
 nrow(dat11)
@@ -86,11 +121,29 @@ nrow(datMod)
 # combine information from POS1 and POS2 quality filters and outliers
 # has to pass kmer25 filter or dp filter for both loci, but only one locus needs to be an outlier to be flagged
 # use filters within populations
-dat14[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpLofFlag.x&dpLofFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
-dat11[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpLofFlag.x&dpLofFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
-dat07[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpLofFlag.x&dpLofFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
-dat40[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpCanFlag.x&dpCanFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
-datMod[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpCanFlag.x&dpCanFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
+if(dpfilter==TRUE & mapfilter==TRUE){
+	dat14[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpLofFlag.x&dpLofFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
+	dat11[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpLofFlag.x&dpLofFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
+	dat07[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpLofFlag.x&dpLofFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
+	dat40[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpCanFlag.x&dpCanFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
+	datMod[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=(dpCanFlag.x&dpCanFlag.y), outlier=(outlier.x==1)|(outlier.y==1))]
+}
+if(dpfilter==FALSE & mapfilter==TRUE){
+	print('No depth filter!')
+	dat14[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	dat11[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	dat07[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	dat40[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	datMod[,':='(kmer25=(kmer25.x==1)&(kmer25.y==1), dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+}
+if(dpfilter==FALSE & mapfilter==FALSE){
+	print('No depth or map filter!')
+	dat14[,':='(kmer25=TRUE, dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	dat11[,':='(kmer25=TRUE, dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	dat07[,':='(kmer25=TRUE, dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	dat40[,':='(kmer25=TRUE, dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+	datMod[,':='(kmer25=TRUE, dpFlag=TRUE, outlier=(outlier.x==1)|(outlier.y==1))]
+}
 
 # remove unneeded columns
 dat14[,':='(kmer25.x=NULL, kmer25.y=NULL, dpLofFlag.x=NULL, dpLofFlag.y=NULL, outlier.x=NULL, outlier.y=NULL)]
@@ -112,17 +165,17 @@ dat07 <- dat07[kmer25==TRUE & dpFlag==TRUE,]
 dat40 <- dat40[kmer25==TRUE & dpFlag==TRUE,]
 datMod <- datMod[kmer25==TRUE & dpFlag==TRUE,]
 
-nrow(dat14) # 2137914 (p.comb)
+nrow(dat14) # 2137914 (p.comb, union) 2352023 (union no dpfilter)  (union no dpfilter no mapfilter)
 nrow(dat11)
 nrow(dat07)
-nrow(dat40) # 1180832 (p.comb)
+nrow(dat40) # 1180832 (p.comb, union) 1299009 (union no dpfilter)  (union no dpfilter no mapfilter)
 nrow(datMod)
 
 # how many outlier comparisons?
-dat14[,sum(outlier, na.rm=TRUE)] # 330 (p.comb<0.2), 410 (p.comb<0.3)
+dat14[,sum(outlier, na.rm=TRUE)] # 330 (p.comb<0.2), 410 (p.comb<0.3), 689 (union<0.2) 2819 (union<0.2 no dpfilter)  (union<0.2 no dpfilter no mapfilter)
 dat11[,sum(outlier, na.rm=TRUE)]
 dat07[,sum(outlier, na.rm=TRUE)]
-dat40[,sum(outlier, na.rm=TRUE)] # 157 (p.comb<0.2), 218 (p.comb<0.3)
+dat40[,sum(outlier, na.rm=TRUE)] # 157 (p.comb<0.2), 218 (p.comb<0.3), 269 (union<0.3) 1520 (union<0.2 no dpfilter)  (union<0.2 no dpfilter no mapfilter)
 datMod[,sum(outlier, na.rm=TRUE)]
 
 # set up 1000 not-outlier loci
@@ -132,7 +185,7 @@ dat07[,notoutlier:=FALSE]
 dat40[,notoutlier:=FALSE]
 datMod[,notoutlier:=FALSE]
 
-exclude <- dat14[outlier==TRUE, unique(c(paste(CHR, POS1), paste(CHR, POS2)))] # list of loci that are outliers or are <5000 bp from outliers (latter because we calculated r2 between loci up to 5000bp apart)
+exclude <- dat14[outlier==TRUE, unique(c(paste(CHR, POS1), paste(CHR, POS2)))] # list of loci that are outliers or are <5000 bp from outliers (latter happens because we calculated r2 between loci up to 5000bp apart)
 allloci <- dat14[, unique(c(paste(CHR, POS1), paste(CHR, POS2)))] # list of all loci
 notoutl <- sample(setdiff(allloci, exclude), 1000) # sample 1000 loci to be the "not outliers"
 dat14[(paste(CHR, POS1) %in% notoutl) | (paste(CHR, POS2) %in% notoutl), notoutlier:=TRUE] # label the not-outliers
@@ -157,10 +210,10 @@ allloci <- datMod[, unique(c(paste(CHR, POS1), paste(CHR, POS2)))]
 notoutl <- sample(setdiff(allloci, exclude), 1000)
 datMod[(paste(CHR, POS1) %in% notoutl) | (paste(CHR, POS2) %in% notoutl), notoutlier:=TRUE] # label the not-outliers
 
-dat14[,summary(notoutlier)]
+dat14[,summary(notoutlier)] # 13359 (union<0.2), but varies per run and by table
 dat11[,summary(notoutlier)]
 dat07[,summary(notoutlier)]
-dat40[,summary(notoutlier)]
+dat40[,summary(notoutlier)] # 9604 (union<0.2), but varies per run and by table
 datMod[,summary(notoutlier)]
 
 # remove comparisons that aren't near outliers or chosen not-outliers
@@ -171,11 +224,11 @@ dat07 <- dat07[(outlier==TRUE | notoutlier==TRUE) & !is.na(r2),]
 dat40 <- dat40[(outlier==TRUE | notoutlier==TRUE) & !is.na(r2),]
 datMod <- datMod[(outlier==TRUE | notoutlier==TRUE) & !is.na(r2),]
 
-nrow(dat14) # 11306 (p.comb<0.2) 11248 (p.comb<0.3): these numbers seem off
-nrow(dat11) # 10661 (p.comb<0.2) 11211 (p.comb<0.3)
-nrow(dat07) # 10257 (p.comb<0.2) 11228 (p.comb<0.3)
-nrow(dat40) # 7491 (p.comb<0.2) 7710 (p.comb<0.3)
-nrow(datMod) # 8120 (p.comb<0.2) 8547 (p.comb<0.3)
+nrow(dat14) # 11306 (p.comb<0.2) 11248 (p.comb<0.3) 11838 (union<0.2): vary by run
+nrow(dat11) # 10661 (p.comb<0.2) 11211 (p.comb<0.3) 11216 (union<0.2)
+nrow(dat07) # 10257 (p.comb<0.2) 11228 (p.comb<0.3) 10766 (union<0.2)
+nrow(dat40) # 7491 (p.comb<0.2) 7710 (p.comb<0.3) 7920 (union<0.2)
+nrow(datMod) # 8120 (p.comb<0.2) 8547 (p.comb<0.3) 8377 (union<0.2)
 
 # examine outliers
 dat07[outlier==TRUE, .(CHR, POS1, POS2, dist, N_INDV, r2, kmer25, dpFlag)]
@@ -192,33 +245,58 @@ if(outliertype=='combinedpop'){
 	thresh <- 100
 	stp2 <- 1000
 }
+if(outliertype=='union'){
+	stp1 <- 30 # step size for small distances
+	thresh <- 60 # use stp2 above this distance
+	stp2 <- 1000
+}
 
 dat14[,distclass:=floor(dist/stp1)*stp1+stp1/2] # calculate a distance class
-dat14[dist>thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
+dat14[dist>=thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
 
 dat11[,distclass:=floor(dist/stp1)*stp1+stp1/2] # calculate a distance class
-dat11[dist>thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
+dat11[dist>=thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
 
 dat07[,distclass:=floor(dist/stp1)*stp1+stp1/2] # calculate a distance class
-dat07[dist>thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
+dat07[dist>=thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
 
 dat40[,distclass:=floor(dist/stp1)*stp1+stp1/2] # calculate a distance class
-dat40[dist>thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
+dat40[dist>=thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
 
 datMod[,distclass:=floor(dist/stp1)*stp1+stp1/2] # calculate a distance class
-datMod[dist>thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
+datMod[dist>=thresh,distclass:=floor(dist/stp2)*stp2+stp2/2] # calculate a distance class
 
+# mark outlier or not
+dat14[,outlierclass := '']
+dat14[outlier==TRUE,outlierclass := 'outlier']
+dat14[notoutlier==TRUE,outlierclass := 'notoutlier']
+
+dat11[,outlierclass := '']
+dat11[outlier==TRUE,outlierclass := 'outlier']
+dat11[notoutlier==TRUE,outlierclass := 'notoutlier']
+
+dat07[,outlierclass := '']
+dat07[outlier==TRUE,outlierclass := 'outlier']
+dat07[notoutlier==TRUE,outlierclass := 'notoutlier']
+
+dat40[,outlierclass := '']
+dat40[outlier==TRUE,outlierclass := 'outlier']
+dat40[notoutlier==TRUE,outlierclass := 'notoutlier']
+
+datMod[,outlierclass := '']
+datMod[outlier==TRUE,outlierclass := 'outlier']
+datMod[notoutlier==TRUE,outlierclass := 'notoutlier']
 
 # calculate averages within bins (like Bario et al. 2016 eLife)
-bins14 <- dat14[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlier, distclass)] # average within distance classes for outlier or not outlier (but not neither)
+bins14 <- dat14[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlierclass, distclass)] # average within distance classes for outlier or not outlier (but not neither)
 
-bins11 <- dat11[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlier, distclass)]
+bins11 <- dat11[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlierclass, distclass)]
 
-bins07 <- dat07[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlier, distclass)]
+bins07 <- dat07[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlierclass, distclass)]
 
-bins40 <- dat40[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlier, distclass)]
+bins40 <- dat40[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlierclass, distclass)]
 
-binsMod <- datMod[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlier, distclass)]
+binsMod <- datMod[!is.na(r2),.(r2ave=mean(r2), r2sd=sd(r2), r2l95=quantile(r2,probs=0.025), r2u95=quantile(r2,probs=0.975), r2l75=quantile(r2,probs=0.125), r2u75=quantile(r2,probs=0.875), r2n=.N), by=list(outlierclass, distclass)]
 
 bins14[,r2se:=r2sd/r2n]
 bins11[,r2se:=r2sd/r2n]
@@ -226,18 +304,18 @@ bins07[,r2se:=r2sd/r2n]
 bins40[,r2se:=r2sd/r2n]
 binsMod[,r2se:=r2sd/r2n]
 
-setkey(bins14, outlier, distclass)
-setkey(bins11, outlier, distclass)
-setkey(bins07, outlier, distclass)
-setkey(bins40, outlier, distclass)
-setkey(binsMod, outlier, distclass)
+setkey(bins14, outlierclass, distclass)
+setkey(bins11, outlierclass, distclass)
+setkey(bins07, outlierclass, distclass)
+setkey(bins40, outlierclass, distclass)
+setkey(binsMod, outlierclass, distclass)
 
 # examine
-bins14[,.(outlier,distclass,r2ave, r2se)]
-bins11[,.(outlier,distclass,r2ave, r2se)]
-bins07[,.(outlier,distclass,r2ave, r2se)]
-binsMod[,.(outlier,distclass,r2ave, r2se)]
-bins40[,.(outlier,distclass,r2ave, r2se)]
+bins14[,.(outlierclass,distclass,r2ave, r2se)]
+bins11[,.(outlierclass,distclass,r2ave, r2se)]
+bins07[,.(outlierclass,distclass,r2ave, r2se)]
+binsMod[,.(outlierclass,distclass,r2ave, r2se, r2n)]
+bins40[,.(outlierclass,distclass,r2ave, r2se, r2n)] # check for low sample size and small bins
 
 # label by population
 bins14[,pop:='LOF_S_14']
@@ -250,7 +328,11 @@ binsMod[,pop:='CANMod']
 bins <- rbind(bins07, bins11, bins14, bins40, binsMod)
 
 # write out
-write.csv(bins, file=paste('analysis/ld_outliers_', outliertype, '.csv', sep=''))
+if(dpfilter==TRUE & mapfilter==TRUE) outfile <- paste('analysis/ld_outliers_', outliertype, '.csv', sep='')
+if(dpfilter==FALSE & mapfilter==TRUE) outfile <- paste('analysis/ld_outliers_', outliertype, '_nodpfilter.csv', sep='')
+if(dpfilter==FALSE & mapfilter==FALSE) outfile <- paste('analysis/ld_outliers_', outliertype, '_nodpfilter_nomapfilter.csv', sep='')
+outfile
+write.csv(bins, file=outfile)
 
 ###############
 # plot
@@ -260,7 +342,9 @@ require(RColorBrewer)
 require(data.table)
 
 #bins <- fread('analysis/ld_outliers.csv'); outliertype<-'bypop'
-bins <- fread('analysis/ld_outliers_combinedpop.csv'); outliertype <- 'combinedpop'
+#bins <- fread('analysis/ld_outliers_combinedpop.csv'); outliertype <- 'combinedpop'
+#bins <- fread('analysis/ld_outliers_union.csv'); outliertype <- 'union'
+bins <- fread('analysis/ld_outliers_union_nodpfilter.csv'); outliertype <- 'union_nodpfilter'
 cols <- brewer.pal(5, 'Set1')
 cex=0.5
 lwd=2
@@ -271,35 +355,35 @@ quartz(width=6, height=3)
 par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
 
 	# Lof
-bins[pop=='LOF_S_14' & outlier==TRUE,plot(distclass, r2ave, ylim=c(0,1), type='l', xlab='Distance (bp)', ylab='Average correlation (r2)', cex=cex, main='Lof', log='x', col=cols[1], lwd=lwd)]
-bins[pop=='LOF_S_11' & outlier==TRUE,lines(distclass*1.1, r2ave, type='l', cex=cex, col=cols[2], lwd=lwd)]
-bins[pop=='LOF_07' & outlier==TRUE,lines(distclass*1.2, r2ave, type='l', cex=cex, col=cols[3], lwd=lwd)]
+bins[pop=='LOF_S_14' & outlierclass=='outlier',plot(distclass, r2ave, ylim=c(0,1), type='l', xlab='Distance (bp)', ylab='Average correlation (r2)', cex=cex, main='Lof', log='x', col=cols[1], lwd=lwd)]
+bins[pop=='LOF_S_11' & outlierclass=='outlier',lines(distclass*1.1, r2ave, type='l', cex=cex, col=cols[2], lwd=lwd)]
+bins[pop=='LOF_07' & outlierclass=='outlier',lines(distclass*1.2, r2ave, type='l', cex=cex, col=cols[3], lwd=lwd)]
 
-bins[pop=='LOF_S_14' & outlier==FALSE,lines(distclass*1.3, r2ave, type='l', cex=cex, col=cols[1], lty=3, lwd=lwd)]
-bins[pop=='LOF_S_11' & outlier==FALSE,lines(distclass*1.4, r2ave, type='l', cex=cex, col=cols[2], lty=3, lwd=lwd)]
-bins[pop=='LOF_07' & outlier==FALSE,lines(distclass*1.5, r2ave, type='l', cex=cex, col=cols[3], lty=3, lwd=lwd)]
+bins[pop=='LOF_S_14' & outlierclass=='notoutlier',lines(distclass*1.3, r2ave, type='l', cex=cex, col=cols[1], lty=3, lwd=lwd)]
+bins[pop=='LOF_S_11' & outlierclass=='notoutlier',lines(distclass*1.4, r2ave, type='l', cex=cex, col=cols[2], lty=3, lwd=lwd)]
+bins[pop=='LOF_07' & outlierclass=='notoutlier',lines(distclass*1.5, r2ave, type='l', cex=cex, col=cols[3], lty=3, lwd=lwd)]
 
-bins[pop=='LOF_S_14' & outlier==TRUE,lines(c(distclass, distclass), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[1]), by=distclass] # 95% CI on the mean.
-bins[pop=='LOF_S_11' & outlier==TRUE,lines(c(distclass*1.1, distclass*1.1), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[2]), by=distclass]
-bins[pop=='LOF_07' & outlier==TRUE,lines(c(distclass*1.2, distclass*1.2), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[3]), by=distclass]
+bins[pop=='LOF_S_14' & outlierclass=='outlier',lines(c(distclass, distclass), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[1]), by=distclass] # 95% CI on the mean.
+bins[pop=='LOF_S_11' & outlierclass=='outlier',lines(c(distclass*1.1, distclass*1.1), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[2]), by=distclass]
+bins[pop=='LOF_07' & outlierclass=='outlier',lines(c(distclass*1.2, distclass*1.2), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[3]), by=distclass]
 
-bins[pop=='LOF_S_14' & outlier==FALSE,lines(c(distclass*1.3, distclass*1.3), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[1]), by=distclass]
-bins[pop=='LOF_S_11' & outlier==FALSE,lines(c(distclass*1.4, distclass*1.4), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[2]), by=distclass]
-bins[pop=='LOF_07' & outlier==FALSE,lines(c(distclass*1.5, distclass*1.5), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[3]), by=distclass]
+bins[pop=='LOF_S_14' & outlierclass=='notoutlier',lines(c(distclass*1.3, distclass*1.3), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[1]), by=distclass]
+bins[pop=='LOF_S_11' & outlierclass=='notoutlier',lines(c(distclass*1.4, distclass*1.4), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[2]), by=distclass]
+bins[pop=='LOF_07' & outlierclass=='notoutlier',lines(c(distclass*1.5, distclass*1.5), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[3]), by=distclass]
 
 legend('topright', legend=c('LOF_S_14', 'LOF_S_11', 'LOF_07', 'Outlier', 'Not outlier'), col=c(cols[1:3], 'black', 'black'), lty=c(rep(1,4), 3), bty='n', cex=0.5)
 
 	# Canada
-bins[pop=='CANMod' & outlier==TRUE,plot(distclass, r2ave, ylim=c(0,1), type='l', xlab='Distance (bp)', ylab='Average correlation (r2)', cex=cex, main='Can', log='x', col=cols[4], lwd=lwd)]
-bins[pop=='CAN40' & outlier==TRUE,lines(distclass*1.1, r2ave, type='l', cex=cex, col=cols[5], lwd=lwd)]
+bins[pop=='CANMod' & outlierclass=='outlier',plot(distclass, r2ave, ylim=c(0,1), type='l', xlab='Distance (bp)', ylab='Average correlation (r2)', cex=cex, main='Can', log='x', col=cols[4], lwd=lwd)]
+bins[pop=='CAN40' & outlierclass=='outlier',lines(distclass*1.1, r2ave, type='l', cex=cex, col=cols[5], lwd=lwd)]
 
-bins[pop=='CANMod' & outlier==FALSE,lines(distclass*1.2, r2ave, type='l', cex=cex, col=cols[4], lty=3, lwd=lwd)]
-bins[pop=='CAN40' & outlier==FALSE,lines(distclass*1.3, r2ave, type='l', cex=cex, col=cols[5], lty=3, lwd=lwd)]
+bins[pop=='CANMod' & outlierclass=='notoutlier',lines(distclass*1.2, r2ave, type='l', cex=cex, col=cols[4], lty=3, lwd=lwd)]
+bins[pop=='CAN40' & outlierclass=='notoutlier',lines(distclass*1.3, r2ave, type='l', cex=cex, col=cols[5], lty=3, lwd=lwd)]
 
-bins[pop=='CANMod' & outlier==TRUE,lines(c(distclass, distclass), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[4]), by=distclass]
-bins[pop=='CAN40' & outlier==TRUE,lines(c(distclass*1.1, distclass*1.1), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[5]), by=distclass]
-bins[pop=='CANMod' & outlier==FALSE,lines(c(distclass*1.2, distclass*1.2), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[4]), by=distclass]
-bins[pop=='CAN40' & outlier==FALSE,lines(c(distclass*1.3, distclass*1.3), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[5]), by=distclass]
+bins[pop=='CANMod' & outlierclass=='outlier',lines(c(distclass, distclass), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[4]), by=distclass]
+bins[pop=='CAN40' & outlierclass=='outlier',lines(c(distclass*1.1, distclass*1.1), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[5]), by=distclass]
+bins[pop=='CANMod' & outlierclass=='notoutlier',lines(c(distclass*1.2, distclass*1.2), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[4]), by=distclass]
+bins[pop=='CAN40' & outlierclass=='notoutlier',lines(c(distclass*1.3, distclass*1.3), c(r2ave-1.96*r2se, r2ave+1.96*r2se), col=cols[5]), by=distclass]
 
 legend('topright', legend=c('CANMod', 'CAN40', 'Outlier', 'Not outlier'), col=c(cols[4:5], 'black', 'black'), lty=c(1,1,1,3), bty='n', cex=0.5)
 
