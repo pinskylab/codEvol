@@ -8,7 +8,7 @@ require(data.table)
 # Read in WFS drift null model outlier values for all populations (combined by wfs_nullmodel_analysis_Canada,1907-2011&2014.r)
 ##############################
 nullmod <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on mac 108MB file
-	outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can_q3==1, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, q3.Lof071114, q3.Can, q3.comb071114Can)] # the outliers
+outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can_q3==1, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, q3.Lof071114, q3.Can, q3.comb071114Can)] # trim to just the outliers
 	dim(outl)
 
 
@@ -126,7 +126,8 @@ codons <- lapply(g, get.codons, 1) # fails for end of LG16 for some reason
 #	}
 	
 # Read in GFF file to get gene names and annotations
-gff <- fread("../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff", header=F)
+#gff <- fread("../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff", header=F)
+gff <- fread("../genome_data/gadMor2_annotation_filtered_only_gene_models.gff", header=F)
 setnames(gff, c('seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'))
 
 	# function to search for a string, remove it, and return the rest. Return NA if not found.
@@ -156,43 +157,81 @@ setnames(gff, c('seqname', 'source', 'feature', 'start', 'end', 'score', 'strand
 			nms <- paste(sapply(pieces, FUN=grepstrip, 'Name='), collapse=';')
 			prnt <- paste(sapply(pieces, FUN=grepstrip, 'Parent='), collapse=';')
 			sim <- paste(setdiff(unique(sapply(pieces, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
+			ingo <- paste(setdiff(unique(sapply(pieces, FUN=grepstrip, strip='Ontology_term=', na='')), ''), collapse=',')
 		} else {
-			fts <- sts <- ends <- strnds <- frms <- ids <- nms <- prnt <- sim <- ''
+			fts <- sts <- ends <- strnds <- frms <- ids <- nms <- prnt <- sim <- ingo <- ''
 		}
-		if(length(k)>0){
-			pieces2 <- strsplit(gff[k,attribute], split=';')
-			near <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
+		if(length(k)>0 & length(j)==0){
+			# find the closest one
+			minstartindex <- which.min(abs(gff[k,start]-outl[i,POS]))
+			minstart <- abs(gff[k,start]-outl[i,POS])[minstartindex]
+			minendindex <- which.min(abs(gff[k,end]-outl[i,POS]))
+			minend <- abs(gff[k,end]-outl[i,POS])[minendindex]
+			if(minend<=minstart){
+				pieces2 <- strsplit(gff[k,attribute][minendindex], split=';')
+				neargene <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='ID=', na='')), ''), collapse=';')
+				nearanno <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
+				neargo <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Ontology_term=', na='')), ''), collapse=',')
+			}
+			if(minend>minstart){
+				pieces2 <- strsplit(gff[k,attribute][minstartindex], split=';')
+				neargene <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='ID=', na='')), ''), collapse=';')
+				nearanno <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
+				neargo <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Ontology_term=', na='')), ''), collapse=',')
+			}
 		} else {
-			near <- ''
+			neargene <- nearanno <- neargo <- ''
 		}			
 					
 		if(is.null(anno)){
-			anno <- data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], feature=fts, start=sts, end=ends, strand=strnds, frame=frms, ID=ids, Names=nms, Parent=prnt, Within=sim, Near=near)
+			anno <- data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], feature=fts, start=sts, end=ends, strand=strnds, frame=frms, ID=ids, Names=nms, Parent=prnt, WithinAnno=sim, WithinGO=ingo, NearGene=neargene, NearAnno=nearanno, NearGO=neargo)
 		} else {
-			anno <- rbind(anno, data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], feature=fts, start=sts, end=ends, strand=strnds, frame=frms, ID=ids, Names=nms, Parent=prnt, Within=sim, Near=near))
+			anno <- rbind(anno, data.frame(CHROM=outl[i,CHROM], POS=outl[i,POS], feature=fts, start=sts, end=ends, strand=strnds, frame=frms, ID=ids, Names=nms, Parent=prnt, WithinAnno=sim, WithinGO=ingo, NearGene=neargene, NearAnno=nearanno, NearGO=neargo))
 		}
 	}
+	
+	
 	anno
 	
 
 ##########################################	
 # Combine SNP effects and annotations
-##########################################	
+##########################################
+# optional: read out outlcodons from analysis/outlier_annotation.csv (if anno only was updated)
+# outlcodons <- fread('analysis/outlier_annotation.csv', select=c('CHROM', 'POS', "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)"))
+# setnames(outlcodons, 'POS', 'Position')
+
 anno2 <- merge(anno, outlcodons, by.y=c('CHROM', 'Position'), by.x=c('CHROM', 'POS'), all.x=TRUE)
 anno2 <- merge(anno2, outl)
-anno2 <- as.data.frame(apply(anno2, MARGIN=2, function(x){x[is.na(x)] <- ''; return(x)}))
-anno2 <- anno2[, c("CHROM", "POS", "q3.Lof071114", "q3.Can", "q3.comb071114Can", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "Within", "Near")] # reorder columns
+anno2 <- as.data.frame(apply(anno2, MARGIN=2, function(x){x[is.na(x)] <- ''; return(x)})) # turn NA to ''
+anno2 <- anno2[, c("CHROM", "POS", "q3.Lof071114", "q3.Can", "q3.comb071114Can", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "WithinAnno", "WithinGO", "NearGene", "NearAnno", "NearGO")] # reorder columns
+anno2 <- anno2[order(anno2$CHROM, anno2$POS),]
+
 anno2
 
 
 ########################
 # Summary statistics
 ########################
-	length(grep('gene', anno2$feature))/nrow(anno2) # fraction in genes
-	length(grep('CDS', anno2$feature))/nrow(anno2) # fraction in genes
-	sum(anno2$Near != '')/nrow(anno2) # fraction within 25kb of genes
-	length(unique(c(grep('gene', anno2$feature), which(anno2$Near != ''))))/nrow(anno2) # fraction in OR within 25kb of genes
+	nrow(anno2)
+	length(unique(anno2$CHROM)) # number of LGs
+	length(grep('gene', anno2$feature)); length(grep('gene', anno2$feature))/nrow(anno2) # fraction in genes
+	sum(anno2$WithinAnno != ''); sum(anno2$WithinAnno != '')/nrow(anno2) # fraction in named genes
+	length(grep('CDS', anno2$feature)); length(grep('CDS', anno2$feature))/nrow(anno2) # fraction in coding sequence
+	length(grep('three_prime_UTR', anno2$feature)); length(grep('three_prime_UTR', anno2$feature))/nrow(anno2) # fraction in 3'UTR
+	length(grep('five_prime_UTR', anno2$feature)); length(grep('five_prime_UTR', anno2$feature))/nrow(anno2) # fraction in 5'UTR
+	sum(anno2$synonymous==' TRUE', na.rm=TRUE); sum(anno2$synonymous==' TRUE', na.rm=TRUE)/nrow(anno2) # synonymous snps
+	sum(anno2$synonymous=='FALSE', na.rm=TRUE); sum(anno2$synonymous=='FALSE', na.rm=TRUE)/nrow(anno2) # non-synonymous snps
 	
+	sum(anno2$NearGene != ''); sum(anno2$NearGene != '')/nrow(anno2) # fraction within 25kb of gene (but not in a gene)
+	sum(anno2$NearAnno != ''); sum(anno2$NearAnno != '')/nrow(anno2) # fraction within 25kb of annotated gene (but not in a gene)
+	length(unique(c(grep('gene', anno2$feature), which(anno2$NearGene != '')))); length(unique(c(grep('gene', anno2$feature), which(anno2$NearGene != ''))))/nrow(anno2) # fraction in OR within 25kb of genes
+	
+	# table of GO terms for genes containing outlier SNPs
+	uniq <- !duplicated(anno2$Names) & anno2$Names != '' # list of unique genes
+	gos <- unlist(strsplit(paste(anno2$WithinGO[uniq], collapse=','), split=','))
+	gos2 <- gos[gos !='']
+	t(t(sort(table(gos2), decreasing=TRUE)))
 	
 ############
 # Write out
