@@ -41,13 +41,13 @@ dat[!is.na(Freq_07) & !is.na(Freq_14) & !is.na(Freq_Can40) & !is.na(Freq_CanMod)
 
 ## Outliers (expect more correlation than all loci)
 # Lof 07-11 to Lof 07-14 (expect more correlation)
-dat[!is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_14) & outlierLof_q02==1, cor.test(Freq_11-Freq_07, Freq_14 - Freq_07, method='pearson')]
+dat[!is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_14) & outlierLof071114_q3==1, cor.test(Freq_11-Freq_07, Freq_14 - Freq_07, method='pearson')]
 
 # Lof 07-11 to Can (pLof or pCan)
-dat[!is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_Can40) & !is.na(Freq_CanMod) & (outlierLof_q02==1 | outlierCan_q02==1), cor.test(Freq_11-Freq_07, Freq_CanMod - Freq_Can40, method='pearson')]
+dat[!is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_Can40) & !is.na(Freq_CanMod) & (outlierLof071114_q3==1 | outlierCan_q3==1), cor.test(Freq_11-Freq_07, Freq_CanMod - Freq_Can40, method='pearson')]
 
 # Lof 07-14 to Can (pLof or pCan)
-dat[!is.na(Freq_07) & !is.na(Freq_14) & !is.na(Freq_Can40) & !is.na(Freq_CanMod) & (outlierLof_q02==1 | outlierCan_q02==1), cor.test(Freq_14-Freq_07, Freq_CanMod - Freq_Can40, method='pearson')]
+dat[!is.na(Freq_07) & !is.na(Freq_14) & !is.na(Freq_Can40) & !is.na(Freq_CanMod) & (outlierLof071114_q3==1 | outlierCan_q3==1), cor.test(Freq_14-Freq_07, Freq_CanMod - Freq_Can40, method='pearson')]
 
 # Lof 07-11 to Can (p.comb)
 dat[!is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_Can40) & !is.na(Freq_CanMod) & outlierLof_Can_q02==1, cor.test(Freq_11-Freq_07, Freq_CanMod - Freq_Can40, method='pearson')]
@@ -55,6 +55,8 @@ dat[!is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_Can40) & !is.na(Freq_CanMod)
 # Lof 07-14 to Can (p.comb)
 dat[!is.na(Freq_07) & !is.na(Freq_14) & !is.na(Freq_Can40) & !is.na(Freq_CanMod) & outlierLof_Can_q02==1, cor.test(Freq_14-Freq_07, Freq_CanMod - Freq_Can40, method='pearson')]
 
+# Lof 07-14 to Can (pLof, pCan, or p.comb)
+dat[!is.na(Freq_07) & !is.na(Freq_14) & !is.na(Freq_Can40) & !is.na(Freq_CanMod) & (outlierLof071114_Can_q3==1 | outlierCan_q3==1 | outlierLof071114_q3==1), cor.test(Freq_14-Freq_07, Freq_CanMod - Freq_Can40, method='pearson')]
 
 ## Compare to noise (11-14)
 # Lof 11-14 to Can (all loci)
