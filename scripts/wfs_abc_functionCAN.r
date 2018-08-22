@@ -1,5 +1,5 @@
 # ABC on each locus from ABC lookup table to estimate s
-# run after wfs_make_sims.r
+# run after wfs_make_simsCAN.r
 # This version set up to run a single sample size, taken as command line arguments
 
 # read command line arguments
