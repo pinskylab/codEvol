@@ -7,7 +7,7 @@ if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(RColorBrewer)
 	require(data.table)
 	require(boa)
-	require(hexbin)
+#	require(hexbin)
 }
 if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(RColorBrewer, lib.loc="/projects/cees/lib/R_packages/")
@@ -18,107 +18,56 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 rf <- colorRampPalette(rev(brewer.pal(11,'Spectral')))
 
 # load data
-dat <- fread('analysis/LOF_07_to_LOF_S_14.wfabc', skip=2) # the data on samples sizes and observed allele frequencies, from WFABC input file
-locnms <- fread('analysis/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_abc_hpds.rdata') # the HPD calculations
+dat <- fread('analysis/wfs_abc_hpds_Lof.csv')
 
-
-# prep data
-	# extract sample frequencies
-sampsize <- dat[seq(1,nrow(dat),by=2),] # sample sizes in # of chromosomes
-obsfrqs <- dat[seq(2,nrow(dat),by=2),] # allele counts in # chromosomes
-rm(dat)
-setnames(obsfrqs, 1:2, c('count1', 'count2'))
-setnames(sampsize, 1:2, c('size1', 'size2'))
-obsfrqs <- cbind(obsfrqs, sampsize)
-obsfrqs[,f1:=count1/size1]
-obsfrqs[,f2:=count2/size2]
-obsfrqs[,diff:=f2-f1]
-obsfrqs[,locusnum:=1:nrow(obsfrqs)] # add locusnumber
-
-	# trim locus names to match rest of data
-#locnms <- locnms[CHROM=='LG03',] # if only looking at LG03
-locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),] # trim out inversions
-locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting
 
 # make a nucleotide position for the whole genome
-chrmax <- locnms[,.(len=max(POS)), by=CHROM]
+chrmax <- dat[,.(len=max(POS)), by=CHROM]
 chrmax$start=c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
 
-setkey(locnms, CHROM)
+setkey(dat, CHROM)
 setkey(chrmax, CHROM)
-locnms <- locnms[chrmax[,.(CHROM, start)], ]
-locnms[,POSgen:=POS+start]
+dat <- dat[chrmax[,.(CHROM, start)], ]
+dat[,POSgen:=POS+start]
+
+
+# polarize for the allele that increases in frequency
+dat[f1samp < f3samp, ':=' (Freq_07low=f1samp, Freq_11low=f2samp, Freq_14low=f3samp, slow.mean=s.mean, slow.l95=s.l95, slow.u95=s.u95)]
+dat[f1samp >= f3samp, ':=' (Freq_07low=1-f1samp, Freq_11low=1-f2samp, Freq_14low=1-f3samp, slow.mean=-s.mean, slow.l95=-s.l95, slow.u95=-s.u95)]
+#dat[Freq_Can40 < Freq_CanMod, ':=' (Freq_Can40low=Freq_Can40, Freq_CanModlow=Freq_CanMod)]
+#dat[Freq_Can40 >= Freq_CanMod, ':=' (Freq_Can40low=1-Freq_Can40, Freq_CanModlow=1-Freq_CanMod)]
 
 
 #########################################################
 ## Initial exploration
 #########################################################
 
-# typical sample sizes
-obsfrqs[,summary(size1)]
-obsfrqs[,summary(size2)]
-
-
-# find loci potentially under selection
-# don't differentiate pos vs. neg: just differentiates which allele
-selinds <- (hpds$s$p < 0.0001 & hpds$s$mean > 0 & !is.na(hpds$s$mean)) | (hpds$s$p < 0.0001 & hpds$s$mean < 0 & !is.na(hpds$s$mean))
-
-sum(selinds) # number of loci
-
-selinds2 <- locnms$CHROM!='Unplaced' & hpds$s$p < 0.001 & abs(hpds$s$u95) >0.5 & abs(hpds$s$l95) >0.5 # strongest evidence
-	sum(selinds2)
-
-# Examine candidates
-print(locnms[selinds,], nrow=50)
-print(obsfrqs[selinds,], nrow=50)
-
-hpds$s[posinds,]
-
-print(locnms[selinds2,], nrow=sum(selinds2))
-print(obsfrqs[selinds,], nrow=50)
-
-table(locnms[selinds2,CHROM])
-
-
-# find distance among loci
-cands <- locnms[selinds2,]
-setkey(cands, CHROM, POS) # sort by position
-cands[,ndist := NA] # nearest neighbor at an earlier position (measure only to left)
-for(i in 1:nrow(cands)){
-	j <- which(cands$CHROM == cands$CHROM[i]) # other loci on same chromosome
-	j <- j[j<i] # remove focal locus and any later loci
-	if(length(j)>0) cands$ndist[i] <- min(abs(cands$POS[i] - cands$POS[j]))
-} 
-
-selinds3 <- which(cands$ndist < 100000 & !is.na(cands$ndist)) # loci close to a previous locus
-selinds3 <- sort(c(selinds3, selinds3-1)) # add locus before
-
-cands[selinds3,]
-
-
-## explore loci identified by null model analysis
-cands <- read.csv('analysis/wfs_nullmodel_candidates07-14.csv', row.names=1)
-cands <- merge(cands, hpds$s[,c('locus', 'mean', 'l95', 'u95')], by.x='locusnum', by.y='locus')
-
-cands[,c('CHROM', 'POS', 'cluster', 'Freq_1', 'Freq_2', 'p.adj', 'mean', 'l95', 'u95')] # loci with s estimates from abc
-
-candclust <- aggregate(list(POS.mu=cands$POS, delta.freq=cands$Freq_1-cands$Freq_2, s.mu=cands$mean), by=list(CHROM=cands$CHROM, cluster=cands$cluster), FUN=mean) # average in clusters
-candclust
-	with(candclust, plot(delta.freq, s.mu))
 
 ################################
 # plots of the results
 ################################
-load('analysis/wfs_abc_hpds.rdata')
 
 # plotting functions
 colrmp <- colorRamp(colors=brewer.pal(11, 'RdYlBu'))
 getcol <- function(x, alpha=1){ rgbs <-colrmp(x); return(rgb(rgbs[,1], rgbs[,2], rgbs[,3], alpha*256, maxColorValue=256))}
 
 # histogram of s
-hist(abs(hpds$s$mean), breaks=seq(0,1,by=0.05), col='grey')
-hist(abs(hpds$s$mean), breaks=seq(0,1,by=0.05), col='grey', xlim=c(0.5,1), ylim=c(0,10000))
+hist(dat$s.mean), breaks=seq(0,1,by=0.05), col='grey')
+hist(dat$s.mean), breaks=seq(0,1,by=0.05), col='grey', xlim=c(0.5,1), ylim=c(0,10000))
+
+hist(abs(dat$s.mean), breaks=seq(0,1,by=0.05), col='grey')
+
+
+# Change in frequency vs. posterior s (raw)
+dat[,plot(f3samp - f1samp, s.mean, ylim=c(-1,1))]
+dat[, lines(c(f3samp - f1samp, f3samp - f1samp), c(s.u95, s.l95)), by=f3samp-f1samp]
+abline(h=0, col='grey', lty=2)
+
+# Change in frequency vs. posterior s (polarized)
+dat[,plot(Freq_14low - Freq_07low, slow.mean, ylim=c(-0.25,1.1))]
+dat[, lines(c(Freq_14low - Freq_07low, Freq_14low - Freq_07low), c(slow.u95, slow.l95)), by=Freq_14low - Freq_07low]
+abline(h=0, col='grey', lty=2)
+
 
 
 # Initial frequency vs. posterior s
