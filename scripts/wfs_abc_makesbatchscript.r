@@ -1,4 +1,5 @@
 # write out a shell script that will submit an sbatch job for every combination of sample sizes that we need
+# run only for outlier loci (outlier_annotation.csv)
 
 if(!grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 	require(data.table)
@@ -41,6 +42,17 @@ if(myyr2=='1114'){
 	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, f1samp, f2samp, f3samp)]
 }
 
+# trim to focal loci (outliers in Lof)
+locs <- fread('analysis/outlier_annotation.csv') # the outliers
+	locs <- locs[q3.Lof071114 !='' | q3.comb071114Can !='',.(CHROM, POS)]
+	locs[, POS := as.numeric(POS)]
+nrow(locs)
+setkey(locs, CHROM, POS)
+setkey(targ, CHROM, POS)
+targ <- merge(targ, locs)
+nrow(targ)
+
+
 # how many loci at each sample size
 if(myyr2 != '1114'){
 	setkey(targ, alcnt1, alcnt2)
@@ -50,7 +62,7 @@ if(myyr2 == '1114'){
 	setkey(targ, alcnt1, alcnt2, alcnt3)
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
-	nrow(nloci) # Lof 1907-2011-2014:
+	nrow(nloci) # Lof 1907-2011-2014: 52
 				# Lof 1907-2014: 
 				# Can: 
 
@@ -67,11 +79,11 @@ for(i in 1:nrow(nloci)){
 	if(myyr2=='1114') myalcnt3 <- nloci[i,alcnt3]
 
 	if(pop=='Lof'){
-		exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims
-		if(myyr2=='1114') exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, ',', myalcnt3, '.RData', sep='')) # null model sims
+		exist <- file.exists(paste('analysis/temp/wfs_sims_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims
+		if(myyr2=='1114') exist <- file.exists(paste('analysis/temp/wfs_sims_ff', myalcnt1, ',', myalcnt2, ',', myalcnt3, '.RData', sep='')) # null model sims
 	}
 	if(pop=='Can'){
-		exist <- file.exists(paste('analysis/temp/wfs_simsnullCAN_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims	
+		exist <- file.exists(paste('analysis/temp/wfs_simsCAN_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims	
 	}
 
 	if(exist){

@@ -1,5 +1,6 @@
 # Make simulations to estimate s with ABC
 # Use data from 3 samples
+# Use only outlier loci
 # best to run on cod node with nohup if many sample sizes to make
 
 # set parameters

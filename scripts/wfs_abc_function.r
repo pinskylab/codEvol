@@ -95,6 +95,25 @@ if(myyr2=='1114'){
 	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, f1samp, f2samp, f3samp)]
 }
 
+# trim to focal loci (outliers)
+locs <- fread('analysis/outlier_annotation.csv') # the outliers
+print(paste('Started with', nrow(targ), 'loci'))
+if(pop == 'Lof'){
+	locs <- locs[q3.Lof071114 !='' | q3.comb071114Can !='',.(CHROM, POS)]
+	locs[, POS := as.numeric(POS)]
+	setkey(locs, CHROM, POS)
+	setkey(targ, CHROM, POS)
+	targ <- merge(targ, locs)
+}
+if(pop == 'Can'){
+	locs <- locs[q3.Can !='' | q3.comb071114Can !='',.(CHROM, POS)]
+	locs[, POS := as.numeric(POS)]
+	setkey(locs, CHROM, POS)
+	setkey(targ, CHROM, POS)
+	targ <- merge(targ, locs)
+}
+print(paste('Trimmed to', nrow(targ), 'loci by using only outliers in analysis/outlier_annotation.csv'))
+
 # set up file names
 existingfilespattern <- paste('wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus*', sep='') # regexp to test for existing p-value files
 existingfilesgsubpattern <- paste('wfs_abc_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep='') # regexp to strip out all but locus numbers from existing file names
@@ -164,7 +183,7 @@ runabc3 <- function(locusnum, thistarg, thisout.ff, tol=1/100){
 	}
 
 	# set up return matrix
-	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['f2samp',wt1], thisout.ff['f3samp',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['f2',wt1], thisout.ff['f3',wt1], thisout.ff['s',wt1]), ncol=7, byrow=FALSE)
+	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['f2samp',wt1], thisout.ff['f3samp',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['f2',wt1], thisout.ff['f3',wt1], thisout.ff['s',wt1]), ncol=9, byrow=FALSE)
 	colnames(ret) <- c('locus', 'f1samp', 'f2samp', 'f3samp', 'ne', 'f1', 'f2', 'f3', 's')
 
 	return(ret)
