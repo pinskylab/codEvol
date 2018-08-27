@@ -1,7 +1,8 @@
 # run after wfs_abc.r or wfs_abc_function.r (latter called by wfs_abc_sbatch.sh or wfs_abc_sbatch_3times.sh, which in turn are called by script output by wfs_abc_makesbatchscript.r)
 
 # parameters
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+pop <- 'Can'; myyr1 <- '40'; myyr2 <- '13'
 
 ################################
 # load functions and prep data
@@ -71,18 +72,23 @@ if(myyr2=='1114'){
 
 
 # trim to focal loci (outliers)
-if(pop=='Lof'){
-	locs <- fread('analysis/outlier_annotation.csv') # the outliers
+locs <- fread('analysis/outlier_annotation.csv') # the outliers
+print(paste('Started with', nrow(targ), 'loci'))
+if(pop == 'Lof'){
 	locs <- locs[q3.Lof071114 !='' | q3.comb071114Can !='',.(CHROM, POS)]
 	locs[, POS := as.numeric(POS)]
-	print(nrow(hpds))
 	setkey(locs, CHROM, POS)
 	setkey(hpds, CHROM, POS)
 	hpds <- merge(hpds, locs)
-	print(nrow(hpds))
-} else {
-	warning('Need to set up trimming for other populations')
 }
+if(pop == 'Can'){
+	locs <- locs[q3.Can !='' | q3.comb071114Can !='',.(CHROM, POS)]
+	locs[, POS := as.numeric(POS)]
+	setkey(locs, CHROM, POS)
+	setkey(hpds, CHROM, POS)
+	hpds <- merge(hpds, locs)
+}
+print(paste('Trimmed to', nrow(hpds), 'loci by using only outliers in analysis/outlier_annotation.csv'))
 
 # prep data
 a <- rep(as.numeric(NA), nrow(hpds))

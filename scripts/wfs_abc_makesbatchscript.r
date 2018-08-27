@@ -13,8 +13,8 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
-#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
@@ -42,15 +42,24 @@ if(myyr2=='1114'){
 	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, f1samp, f2samp, f3samp)]
 }
 
-# trim to focal loci (outliers in Lof)
+# trim to focal loci (outliers)
 locs <- fread('analysis/outlier_annotation.csv') # the outliers
+print(paste('Started with', nrow(targ), 'loci'))
+if(pop == 'Lof'){
 	locs <- locs[q3.Lof071114 !='' | q3.comb071114Can !='',.(CHROM, POS)]
 	locs[, POS := as.numeric(POS)]
-nrow(locs)
-setkey(locs, CHROM, POS)
-setkey(targ, CHROM, POS)
-targ <- merge(targ, locs)
-nrow(targ)
+	setkey(locs, CHROM, POS)
+	setkey(targ, CHROM, POS)
+	targ <- merge(targ, locs)
+}
+if(pop == 'Can'){
+	locs <- locs[q3.Can !='' | q3.comb071114Can !='',.(CHROM, POS)]
+	locs[, POS := as.numeric(POS)]
+	setkey(locs, CHROM, POS)
+	setkey(targ, CHROM, POS)
+	targ <- merge(targ, locs)
+}
+print(paste('Trimmed to', nrow(targ), 'loci by using only outliers in analysis/outlier_annotation.csv'))
 
 
 # how many loci at each sample size
@@ -64,7 +73,7 @@ if(myyr2 == '1114'){
 }
 	nrow(nloci) # Lof 1907-2011-2014: 52
 				# Lof 1907-2014: 
-				# Can: 
+				# Can: 19
 
 # sample sizes with >100 loci
 nloci[nloci>5000,]

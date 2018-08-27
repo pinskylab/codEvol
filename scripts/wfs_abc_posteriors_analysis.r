@@ -1,5 +1,9 @@
 # run after wfs_abc.r (possibly sbatch version) and wfs_abc_hpds_calc.r
 
+# parameters
+pop <- 'Lof'
+pop <- 'Can'
+
 ################################
 # load functions and prep data
 ################################
@@ -18,8 +22,8 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 rf <- colorRampPalette(rev(brewer.pal(11,'Spectral')))
 
 # load data
-dat <- fread('analysis/wfs_abc_hpds_Lof.csv')
-
+if(pop=='Lof') dat <- fread('analysis/wfs_abc_hpds_Lof.csv')
+if(pop=='Can') dat <- fread('analysis/wfs_abc_hpds_Can.csv')
 
 # make a nucleotide position for the whole genome
 chrmax <- dat[,.(len=max(POS)), by=CHROM]
@@ -32,16 +36,28 @@ dat[,POSgen:=POS+start]
 
 
 # polarize for the allele that increases in frequency
-dat[f1samp < f3samp, ':=' (Freq_07low=f1samp, Freq_11low=f2samp, Freq_14low=f3samp, slow.mean=s.mean, slow.l95=s.l95, slow.u95=s.u95)]
-dat[f1samp >= f3samp, ':=' (Freq_07low=1-f1samp, Freq_11low=1-f2samp, Freq_14low=1-f3samp, slow.mean=-s.mean, slow.l95=-s.l95, slow.u95=-s.u95)]
-#dat[Freq_Can40 < Freq_CanMod, ':=' (Freq_Can40low=Freq_Can40, Freq_CanModlow=Freq_CanMod)]
-#dat[Freq_Can40 >= Freq_CanMod, ':=' (Freq_Can40low=1-Freq_Can40, Freq_CanModlow=1-Freq_CanMod)]
+if(pop=='Lof'){
+	dat[f1samp < f3samp, ':=' (Freq_07low=f1samp, Freq_11low=f2samp, Freq_14low=f3samp, slow.mean=s.mean, slow.l95=s.l95, slow.u95=s.u95)]
+	dat[f1samp >= f3samp, ':=' (Freq_07low=1-f1samp, Freq_11low=1-f2samp, Freq_14low=1-f3samp, slow.mean=-s.mean, slow.l95=-s.l95, slow.u95=-s.u95)]
+}
+if(pop=='Can'){
+	dat[f1samp < f2samp, ':=' (Freq_40low=f1samp, Freq_13low=f2samp, slow.mean=s.mean, slow.l95=s.l95, slow.u95=s.u95)]
+	dat[f1samp >= f2samp, ':=' (Freq_40low=1-f1samp, Freq_13low=1-f2samp, slow.mean=-s.mean, slow.l95=-s.l95, slow.u95=-s.u95)]
+}
 
 
 #########################################################
 ## Initial exploration
 #########################################################
 
+
+# any loci that end at frequency 1
+if(pop=='Lof') dat[Freq_14low==1 | Freq_14low==0,]
+if(pop=='Can') dat[Freq_13low==1 | Freq_13low==0,]
+
+# range of s
+dat[,range(slow.mean)]
+dat[,summary(slow.mean)]
 
 ################################
 # plots of the results
@@ -57,21 +73,40 @@ hist(dat$s.mean), breaks=seq(0,1,by=0.05), col='grey', xlim=c(0.5,1), ylim=c(0,1
 
 hist(abs(dat$s.mean), breaks=seq(0,1,by=0.05), col='grey')
 
+hist(abs(dat$slow.mean), breaks=seq(0,1,by=0.05), col='grey')
+
 
 # Change in frequency vs. posterior s (raw)
-dat[,plot(f3samp - f1samp, s.mean, ylim=c(-1,1))]
-dat[, lines(c(f3samp - f1samp, f3samp - f1samp), c(s.u95, s.l95)), by=f3samp-f1samp]
+if(pop=='Lof'){
+	dat[,plot(f3samp - f1samp, s.mean, ylim=c(-1,1))]
+	dat[, lines(c(f3samp - f1samp, f3samp - f1samp), c(s.u95, s.l95)), by=f3samp-f1samp]
+}
+if(pop=='Can'){
+	dat[,plot(f2samp - f1samp, s.mean, ylim=c(-1,1))]
+	dat[, lines(c(f2samp - f1samp, f2samp - f1samp), c(s.u95, s.l95)), by=f2samp-f1samp]
+}
 abline(h=0, col='grey', lty=2)
 
+
 # Change in frequency vs. posterior s (polarized)
-dat[,plot(Freq_14low - Freq_07low, slow.mean, ylim=c(-0.25,1.1))]
-dat[, lines(c(Freq_14low - Freq_07low, Freq_14low - Freq_07low), c(slow.u95, slow.l95)), by=Freq_14low - Freq_07low]
+if(pop=='Lof'){
+	dat[,plot(Freq_14low - Freq_07low, slow.mean, ylim=c(-0.25,1.1))]
+	dat[, lines(c(Freq_14low - Freq_07low, Freq_14low - Freq_07low), c(slow.u95, slow.l95)), by=Freq_14low - Freq_07low]
+}
+if(pop=='Can'){
+	dat[,plot(Freq_13low - Freq_40low, slow.mean, ylim=c(-0.25,1.1))]
+	dat[, lines(c(Freq_13low - Freq_40low, Freq_13low - Freq_40low), c(slow.u95, slow.l95)), by=Freq_13low - Freq_40low]
+}
 abline(h=0, col='grey', lty=2)
 
 
 
 # Initial frequency vs. posterior s
 	plot(hpds$f1$mean, hpds$s$mean, xlab='Posterior mean initial frequency', ylab='Posterior mean s', col=getcol(hpds$s$mean/2+0.5))
+	points(hpds$f1$mean[selinds], hpds$s$mean[selinds], pch=16)
+
+# Final frequency vs. posterior s
+	dat[, plot(f3samp, s.mean, xlab='Initial frequency', ylab='Posterior mean s')]
 	points(hpds$f1$mean[selinds], hpds$s$mean[selinds], pch=16)
 
 

@@ -2,14 +2,14 @@
 # best to run on cod node with nohup if many sample sizes to make
 
 # parameters
-nsims <- 1000000 # number of sims to run for each sample size
-gen <- 8
+nsims <- 500000 # number of sims to run for each starting frequency in each sample size
+gen <- 8 # number of generations between samples
 nefile <- 'analysis/Can_40_to_Can.w_Ne_bootstrap.txt'
 freqfile <- 'data_2017.11.24/Frequency_table_CAN_40_TGA.txt'
-
+ncores <- 30
 
 # load functions
-source('scripts/wfs.r')
+source('scripts/wfs_byf1samp.r')
 if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
 	require(parallel)
 	require(data.table)
@@ -29,7 +29,18 @@ nes <- read.table(nefile)[,1] # the values of Ne from wfabc_1
 nchrs <- fread(freqfile, header=TRUE)
 setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 
-# parameters for the simulation
+# trim to focal loci (outliers in CAN)
+locs <- fread('analysis/outlier_annotation.csv') # the outliers
+	locs <- locs[q3.Can !='' | q3.comb071114Can !='',.(CHROM, POS)]
+	locs[, POS := as.numeric(POS)]
+nrow(locs)
+setkey(locs, CHROM, POS)
+setkey(nchrs, CHROM, POS)
+nchrs <- merge(nchrs, locs)
+nrow(nchrs)
+
+
+# find sample sizes to run
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_1] # the sample sizes to simulate (first sample)
 c2s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_2]
 	print(c1s)
@@ -58,9 +69,9 @@ if(length(c1s)>0){
 		cl <- makeCluster(detectCores()-1) # set up cluster on my mac (or another computer), using all but one core
 	}
 	if(grepl('hpc.uio.no', Sys.info()["nodename"])){
-		cl <- makeCluster(30) # set up 30-core cluster on a cod node
+		cl <- makeCluster(ncores) # set up 30-core cluster on a cod node
 	}
-	clusterExport(cl, c('wfs'))
+	clusterExport(cl, c('wfs_byf1samp'))
 
 
 	# check where this is to monitor temp file creation in the file system /tmp/Rtmpp__
@@ -71,7 +82,10 @@ if(length(c1s)>0){
 	for(i in 1:length(c1s)){ # loop through each set of sample sizes
 		print(paste('Sample size', i, 'of', length(c1s), 'to do.'))
 		
-		thisout <- parSapply(cl, 1:nsims, FUN=wfs, f1min=0.5, f1max=0.5, smin=-1, smax=1, c1=c1s[i], c2=c2s[i], gen=gen, ne=nes, h=0.5, simplify=TRUE)
+		# make list of all possible starting sample frequencies and make nsims copies of each
+		f1samps=rep((0:c1s[i])/c1s[i], rep(nsims, c1s[i]+1))
+
+		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp, smin=-1, smax=1, c1=c1s[i], c2=c2s[i], gen=gen, ne=nes, h=0.5, simplify=TRUE)
 
 		thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
 	
