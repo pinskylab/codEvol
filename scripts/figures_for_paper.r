@@ -255,3 +255,66 @@ mtext(side=3, 'I', adj=adjlet2, line=linelet2, cex=cexlet)
 
 
 dev.off()
+
+
+
+######################
+## Table S5 Outliers
+######################
+dat <- fread('analysis/outlier_annotation.csv')
+hpdsLof <- fread('analysis/wfs_abc_hpds_Lof.csv')
+hpdsCan <- fread('analysis/wfs_abc_hpds_Can.csv')
+
+# force POS to numeric
+set(dat, j='POS', value=as.numeric(dat$POS))
+
+# add column for functional location
+dat[,annotation:=as.character(NA)]
+dat[NearGene != '', annotation:='<25kb from gene']
+dat[grepl('CDS', feature), annotation:='coding']
+dat[grepl('three_prime_UTR', feature), annotation:="3' UTR"]
+dat[grepl('five_prime_UTR', feature), annotation:="5' UTR"]
+dat[grepl('mRNA', feature) & !grepl('CDS|three_prime_UTR|five_prime_UTR', feature), annotation:="transcript"]
+
+# polarize s posterior for the allele that increases in frequency
+hpdsLof[f1samp < f3samp, ':=' (slowLof.mean=s.mean, slowLof.l95=s.l95, slowLof.u95=s.u95)]
+hpdsLof[f1samp >= f3samp, ':=' (slowLof.mean=-s.mean, slowLof.l95=-s.l95, slowLof.u95=-s.u95)]
+hpdsCan[f1samp < f2samp, ':=' (slowCan.mean=s.mean, slowCan.l95=s.l95, slowCan.u95=s.u95)]
+hpdsCan[f1samp >= f2samp, ':=' (slowCan.mean=-s.mean, slowCan.l95=-s.l95, slowCan.u95=-s.u95)]
+
+# combine s estimates
+hpdsLof[,sLof := paste(round(slowLof.mean,2), ' [', round(slowLof.l95,2), '-', round(slowLof.u95,2), ']', sep='')]
+hpdsCan[,sCan := paste(round(slowCan.mean,2), ' [', round(slowCan.l95,2), '-', round(slowCan.u95,2), ']', sep='')]
+hpdsLof[slowLof.l95>slowLof.u95, sLof := paste(round(slowLof.mean,2), ' [', round(slowLof.u95,2), '-', round(slowLof.l95,2), ']', sep='')]
+hpdsCan[slowCan.l95>slowCan.u95, sCan := paste(round(slowCan.mean,2), ' [', round(slowCan.u95,2), '-', round(slowCan.l95,2), ']', sep='')]
+
+# merge
+setkey(dat, CHROM, POS)
+setkey(hpdsLof, CHROM, POS)
+setkey(hpdsCan, CHROM, POS)
+dat2 <- merge(dat, hpdsLof, all.x=TRUE)
+dat2 <- merge( dat2, hpdsCan, all.x=TRUE)
+	dim(dat)
+	dim(dat2)
+
+# range of s estimates for outlier loci
+dat2[q3.Lof071114 < 0.2, summary(slowLof.mean)]
+dat2[q3.comb071114Can < 0.2, summary(slowLof.mean)]
+dat2[q3.Can < 0.2, summary(slowCan.mean)]
+dat2[q3.comb071114Can < 0.2, summary(slowCan.mean)]
+
+mean(c(dat2[q3.Lof071114 < 0.2, slowLof.mean], dat2[q3.Can < 0.2, slowCan.mean])) # mean across Lof and Can outliers
+sd(c(dat2[q3.Lof071114 < 0.2, slowLof.mean], dat2[q3.Can < 0.2, slowCan.mean])) # SE across Lof and Can outliers
+
+
+# make Table S5
+out <- dat2[,.(linkagegroup=CHROM, position=POS, norwayFDR=round(q3.Lof071114,2), canadaFDR=round(q3.Can,2), combinedFDR=round(q3.comb071114Can,2), sLof, sCan, annotation,
+	gene_name=lapply(strsplit(paste(WithinAnno, NearAnno), split=':'), FUN=function(x) return(x[1])))]
+
+
+# convert to text and turn NA to ''
+for (j in names(out)) set(out, j = j, value = as.character(out[[j]]))
+for (j in names(out)) set(out, i=which(is.na(out[[j]])), j = j, value = '')
+
+# write out
+write.csv(out, file='figures/tableS5.csv', row.names=FALSE)
