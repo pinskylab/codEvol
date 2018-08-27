@@ -95,7 +95,7 @@ if(length(c1s)>0){
 		# make list of all possible starting sample frequencies and make nsims copies of each
 		f1samps=rep((0:c1s[i])/c1s[i], rep(nsims, c1s[i]+1))
 		
-		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp_3samps, smin=-1, smax=1, c1=c1s[i], c2=c2s[i], c3=c3s[i], gen1=gen1, gen2=gen2, ne=nes, h=0.5, simplify=TRUE)
+		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp_3samps, smin=-1, smax=1, c1=c1s[i], c2=c2s[i], c3=c3s[i], gen1=gen1, gen2=gen2, ne=nes, hmin=0, hmax=1.5, simplify=TRUE)
 
 		thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
 	

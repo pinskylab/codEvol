@@ -14,7 +14,7 @@
 # ne: a vector of possible Ne values. Simulation picks one to use.
 # h: dominance effect
 
-wfs_byf1samp_3samps <- function(f1samp=0.5, smin=-1, smax=1, c1=58, c2=48, c3=48, gen1=10, gen2=20, ne=100, h=0.5){ 
+wfs_byf1samp_3samps <- function(f1samp=0.5, smin=-1, smax=1, c1=58, c2=48, c3=48, gen1=10, gen2=20, ne=100, hmin=0.5, hmax=0.5){ 
 	tol <- .Machine$double.eps^0.5 # tolerane for equality. default tolerance in all.equal
 
 	# make sure f1samp is possible given initial sample size (c1)
@@ -22,7 +22,8 @@ wfs_byf1samp_3samps <- function(f1samp=0.5, smin=-1, smax=1, c1=58, c2=48, c3=48
 	if(!any(abs(f1samp - ((0:c1)/c1)) < tol)) stop(paste('f1samp=', f1samp, 'not possible given c1=', c1))
 
 	# choose parameters for this simulation
-		s <- runif(1, min=smin, max=smax) # selection coefficient
+	s <- runif(1, min=smin, max=smax) # selection coefficient
+	h <- runif(1, min=hmin, max=hmax) # dominance coefficient
 	if(length(ne)>1) thisne <- round(sample(ne, 1)) # ne has to be integer for binomial sampling
 	if(length(ne)==1) thisne <- round(ne)
 
@@ -56,6 +57,6 @@ wfs_byf1samp_3samps <- function(f1samp=0.5, smin=-1, smax=1, c1=58, c2=48, c3=48
 
 	# return values
 #	out <- c(ne=thisne, f1=f1, s=s, gen=gen, f2=f2, f1samp=f1samp, f2samp=f2samp, fsdprime=stats[1], fsiprime=stats[2])
-	out <- c(ne=thisne, f1=f1, s=s, gen1=gen1, gen2=gen2, f2=f2, f3=f3, f1samp=f1samp, f2samp=f2samp, f3samp=f3samp)
+	out <- c(ne=thisne, f1=f1, s=s, h=h, gen1=gen1, gen2=gen2, f2=f2, f3=f3, f1samp=f1samp, f2samp=f2samp, f3samp=f3samp)
 	return(out)
 }
