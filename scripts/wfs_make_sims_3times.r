@@ -4,6 +4,7 @@
 # best to run on cod node with nohup if many sample sizes to make
 
 # set parameters
+nsims <- 500000 # number of sims to run for each starting frequency in each sample size
 pop <- 'Lof'; yrs<-'07-11-14'
 ncores <- 30 # cod nodexw
 
@@ -44,8 +45,7 @@ setkey(nchrs, CHROM, POS)
 nchrs <- merge(nchrs, locs)
 nrow(nchrs)
 
-# parameters
-nsims <- 500000 # number of sims to run for each starting frequency in each sample size
+# find sample sizes to run
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2, N_CHR_3)),N_CHR_1] # the sample sizes to simulate (first sample)
 c2s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2, N_CHR_3)),N_CHR_2]
 c3s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2, N_CHR_3)),N_CHR_3]

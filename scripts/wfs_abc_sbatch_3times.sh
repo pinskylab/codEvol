@@ -22,6 +22,6 @@ module purge   # clear any inherited modules
 set -o errexit # exit on errors
 module load R/3.3.2
 
-## Run the p-value calculations
+## Run the abc calculations
 # Arguments: myalcnt1 myalcnt2 pop myyr1 myyr2 maxcores myalcnt3
 Rscript scripts/wfs_abc_function.r $1 $2 $3 $4 $5 $6 $7
