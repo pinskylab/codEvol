@@ -26,6 +26,7 @@ dat40 <- fread('analysis/CAN40.sites.pi')
 datMod <- fread('analysis/CANMod.sites.pi')
 
 # read in all callable sites information
+# note! this has been trimmed to only sites that pass kmer25
 allsites <- fread('zcat all_sites_data_29_06_18/AllSites.kept.sites.kmer25.gz') # gzipped file
 setkey(allsites, CHROM, POS)
 
@@ -59,7 +60,7 @@ if(outliertype == 'union' & dpfilter==FALSE & mapfilter==TRUE){
 }
 
 if(outliertype == 'union' & dpfilter==FALSE & mapfilter==FALSE){
-	print('No depth or map filter!')
+	print('No depth or map filter! We do not yet handle the allsites correctly for this')
 
 	# have to do new FDR adjustments if we relax these filters
 	outl[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q4.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
