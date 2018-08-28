@@ -155,8 +155,8 @@ runabc <- function(locusnum, thistarg, thisout.ff, tol=1/100){
 	}
 
 	# set up return matrix
-	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['f2samp',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['f2',wt1], thisout.ff['s',wt1]), ncol=7, byrow=FALSE)
-	colnames(ret) <- c('locus', 'f1samp', 'f2samp', 'ne', 'f1', 'f2', 's')
+	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['f2samp',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['f2',wt1], thisout.ff['s',wt1], thisout.ff['h',wt1]), ncol=8, byrow=FALSE)
+	colnames(ret) <- c('locus', 'f1samp', 'f2samp', 'ne', 'f1', 'f2', 's', 'h')
 
 	return(ret)
 }
@@ -183,8 +183,8 @@ runabc3 <- function(locusnum, thistarg, thisout.ff, tol=1/100){
 	}
 
 	# set up return matrix
-	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['f2samp',wt1], thisout.ff['f3samp',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['f2',wt1], thisout.ff['f3',wt1], thisout.ff['s',wt1]), ncol=9, byrow=FALSE)
-	colnames(ret) <- c('locus', 'f1samp', 'f2samp', 'f3samp', 'ne', 'f1', 'f2', 'f3', 's')
+	ret <- matrix(data=c(rep(locusnum, sum(wt1)), thisout.ff['f1samp',wt1], thisout.ff['f2samp',wt1], thisout.ff['f3samp',wt1], thisout.ff['ne',wt1], thisout.ff['f1',wt1], thisout.ff['f2',wt1], thisout.ff['f3',wt1], thisout.ff['s',wt1], thisout.ff['h',wt1]), ncol=10, byrow=FALSE)
+	colnames(ret) <- c('locus', 'f1samp', 'f2samp', 'f3samp', 'ne', 'f1', 'f2', 'f3', 's', 'h')
 
 	return(ret)
 

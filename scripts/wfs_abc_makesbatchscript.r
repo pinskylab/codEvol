@@ -13,8 +13,8 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
-#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
-pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
+pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
