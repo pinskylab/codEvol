@@ -535,7 +535,7 @@ bins[disttype=='notoutlier' & pop=='LOF_S_14', lines(distclass, nsnp, col=cols3[
 	bins[disttype=='notoutlier' & pop=='LOF_S_11', lines(c(distclass, distclass), c(nsnp-nsnpse, nsnp+nsnpse), col=cols3[2]), by=distclass]
 	bins[disttype=='notoutlier' & pop=='LOF_S_14', lines(c(distclass, distclass), c(nsnp-nsnpse, nsnp+nsnpse), col=cols3[3]), by=distclass]
 
-plot(0,0, type='n', xlim=c(0,xmx), ylim=c(0, bins[,max(nsnp)]), xlab='Distance (bp)', ylab='SNP density', main='')
+plot(0,0, type='n', xlim=c(0,xmx), ylim=c(0, bins[,max(nsnp)]), xlab='Distance (bp)', ylab='# SNPs', main='')
 bins[disttype=='outlier' & pop=='CAN40', lines(distclass, nsnp, col=cols3[4], lwd=lwd)]
 bins[disttype=='outlier' & pop=='CANMod', lines(distclass, nsnp, col=cols3[5], lwd=lwd)]
 
