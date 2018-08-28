@@ -73,7 +73,7 @@ if(myyr2=='1114'){
 
 # trim to focal loci (outliers)
 locs <- fread('analysis/outlier_annotation.csv') # the outliers
-print(paste('Started with', nrow(targ), 'loci'))
+print(paste('Started with', nrow(hpds), 'loci'))
 if(pop == 'Lof'){
 	locs <- locs[q3.Lof071114 !='' | q3.comb071114Can !='',.(CHROM, POS)]
 	locs[, POS := as.numeric(POS)]

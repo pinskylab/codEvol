@@ -100,6 +100,7 @@ if(pop=='Can'){
 abline(h=0, col='grey', lty=2)
 
 
+######### code below has not been updated to new format of hpds
 
 # Initial frequency vs. posterior s
 	plot(hpds$f1$mean, hpds$s$mean, xlab='Posterior mean initial frequency', ylab='Posterior mean s', col=getcol(hpds$s$mean/2+0.5))
