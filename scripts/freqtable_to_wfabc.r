@@ -15,47 +15,39 @@ ntimes <- 2
 
 # read in data
 	# NEA 1907-2014
-datNEA <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE)
+#datNEA <- fread('data_2018.09.13/Frequency_table_Lof07_Lof14.txt', header=TRUE); outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc' # w/out kmer25 mask
+datNEA <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); outfileNEA <- 'analysis/LOF_07_to_LOF_S_14_25kmer_dp.wfabc' # w/ kmer25 mask
+	
 	setnames(datNEA, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
-	outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc'
 	genNEA=11 # for 1907 vs. 2014. sample sizes
 
 	# NEA 1907-2011
-datNEA11 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE)
+#datNEA11 <- fread('data_2018.09.13/Frequency_table_Lof07_Lof11.txt', header=TRUE); outfileNEA11 <- 'analysis/LOF_07_to_LOF_S_11.wfabc' # w/out kmer25 mask
+datNEA11 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); outfileNEA11 <- 'analysis/LOF_07_to_LOF_S_11_25kmer_dp.wfabc' # w/ kmer25 mask
 	setnames(datNEA11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
-	outfileNEA11 <- 'analysis/LOF_07_to_LOF_S_11.wfabc'
 	genNEA11=11 # for 1907 vs. 2011. sample sizes
 
 	# CAN
-datCAN <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE)
+#datCAN <- fread('data_2018.09.13/Frequency_table_CAN_40_TGA.txt', header=TRUE); outfileCAN <- 'analysis/Can_40_to_Can.wfabc' # w/out kmer25 mask
+datCAN <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); outfileCAN <- 'analysis/Can_40_to_Can_25kmer_dp.wfabc' # w/ kmer25 mask
 	setnames(datCAN, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
-	outfileCAN <- 'analysis/Can_40_to_Can.wfabc'
 	genCAN=8 # for 1940 to contemporary. Guess 8 generations
 
-# read in 25kmer filter
-#loc25NEA <- fread('data_2017.11.24/Norway_25K_mer_positions.txt')
-#loc25CAN <- fread('data_2017.11.24/Canada_25K_mer_positions.txt')
-#
-## trim to loci that meet 25kmer filter
-#setkey(datNEA, CHROM, POS)
-#setkey(datNEA11, CHROM, POS)
-#setkey(datCAN, CHROM, POS)
-#setkey(loc25NEA, CHROM, POS)
-#setkey(loc25CAN, CHROM, POS)
-#	nrow(datNEA)
-#	nrow(datNEA11)
-#	nrow(datCAN)
-#datNEA <- datNEA[loc25NEA, nomatch=0] # nomatch=0 so that non-matching rows are dropped
-#datNEA11 <- datNEA11[loc25NEA, nomatch=0] # nomatch=0 so that non-matching rows are dropped
-#datCAN <- datCAN[loc25CAN, nomatch=0] # nomatch=0 so that non-matching rows are dropped
-#	nrow(datNEA)
-#	nrow(datNEA11)
-#	nrow(datCAN)
+
 	
 # trim out inversions and Unplaced
 datNEA <- datNEA[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
 datNEA11 <- datNEA11[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
 datCAN <- datCAN[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
+
+	dim(datNEA)
+	dim(datNEA11)
+	dim(datCAN)
+
+# trim out missing loci
+datNEA <- datNEA[N_CHR_1 > 0 & N_CHR_2 > 0,]
+datNEA11 <- datNEA11[N_CHR_1 > 0 & N_CHR_2 > 0,]
+datCAN <- datCAN[N_CHR_1 > 0 & N_CHR_2 > 0,]
 
 	dim(datNEA)
 	dim(datNEA11)

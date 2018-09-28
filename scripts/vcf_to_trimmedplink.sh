@@ -6,15 +6,15 @@
 # 4: maximum r2 value for plink trimming
 
 module load vcftools
-module load plink/1.07
+module load plink
 
 # convert vcf to plink
 # trim out inversions, unplaced
 # trim to only one population
 # trim to relatively high quality loci
-vcftools --gzvcf $1 --plink --out $2 --keep $3 --not-chr LG01 --not-chr LG02 --not-chr LG07 --not-chr LG12 --not-chr Unplaced --chrom-map data/chrom_map
+vcftools --gzvcf $1 --plink --out $2 --keep $3 --minGQ 15 --minDP 3 --not-chr LG01 --not-chr LG02 --not-chr LG07 --not-chr LG12 --not-chr Unplaced --chrom-map data/chrom_map
 
-# trim to loci with r2 < $4 in 100kb windows shifted by 10kb
+# trim to loci with r2 < $4
 plink --noweb --file $2 --indep-pairwise 100 10 $4
 
 # recode into a new plink file (.map and .ped)
@@ -31,4 +31,3 @@ cat plink.prune.in | wc -l
 rm plink.nosex
 rm plink.prune.in
 rm plink.prune.out
-rm PGDSpider-cli.log
