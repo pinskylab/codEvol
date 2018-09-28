@@ -2,6 +2,22 @@
 # Use data from 3 samples
 # best to run on cod node with nohup if many sample sizes to make
 
+# read argument (first or 2nd half of loci to run)
+args=(commandArgs(TRUE))
+if(length(args)==0){
+    print("No arguments supplied.")
+	half = 1 # supply default values
+	ncores=30
+}else{
+	for(i in 1:length(args)){
+		eval(parse(text=args[[i]]))
+	}
+	if(!(half %in% 1:2)) stop('half must be 1 or 2!')
+	if(!(ncores > 0)) stop('ncores must be positive')
+}
+print(paste('Arguments: half=', half, ', ncores=', ncores, sep=''))
+
+
 # set parameters
 pop <- 'Lof'; yrs<-'07-11-14'
 
@@ -19,11 +35,11 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 
 
-# read in Ne data
+# read in Ne and frequency data
 if(pop=='Lof'){
 	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	dat14 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_1', 'Freq_07', 'N_CHR_3', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
-	dat11 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_1', 'Freq_07', 'N_CHR_2', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
+	dat14 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_1', 'Freq_07', 'N_CHR_3', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
+	dat11 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_1', 'Freq_07', 'N_CHR_2', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
 	setkey(dat11, CHROM, POS)
 	setkey(dat14, CHROM, POS)
 
@@ -32,15 +48,44 @@ if(pop=='Lof'){
 	gen2 <- 11
 }
 
+# trim out missing loci
+	nrow(nchrs)
+nchrs <- nchrs[N_CHR_1>0 & N_CHR_2>0 & N_CHR_3>0,]
+	print(nrow(nchrs))
+
+# trim to loci with at least half of individuals genotyped
+	nrow(nchrs)
+nchrs <- nchrs[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,]
+	print(nrow(nchrs))
+	
 
 # parameters for the simulation
 nsims <- 500000 # number of sims to run for each starting frequency in each sample size
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2, N_CHR_3)),N_CHR_1] # the sample sizes to simulate (first sample)
 c2s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2, N_CHR_3)),N_CHR_2]
 c3s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2, N_CHR_3)),N_CHR_3]
-	print(c1s)
-	print(c2s)
-	print(c3s)
+	print(length(c1s))
+	print(length(c2s))
+	print(length(c3s))
+
+# trim to first or second half
+if(half==1){
+	print('Using first half of sample sizes')
+	c1s <- c1s[1:floor(length(c1s)/2)]
+	c2s <- c2s[1:floor(length(c2s)/2)]
+	c3s <- c3s[1:floor(length(c3s)/2)]
+}
+if(half==2){
+	print('Using second half of sample sizes')
+	c1s <- c1s[(floor(length(c1s)/2)+1):length(c1s)]
+	c2s <- c2s[(floor(length(c2s)/2)+1):length(c2s)]
+	c3s <- c3s[(floor(length(c3s)/2)+1):length(c3s)]
+
+}
+	print(length(c1s))
+	print(length(c2s))
+	print(length(c3s))
+
 
 # check that nes >0 
 print(summary(nes))
@@ -68,7 +113,7 @@ if(length(c1s)>0){
 		cl <- makeCluster(detectCores()-1) # set up cluster on my mac (or another computer), using all but one core
 	}
 	if(grepl('hpc.uio.no', Sys.info()["nodename"])){
-		cl <- makeCluster(30) # set up 30-core cluster on a cod node
+		cl <- makeCluster(ncores) # set up cluster on a cod node
 	}
 	clusterExport(cl, c('wfs_byf1samp_3samps'))
 
@@ -79,12 +124,12 @@ if(length(c1s)>0){
 
 	# make simulations (parallel way)
 	for(i in 1:length(c1s)){ # loop through each set of sample sizes
-		print(paste('Sample size', i, 'of', length(c1s), 'to do.'))
+		print(paste('Sample size', i, 'of', length(c1s), 'to do at', Sys.time()))
 		
 		# make list of all possible starting sample frequencies and make nsims copies of each
 		f1samps=rep((0:c1s[i])/c1s[i], rep(nsims, c1s[i]+1))
 		
-		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp_3samps, smin=0, smax=0, c1=c1s[i], c2=c2s[i], c3=c3s[i], gen1=gen1, gen2=gen2, ne=nes, h=0.5, simplify=TRUE)
+		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp_3samps, smin=0, smax=0, c1=c1s[i], c2=c2s[i], c3=c3s[i], gen1=gen1, gen2=gen2, ne=nes, hmin=0.5, hmax=0.5, simplify=TRUE)
 
 		thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
 	

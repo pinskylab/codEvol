@@ -2,10 +2,10 @@
 # best to run on cod node with nohup if many sample sizes to make
 
 # set parameters
-pop <- 'Lof'; yr1<-'07'; yr2<-'14'
+#pop <- 'Lof'; yr1<-'07'; yr2<-'14'
 #pop <- 'Lof'; yr1<-'07'; yr2<-'11'
 #pop <- 'Lof'; yr1<-'11'; yr2<-'14'
-#pop <- 'Can'
+pop <- 'Can'
 
 # load functions
 source('scripts/wfs_byf1samp.r')
@@ -24,18 +24,24 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 # read in Ne data
 if(pop=='Lof'){
 	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	freqfile <- paste('data_2017.11.24/Frequency_table_Lof', yr1, '_Lof', yr2, '.txt', sep='')
+	freqfile <- paste('data_2018.09.05/Frequency_table_Lof', yr1, '_Lof', yr2, '.txt', sep='')
 	nchrs <- fread(freqfile, header=TRUE) # read in frequency table data
 	gen <- 11
 }
 if(pop=='Can'){
 	nes <- read.table('analysis/Can_40_to_Can.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	freqfile <- paste('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', sep='')
+	freqfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
 	nchrs <- fread(freqfile, header=TRUE)
 	gen <- 8
 }
 
 setnames(nchrs, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
+
+# trim to loci with at least half of individuals genotyped
+	nrow(nchrs)
+nchrs <- nchrs[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2,]
+	print(nrow(nchrs))
+
 
 # parameters for the simulation
 nsims <- 500000 # number of sims to run for each starting frequency in each sample size
@@ -43,6 +49,8 @@ c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_1] # the sample sizes to
 c2s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_2]
 	print(c1s)
 	print(c2s)
+	length(c1s)
+	length(c2s)
 
 # check that nes >0 
 print(summary(nes))
@@ -63,6 +71,7 @@ keep <- !(torun %in% existing) # the sample sizes that still need to be run
 c1s <- c1s[keep]
 c2s <- c2s[keep]
 length(c1s) # how many to run?
+length(c2s) # how many to run?
 
 # run simulations for missing sample sizes
 if(length(c1s)>0){
@@ -83,7 +92,7 @@ if(length(c1s)>0){
 
 	# make simulations (parallel way)
 	for(i in 1:length(c1s)){ # loop through each set of sample sizes
-		print(paste('Sample size', i, 'of', length(c1s), 'to do.'))
+		print(paste('Sample size', i, 'of', length(c1s), 'to do at', Sys.time()))
 		
 		# make list of all possible starting sample frequencies and make nsims copies of each
 		f1samps=rep((0:c1s[i])/c1s[i], rep(nsims, c1s[i]+1))

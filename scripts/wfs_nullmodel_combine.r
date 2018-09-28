@@ -9,11 +9,11 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load data
-targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
-#targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); suffix='_07-11' # Lof 1907-2011
-#targ <- fread('data_2017.11.24/Frequency_table_Lof11_Lof14.txt', header=TRUE); suffix='_11-14' # Lof 2011-2014
-#targ <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); targ2 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-11-14' # Lof 1907-2011-2014
-#targ <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE); suffix='_Can' # Can
+#targ <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
+#targ <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); suffix='_07-11' # Lof 1907-2011
+#targ <- fread('data_2018.09.05/Frequency_table_Lof11_Lof14.txt', header=TRUE); suffix='_11-14' # Lof 2011-2014
+targ <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); targ2 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-11-14' # Lof 1907-2011-2014
+#targ <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); suffix='_Can' # Can
 #targ <- fread('analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt', header=TRUE); suffix='_Power_Lof_Ne46000_cnt46_44' # Lof power analysis
 #targ <- fread('analysis/Frequency_table_PowerSims_Can_Ne5900_cnt32_40.txt', header=TRUE); suffix='_Power_Can_Ne5900_cnt32_40' # Can power analysis
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
@@ -25,6 +25,12 @@ if(suffix=='_07-11-14'){
 	setkey(targ2, CHROM, POS)
 	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, f1samp, f2samp, f3samp)]
 }
+
+# trim to loci with at least half of individuals genotyped
+	nrow(targ)
+targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2 & alcnt3>=max(alcnt3)/2,]
+	print(nrow(targ))
+
 
 # how many loci at each sample size
 if(suffix != '_07-11-14'){

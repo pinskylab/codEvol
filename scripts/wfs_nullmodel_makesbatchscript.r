@@ -8,25 +8,25 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 }
 
 # settings
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
-#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
 #pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
 if(pop == 'Lof'){
 	if(myyr2 != '1114'){
-		targfile <- paste('data_2017.11.24/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
+		targfile <- paste('data_2018.09.05/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
 	}
 	if(myyr2 == '1114'){
-		targfile <- paste('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', sep='')
-		targfile2 <- paste('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', sep='')
+		targfile <- paste('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', sep='')
+		targfile2 <- paste('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', sep='')
 	}
 }
 if(pop == 'Can'){
-	targfile <- paste('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', sep='')
+	targfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
@@ -40,6 +40,12 @@ if(myyr2=='1114'){
 	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, f1samp, f2samp, f3samp)]
 }
 
+# trim to loci with at least half of individuals genotyped
+	nrow(targ)
+targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2 & alcnt3>=max(alcnt3)/2,]
+	print(nrow(targ))
+
+
 # how many loci at each sample size
 if(myyr2 != '1114'){
 	setkey(targ, alcnt1, alcnt2)
@@ -49,14 +55,14 @@ if(myyr2 == '1114'){
 	setkey(targ, alcnt1, alcnt2, alcnt3)
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
-	nrow(nloci) # Lof 1907-2011-2014: 1145
-				# Lof 1907-2014: 120
-				# Can: 90 sample sizes
+	nrow(nloci) # Lof 1907-2011-2014: 1717 (>=50% indivs genotyped)
+				# Lof 1907-2014: 
+				# Can: 
 
 # sample sizes with >5000 loci
-nloci[nloci>5000,]  # Lof 1907-2011-2014: 60 sample sizes
-					# Lof 1907-2014: 60 samplesizes					
-					# Can: 60 sample sizes: why all the same?
+nloci[nloci>5000,]  # Lof 1907-2011-2014: 0 sample sizes
+					# Lof 1907-2014:  samplesizes					
+					# Can:  sample sizes: why all the same?
 
 # check which sample sizes are already run
 nloci[,todo:=1] # set up a flag for which we should run
@@ -114,8 +120,14 @@ for(i in 1:nrow(nloci)){
 		}
 	} else {
 		nloci[i,todo:=0] # can't run this now because sim files don't exist
-		print(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
-		warning(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
+		if(myyr2!='1114'){
+			print(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
+			warning(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
+		}
+		if(myyr2=='1114'){
+			print(paste(myalcnt1, myalcnt2, myalcnt3, 'Cannot run because not all sim files exist'))
+			warning(paste(myalcnt1, myalcnt2, myalcnt3, 'Cannot run because not all sim files exist'))
+		}
 	}
 }
 	
@@ -136,6 +148,7 @@ for(i in 1:nbatch){
 	rows <- ((i-1)*400+1):min(i*400, nrow(nloci2))
 	nloci2[rows,batch:=i]
 }
+print(paste(nbatch, 'batches to run'))
 	
 # write out the shell script for each batch
 for(j in 1:nbatch){
