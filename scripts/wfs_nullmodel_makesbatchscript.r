@@ -11,8 +11,8 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
-#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
@@ -42,7 +42,8 @@ if(myyr2=='1114'){
 
 # trim to loci with at least half of individuals genotyped
 	nrow(targ)
-targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2 & alcnt3>=max(alcnt3)/2,]
+if(myyr2!='1114') targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2,]
+if(myyr2=='1114') targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2 & alcnt3>=max(alcnt3)/2,]
 	print(nrow(targ))
 
 
@@ -57,12 +58,12 @@ if(myyr2 == '1114'){
 }
 	nrow(nloci) # Lof 1907-2011-2014: 1717 (>=50% indivs genotyped)
 				# Lof 1907-2014: 
-				# Can: 
+				# Can: 143
 
 # sample sizes with >5000 loci
 nloci[nloci>5000,]  # Lof 1907-2011-2014: 0 sample sizes
 					# Lof 1907-2014:  samplesizes					
-					# Can:  sample sizes: why all the same?
+					# Can: 29
 
 # check which sample sizes are already run
 nloci[,todo:=1] # set up a flag for which we should run
@@ -136,7 +137,7 @@ sum(nloci$todo)
 nrow(nloci) # compare to number we could run
 	
 # any sample sizes with < all loci to run?
-nloci[nlocitorun<nloci,]
+nloci[nlocitorun<nloci & nlocitorun>0,]
 
 # trim nloci to rows to do
 nloci2 <- nloci[todo==1,]
