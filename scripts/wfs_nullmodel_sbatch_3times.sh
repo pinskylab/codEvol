@@ -6,8 +6,8 @@
 # Project:
 #SBATCH --account=nn9244k
 #
-# Wall clock limit (10min):
-#SBATCH --time=10	
+# Wall clock limit (20min):
+#SBATCH --time=20	
 #
 # Max memory usage:
 #SBATCH --mem-per-cpu=2G

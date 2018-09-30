@@ -41,10 +41,10 @@ if(suffix == '_07-11-14'){
 	setkey(targ, alcnt1, alcnt2, alcnt3)
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
-	nrow(nloci) # 1907-2014: 120
+	nrow(nloci) # 1907-2014: 
 				# 1907-2011: 
 				# 2011-2014: 
-				# 1907-2011-2014: 1145
+				# 1907-2011-2014: 1717
 				# Can: 90
 
 # read in files
