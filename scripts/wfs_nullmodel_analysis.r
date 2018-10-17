@@ -41,7 +41,7 @@ require(data.table)
 	# Canada
 	locnms <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
 	load('analysis/wfs_nullmodel_pvals_Can.rdata') # dat. the p-values.
-	kmer25 <- fread('data_2018.09.05/Canada_25K_mer_positions.txt') # the 25kmer mask
+#	kmer25 <- fread('data_2017.11.24/Canada_25K_mer_positions.txt') # the 25kmer mask (no longer needed)
 	suffix <- '_Can'
 
 # Then continue here:
@@ -61,7 +61,8 @@ locnms[,POSgen:=POS+start]
 
 	# trim locus names to match rest of data (if needed)
 #locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),] # trim out inversions
-locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,]
+if(suffix != '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2,] # trim to genotypes >50%
+if(suffix == '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,] # trim to genotypes >50%
 
 	# make sure it matches
 	nrow(dat)
@@ -171,7 +172,7 @@ dat[,min(p.adj3, na.rm=TRUE)]
 
 # most diverged loci? using p.adj3 (after inversions and unplaced removed, all with kmer25 and depth trimming)
 pthresh <- 0.2
-pthresh <- 0.01
+#pthresh <- 0.1
 sum(selinds <- dat$p.adj3 < pthresh, na.rm=TRUE) # not in Inversions or on Unplaced (the ones we want)
 
 
@@ -220,8 +221,8 @@ dat[selinds, table(CHROM)]
 	locnms11[CHROM=='LG06' & POS >= 2780283 & POS <=2866691,] # same region in 1907-2011
 
 # write out
-if(suffix != '_07-11-14') write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, p.adj, p.adj2)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
-if(suffix == '_07-11-14') write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, cnt3, Freq_1, Freq_2, Freq_3, ABS_DIFF, p, n, p.adj, p.adj2)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
+if(suffix != '_07-11-14') write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, Freq_1, Freq_2, ABS_DIFF, p, n, p.adj, p.adj3)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
+if(suffix == '_07-11-14') write.csv(cands[selinds2,.(CHROM, POS, POSgen, locusnum, cluster, ndist, cnt1, cnt2, cnt3, Freq_1, Freq_2, Freq_3, ABS_DIFF, p, n, p.adj, p.adj3)], file=paste('analysis/wfs_nullmodel_candidates', suffix, '.csv', sep=''))
 
 #####################
 ## plots

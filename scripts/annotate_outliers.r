@@ -46,8 +46,12 @@ outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can
 	g10 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG10', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25304306, numcols=100000, include.unknown=TRUE)
 	g11 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG11', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=28942968, numcols=100000, include.unknown=TRUE)
 	g13 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG13', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25676735, numcols=100000, include.unknown=TRUE)
+	g14 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG14', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=29296932, numcols=100000, include.unknown=TRUE)
+	g15 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG15', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=26597959, numcols=100000, include.unknown=TRUE)
 	g16 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG16', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=31093243, numcols=100000, include.unknown=TRUE)
+	g17 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG17', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=19149207, numcols=100000, include.unknown=TRUE)
 	g18 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG18', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=22554255, numcols=100000, include.unknown=TRUE)
+	g19 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG19', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=21176260, numcols=100000, include.unknown=TRUE)
 	g20 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG20', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=24149133, numcols=100000, include.unknown=TRUE)
 	g21 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG21', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=22510304, numcols=100000, include.unknown=TRUE)
 	g22 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG22', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=21735703, numcols=100000, include.unknown=TRUE)
@@ -63,9 +67,9 @@ outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can
 	get.sum.data(g5) # 52908 biallelic sites
 	get.sum.data(g6) # 60603 biallelic sites
 	get.sum.data(g16) # 71846 biallelic sites
-	head(g@region.data@biallelic.sites[[1]]) # location of SNPs
-	dim(g@region.data@biallelic.matrix[[1]]) # size of the matrix of major and minor alleles. Two rows for each individual
-	g@region.data@biallelic.matrix[[1]][1:10,1:20] # look at the matrix of major and minor alleles. Two rows for each individual. not working.
+	head(g3@region.data@biallelic.sites[[1]]) # location of SNPs
+	dim(g3@region.data@biallelic.matrix[[1]]) # size of the matrix of major and minor alleles. Two rows for each individual
+	g3@region.data@biallelic.matrix[[1]][1:10,1:20] # look at the matrix of major and minor alleles. Two rows for each individual. not working.
 
 	# set reference. used to define codons. 
 	# very annoying that each chr must be own file. used scripts/split_fasta.sh to make them.
@@ -78,18 +82,22 @@ outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can
 	g10 <- set.synnonsyn(g10, ref.chr='../genome_data/LG10.fasta', save.codons=TRUE)
 	g11 <- set.synnonsyn(g11, ref.chr='../genome_data/LG11.fasta', save.codons=TRUE)
 	g13 <- set.synnonsyn(g13, ref.chr='../genome_data/LG13.fasta', save.codons=TRUE)
+	g14 <- set.synnonsyn(g14, ref.chr='../genome_data/LG14.fasta', save.codons=TRUE)
+	g15 <- set.synnonsyn(g15, ref.chr='../genome_data/LG15.fasta', save.codons=TRUE)
 	g16 <- set.synnonsyn(g16, ref.chr='../genome_data/LG16.fasta', save.codons=TRUE)
+	g17 <- set.synnonsyn(g17, ref.chr='../genome_data/LG17.fasta', save.codons=TRUE)
 	g18 <- set.synnonsyn(g18, ref.chr='../genome_data/LG18.fasta', save.codons=TRUE)
+	g19 <- set.synnonsyn(g19, ref.chr='../genome_data/LG19.fasta', save.codons=TRUE)
 	g20 <- set.synnonsyn(g20, ref.chr='../genome_data/LG20.fasta', save.codons=TRUE)
 	g21 <- set.synnonsyn(g21, ref.chr='../genome_data/LG21.fasta', save.codons=TRUE)
 	g22 <- set.synnonsyn(g22, ref.chr='../genome_data/LG22.fasta', save.codons=TRUE)
 	g23 <- set.synnonsyn(g23, ref.chr='../genome_data/LG23.fasta', save.codons=TRUE)
 
-	g <- list(g3, g4, g5, g6, g8, g9, g10, g11, g13, g16, g18, g20, g21, g22, g23)
-	names(g) <- c('LG03', 'LG04', 'LG05', 'LG06', 'LG08', 'LG09', 'LG10', 'LG11', 'LG13', 'LG16', 'LG18', 'LG20', 'LG21', 'LG22', 'LG23')
+	g <- list(g3, g4, g5, g6, g8, g9, g10, g11, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23)
+	names(g) <- c('LG03', 'LG04', 'LG05', 'LG06', 'LG08', 'LG09', 'LG10', 'LG11', 'LG13', 'LG14', 'LG15', 'LG16', 'LG17', 'LG18', 'LG19', 'LG20', 'LG21', 'LG22', 'LG23')
 
 # get codons and SNP effects
-codons <- lapply(g, get.codons, 1) # fails for end of LG16 for some reason
+codons <- lapply(g, get.codons, 1)
 
 	dim(codons[['LG05']]) # only 3685 on LG05? because only codons
 	head(codons[['LG05']])
@@ -205,9 +213,43 @@ anno2 <- merge(anno, outlcodons, by.y=c('CHROM', 'Position'), by.x=c('CHROM', 'P
 anno2 <- merge(anno2, outl)
 anno2 <- as.data.frame(apply(anno2, MARGIN=2, function(x){x[is.na(x)] <- ''; return(x)})) # turn NA to ''
 anno2 <- anno2[, c("CHROM", "POS", "q3.Lof071114", "q3.Can", "q3.comb071114Can", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "WithinAnno", "WithinGO", "NearGene", "NearAnno", "NearGO")] # reorder columns
+anno2$POS <- as.numeric(as.character(anno2$POS)) # convert POS to numeric
 anno2 <- anno2[order(anno2$CHROM, anno2$POS),]
 
 anno2
+
+
+###################
+# Label clusters
+###################
+# find distance among outlier loci
+anno2 <- anno2[order(anno2$CHROM, anno2$POS),] # sort by position
+anno2$ndist <- NA # nearest neighbor at an earlier position (measure only to left)
+for(i in 1:nrow(anno2)){
+	j <- which(anno2$CHROM == anno2$CHROM[i]) # other loci on same chromosome
+	j <- j[j<i] # remove focal locus and any later loci
+	if(length(j)>0) anno2$ndist[i] <- min(abs(anno2$POS[i] - anno2$POS[j]))
+} 
+
+# label
+indx <- 1
+anno2$cluster <- as.numeric(NA)
+for(i in 1:nrow(anno2)){
+	anno2$cluster[i] <- indx
+	if(i < nrow(anno2)){
+		if(anno2$ndist[i+1]>=25000 | is.na(anno2$ndist[i+1])) indx <- indx+1
+	}
+}
+
+anno2[,c('CHROM', 'POS', 'ndist', 'cluster')]
+
+length(unique(anno2$cluster)) # how many clusters?
+table(anno2$cluster)
+max(table(anno2$cluster)) # largest cluster
+aggregate(list(maxdist=anno2$POS), by=list(cluster=anno2$cluster), FUN=function(x){ return(max(x) - min(x))}) # size in bp of each cluster
+
+# reorder columns, drop ndist
+anno2 <- anno2[, c("CHROM", "POS", "cluster", "q3.Lof071114", "q3.Can", "q3.comb071114Can", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "WithinAnno", "WithinGO", "NearGene", "NearAnno", "NearGO")]
 
 
 ########################
@@ -226,6 +268,10 @@ anno2
 	sum(anno2$NearGene != ''); sum(anno2$NearGene != '')/nrow(anno2) # fraction within 25kb of gene (but not in a gene)
 	sum(anno2$NearAnno != ''); sum(anno2$NearAnno != '')/nrow(anno2) # fraction within 25kb of annotated gene (but not in a gene)
 	length(unique(c(grep('gene', anno2$feature), which(anno2$NearGene != '')))); length(unique(c(grep('gene', anno2$feature), which(anno2$NearGene != ''))))/nrow(anno2) # fraction in OR within 25kb of genes
+	
+	sum(as.numeric(as.character(anno2$q3.Lof071114)) < 0.2, na.rm=TRUE) # # outliers in Lof
+	sum(as.numeric(as.character(anno2$q3.Can)) < 0.2, na.rm=TRUE) # # outliers in Can
+	sum(as.numeric(as.character(anno2$q3.comb071114Can)) < 0.2, na.rm=TRUE) # # outliers combined
 	
 	# table of GO terms for genes containing outlier SNPs
 	uniq <- !duplicated(anno2$Names) & anno2$Names != '' # list of unique genes
