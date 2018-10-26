@@ -7,9 +7,9 @@ require(data.table)
 ##############################
 # Read in WFS drift null model outlier values for all populations (combined by wfs_nullmodel_analysis_Canada,1907-2011&2014.r)
 ##############################
-nullmod <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on mac 108MB file
+nullmod <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz") # on mac 26MB file
 outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can_q3==1, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, q3.Lof071114, q3.Can, q3.comb071114Can)] # trim to just the outliers
-	dim(outl)
+	dim(outl) # 31
 
 
 ###################
@@ -34,6 +34,9 @@ outl <- nullmod[outlierLof071114_q3==1 | outlierCan_q3==1 | outlierLof071114_Can
 #	gLof@region.data@biallelic.matrix[[1]][1:10,1:20] # look at the matrix of major and minor alleles. Two rows for each individual
 #
 #	get.codons(gLof)
+
+outl[,table(CHROM)] # which LGs to load?
+
 	
 # read in genome data with readVCV() (one chr at a time... so annoying)
 # need tabix-ed vcf file: on cod node: module load tabix; tabix -p vcf All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Canada.vcf.gz
@@ -264,6 +267,7 @@ anno2 <- anno2[, c("CHROM", "POS", "cluster", "q3.Lof071114", "q3.Can", "q3.comb
 	length(grep('five_prime_UTR', anno2$feature)); length(grep('five_prime_UTR', anno2$feature))/nrow(anno2) # fraction in 5'UTR
 	sum(anno2$synonymous==' TRUE', na.rm=TRUE); sum(anno2$synonymous==' TRUE', na.rm=TRUE)/nrow(anno2) # synonymous snps
 	sum(anno2$synonymous=='FALSE', na.rm=TRUE); sum(anno2$synonymous=='FALSE', na.rm=TRUE)/nrow(anno2) # non-synonymous snps
+		anno2[anno2$synonymous=='FALSE',]
 	
 	sum(anno2$NearGene != ''); sum(anno2$NearGene != '')/nrow(anno2) # fraction within 25kb of gene (but not in a gene)
 	sum(anno2$NearAnno != ''); sum(anno2$NearAnno != '')/nrow(anno2) # fraction within 25kb of annotated gene (but not in a gene)
