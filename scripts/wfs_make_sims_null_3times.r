@@ -54,9 +54,9 @@ nchrs <- nchrs[N_CHR_1>0 & N_CHR_2>0 & N_CHR_3>0,]
 	print(nrow(nchrs))
 
 # trim to loci with at least half of individuals genotyped
-	nrow(nchrs)
-nchrs <- nchrs[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,]
-	print(nrow(nchrs))
+#	nrow(nchrs)
+#nchrs <- nchrs[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,]
+#	print(nrow(nchrs))
 	
 
 # parameters for the simulation
@@ -104,6 +104,8 @@ c1s <- c1s[keep]
 c2s <- c2s[keep]
 c3s <- c3s[keep]
 length(c1s) # how many to run?
+length(c2s)
+length(c3s)
 
 # run simulations for missing sample sizes
 if(length(c1s)>0){
