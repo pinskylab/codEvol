@@ -219,7 +219,7 @@ if(sampleparts.n > 0){
 		}
 		if(myyr2 == '1114'){ # 3 time points
 			results <- foreach(i=thisdat, .combine=rbind, .packages=c('ff', 'doParallel', 'data.table')) %dopar% {
-				nullmodtest(locusnum=i[,locusnum], thistarg=i[,.(f1samp, f2samp, f3samp)], thisout.ff=thisout.ff) # run null model test. returns vector of locusnum, p-value, and count of simulations with same starting sample freq
+				nullmodtest3(locusnum=i[,locusnum], thistarg=i[,.(f1samp, f2samp, f3samp)], thisout.ff=thisout.ff) # run null model test. returns vector of locusnum, p-value, and count of simulations with same starting sample freq
 			}
 		}
 
