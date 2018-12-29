@@ -116,14 +116,15 @@ nullmodtest3 <- function(thistarg, thisout.ff, tol=1/100){
 ##############################################################
 ### run calculations for each row of targ with a low p-value
 ##############################################################
-targ[, ':=' (pLof071114low=NA, pLof071114lowe=NA, pLof071114lown=NA)]
+targ[, ':=' (pLof071114low=as.numeric(NA), pLof071114lowe=as.numeric(NA), pLof071114lown=as.numeric(NA))]
 
 for(i in 1:nrow(targ)){
 	print(paste('row', i, 'of', nrow(targ)))
-	# find the appropriate files of null simulations
+	# find the appropriate files with null simulations
 	if(yrs!='071114') targ_loc <- targ[i,paste(alcnt1, alcnt2, sep=',')]
 	if(yrs=='071114') targ_loc <- targ[i,paste(alcnt1, alcnt2, alcnt3, sep=',')]
 	ffnms <- list.files(path='analysis/temp', pattern=paste('wfs_simsnull_ff', targ_loc, '_[[:digit:]]+\\.ffData', sep=''), full.names=TRUE) # the existing simulations
+		# could add in the file: pattern=paste('wfs_simsnull_ff', targ_loc, '\\.ffData', sep='')
 	ffnms <- gsub('.ffData', '', ffnms)
 	
 	res <- data.frame(e=numeric(0),n=numeric(0)) # vector of number of simulations more extreme than observations and count of simulations with same starting sample freq
@@ -136,7 +137,13 @@ for(i in 1:nrow(targ)){
 
 		if(yrs != '071114') thisres <- nullmodtest(thistarg=targ[i,.(f1samp, f2samp)], thisout.ff=thisout.ff) # run null model test. returns vector of number of simulations more extreme than observations and count of simulations with same starting sample freq
 		if(yrs == '071114') thisres <- nullmodtest3(thistarg=targ[i,.(f1samp, f2samp, f3samp)], thisout.ff=thisout.ff) # 3 time points
+
+		# save results from this loop
 		res <- rbind(res, thisres)
+
+		# remove ff temporary files
+		delete(thisout.ff)
+		rm(thisout.ff)
 	}
 	
  	# calculate p-value (see North et al. 2002 Am J Hum Gen for why the +1s)
@@ -147,8 +154,9 @@ for(i in 1:nrow(targ)){
 
 }
 
-	# remove ff temporary files
-	delete(thisout.ff)
-	rm(thisout.ff)
 
+# need to write out targ again
+if(pop=='Lof'){
+	outfile <- 'analysis/wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz'
+	write.table(targ, file=gzfile(outfile), sep='\t', row.names=FALSE, quote=FALSE)
 }
