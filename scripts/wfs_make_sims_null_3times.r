@@ -5,7 +5,7 @@
 #	half: 1, 2, or 3 (which half of loci to run, or 3 for run all)
 # 	ncores: number of cores to use
 #	trimlowsampsize: 1 to trim loci with less than half of individuals genotypes, 0 to not trim
-#	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values in a previous run
+#	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values in wfs_nullmodel_pos&pvals_07-11-14.rds, 2 to only run even more simulations for loci with low p-values in wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz
 
 # read argument (first or 2nd half of loci to run)
 args=(commandArgs(TRUE))
@@ -22,7 +22,7 @@ if(length(args)==0){
 	if(!(half %in% 1:3)) stop('half must be 1, 2, or 3!')
 	if(!(ncores > 0)) stop('ncores must be positive')
 	if(!(trimlowsampsize %in% 0:1)) stop('trimlowsampsize must be 0 or 1!')
-	if(!(rerunlow %in% 0:1)) stop('rerunlow must be 0 or 1!')
+	if(!(rerunlow %in% 0:2)) stop('rerunlow must be 0 or 1 or 2!')
 }
 print(paste('Arguments: half=', half, ', ncores=', ncores, ', trimlowsampsize=', trimlowsampsize, ', rerunlow=', rerunlow, sep=''))
 
@@ -52,7 +52,7 @@ if(pop=='Lof'){
 	setkey(dat11, CHROM, POS)
 	setkey(dat14, CHROM, POS)
 
-	nchrs <- dat11[dat14, .(CHROM, POS, N_CHR_1, N_CHR_2, N_CHR_3)]
+	nchrs <- dat11[dat14, .(CHROM, POS, N_CHR_1, N_CHR_2, N_CHR_3, Freq_07)]
 	gen1 <- 11
 	gen2 <- 11
 } else {
@@ -72,14 +72,29 @@ if(trimlowsampsize==1){
 	print(nrow(nchrs))
 }	
 
-# trim only to loci with low p-values in a previous run?
+# trim only to loci with low p-values in wfs_nullmodel_pos&pvals_07-11-14.rds (from a previous run)?
 if(rerunlow==1){
-	print('Trimming to loci with p<=2e-5')
-	pvals <- fread('gunzip -c analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz')
+	print('Trimming to loci with p<=8e-6 (4 out of 500,000)')
+	pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'))
 	if(pop=='Lof'){
-		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, pLof071114)]) # merge in p-values for Lof
+		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, p)]) # merge in p-values for Lof
 		print(nrow(nchrs))		
-		nchrs <- nchrs[pLof071114<=2e-5,]
+		nchrs <- nchrs[p<=8e-6,]
+		print(nrow(nchrs))
+	} else {
+		stop('Pop is not set to Lof!! We do not handle this case yet')
+	}
+}
+
+# trim only to loci with low p-values in wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz (from a previous rerunlow=1 run)?
+if(rerunlow==2){
+	print('Trimming to loci with p<=1e-6 (4 out of 5,000,000)')
+	pvals <- fread("gunzip -c analysis/wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz")
+	
+	if(pop=='Lof'){
+		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, pLof071114low)], all.x=TRUE) # merge in p-values for Lof
+		print(nrow(nchrs))		
+		nchrs <- nchrs[pLof071114low<=1e-6,]
 		print(nrow(nchrs))
 	} else {
 		stop('Pop is not set to Lof!! We do not handle this case yet')
@@ -89,7 +104,8 @@ if(rerunlow==1){
 # parameters for the simulation
 nsims <- 500000 # number of sims to run for each starting frequency in each sample size (500k)
 nreps <- 1 # number of repetitions of the number of simulations
-if(rerunlow==1) nreps <- 100 # number of reps to run for loci with low p-values (50M sims total)
+if(rerunlow==1) nreps <- 10 # number of reps to run for loci with low p-values (50M sims total)
+if(rerunlow==2) nreps <- 100 # number of reps to run for loci with really low p-values (500M sims total)
 print(paste('Running', nreps, 'reps of', nsims, 'simulations for', nreps*nsims, 'total per sample size.'))
 
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2, N_CHR_3)),N_CHR_1] # the sample sizes to simulate (first sample)
@@ -141,8 +157,8 @@ print(paste('Of', length(nes), 'Ne values', sum(nes > 0), 'are >0. Trimming all 
 nes <- nes[nes>0]
 
 # check temp directory for previous simulations (only do this if Ne, gen and other parameters are the same)
-if(pop=='Lof' & nreps==1){
-	torun <- paste(c1s, c2s, c3s, sep=',') # the list of sample sizes we need to run
+if(pop=='Lof' & rerunlow==0){
+	torun <- paste(c1s, c2s, c3s, sep=',') # the list of sample sizes we need to run. these have all starting frequencies
 	existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.*\\.ffData') # the existing simulations
 	existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes
 
@@ -153,7 +169,7 @@ if(pop=='Lof' & nreps==1){
 	c3s <- c3s[keep]
 	reps <- reps[keep]
 }
-if(pop=='Lof' & nreps>1){ # if we need more than 1 rep of each sample size
+if(pop=='Lof' & rerunlow %in% 1:2){ # if we need more than 1 rep of each sample size. these files only have the starting frequencies we need
 	torun <- paste(paste(c1s, c2s, c3s, sep=','), reps, sep='_') # the list of sample sizes we need to run
 	existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.+_[[:digit:]]+\\.ffData') # the existing simulations
 	existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes and rep#
@@ -194,6 +210,12 @@ if(length(c1s)>0){
 			
 		# make list of all possible starting sample frequencies and make nsims copies of each
 		f1samps=rep((0:c1s[i])/c1s[i], rep(nsims, c1s[i]+1))
+		
+		# only run observed starting sample frequencies if just re-running the low p-values
+		if(rerunlow %in% 1:2){
+			nchr1s <- nchrs[c1s[i]==N_CHR_1 & c2s[i]==N_CHR_2 & c3s[i]==N_CHR_3, round(Freq_07*N_CHR_1)] # number of starting copies of allele for the retained loci
+			f1samps=rep((nchr1s)/c1s[i], rep(nsims, length(nchr1s)))	
+		}
 	
 		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp_3samps, smin=0, smax=0, c1=c1s[i], c2=c2s[i], c3=c3s[i], gen1=gen1, gen2=gen2, ne=nes, hmin=0.5, hmax=0.5, simplify=TRUE)
 

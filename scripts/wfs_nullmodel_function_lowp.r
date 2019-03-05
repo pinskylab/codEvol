@@ -44,13 +44,13 @@ if(yrs=='071114'){
 }
 
 # trim only to loci with low p-values in a previous run
-print('Trimming to loci with p<=2e-5')
-pvals <- fread('gunzip -c analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz')
+print('Trimming to loci with p<=8e-6') # 4 out of 500k sims
+pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'))
 if(pop=='Lof'){
-	targ <- merge(targ, pvals[,.(CHROM, POS, pLof071114)]) # merge in p-values for Lof
-	print(nrow(targ))		
-	targ <- targ[pLof071114<=2e-5,]
-	print(nrow(targ))
+	targ <- merge(targ, pvals[,.(CHROM, POS, p)]) # merge in p-values for Lof
+	print(nrow(targ)) # initial # loci
+	targ <- targ[p<=8e-6,]
+	print(nrow(targ)) # after trimming
 } else {
 	stop('Pop is not set to Lof!! We do not handle this case yet')
 }
@@ -62,9 +62,10 @@ sim_locs <- unique(gsub('_[[:digit:]]+', '', sims)) # trim to just the sample si
 if(yrs!='071114') targ_locs <- targ[,paste(alcnt1, alcnt2, sep=',')]
 if(yrs=='071114') targ_locs <- targ[,paste(alcnt1, alcnt2, alcnt3, sep=',')]
 keep <- targ_locs %in% sim_locs
-print(dim(targ))
-targ <- targ[keep,]
-print(dim(targ))
+print(dim(targ)) # how many loci initially
+sum(keep) # how many to keep
+targ <- targ[keep,] # trim
+print(dim(targ)) # how many kept (a double check)
 
 # Null model test: how likely are results this extreme?
 # locusnum: the locus number
@@ -146,11 +147,9 @@ for(i in 1:nrow(targ)){
 		rm(thisout.ff)
 	}
 	
- 	# calculate p-value (see North et al. 2002 Am J Hum Gen for why the +1s)
- 	p <- (sum(res$e)+1)/(sum(res$n)+1)
- 	
+ 	# calculate p-value (see North et al. 2002 Am J Hum Gen for why the +1s) 	
  	# add to targ
- 	targ[i, ':=' (pLof071114low=p, pLof071114lowe=sum(res$e), pLof071114lown=sum(res$n))]
+ 	targ[i, ':=' (pLof071114low=(sum(res$e)+1)/(sum(res$n)+1), pLof071114lowe=sum(res$e), pLof071114lown=sum(res$n))]
 
 }
 
