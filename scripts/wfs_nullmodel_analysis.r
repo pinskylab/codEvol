@@ -60,9 +60,10 @@ locnms <- locnms[chrmax[,.(CHROM, start)], ]
 locnms[,POSgen:=POS+start]
 
 	# trim locus names to match rest of data (if needed)
-#locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),] # trim out inversions
-if(suffix != '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2,] # trim to genotypes >50%
-if(suffix == '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,] # trim to genotypes >50%
+# locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),] # trim out inversions
+if(suffix != '_07-11-14') locnms <- locnms[N_CHR_1>0 & N_CHR_2>0,] # trim to genotypes >0 individuals
+if(suffix == '_07-11-14') locnms <- locnms[N_CHR_1>0 & N_CHR_2>0 & N_CHR_3>0,] # trim to # if(suffix != '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2,] # trim to genotypes >50%
+# if(suffix == '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,] # trim to genotypes >50%
 
 	# make sure it matches
 	nrow(dat)
@@ -97,7 +98,8 @@ dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.ad
 
 
 # write out a nice version
-write.table(dat[,.(CHROM, POS, p.adj, p.adj3)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.txt', sep=''), quote=FALSE, sep='\t', row.names=FALSE)
+# write.table(dat[,.(CHROM, POS, p, p.adj, p.adj3)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.txt', sep=''), quote=FALSE, sep='\t', row.names=FALSE)
+saveRDS(dat[,.(CHROM, POS, p, p.adj, p.adj3)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.rds', sep=''))
 
 # calculate a running mean -log10(p-value) (FDR-adjusted)
 stp = 1e5
@@ -126,7 +128,7 @@ if(suffix == '_07-11-14') numps <- dat[cnt1==42 & cnt2==48 & cnt3==40 & !is.na(p
 if(suffix != '_07-11-14') cnts <- unique(dat[,.(cnt1, cnt2)], by=c('cnt1', 'cnt2'))
 if(suffix == '_07-11-14') cnts <- unique(dat[,.(cnt1, cnt2, cnt3)], by=c('cnt1', 'cnt2', 'cnt3'))
 
-if(suffix != '_07-11-14'){
+`if(suffix != '_07-11-14'){
 	numps <- dat[!is.na(p) & cnt1==cnts[1,cnt1] & cnt2==cnts[1,cnt2], .(nump=length(unique(p))), by=.(Freq_1, Freq_2)]
 	numps[,':=' (cnt1=cnts[1,cnt1], cnt2=cnts[1,cnt2])]
 	for(i in 2:nrow(cnts)){
@@ -144,7 +146,7 @@ if(suffix == '_07-11-14'){
 		numps <- rbind(numps, temp)
 	}
 } 
-
+`
 
 unique(numps$nump) # should all be 1
 

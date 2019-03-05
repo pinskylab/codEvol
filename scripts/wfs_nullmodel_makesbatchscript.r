@@ -11,8 +11,8 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
-#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
-pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
+pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
@@ -40,11 +40,16 @@ if(myyr2=='1114'){
 	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, f1samp, f2samp, f3samp)]
 }
 
-# trim to loci with at least half of individuals genotyped
+# trim out missing loci
 	nrow(targ)
-if(myyr2!='1114') targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2,]
-if(myyr2=='1114') targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2 & alcnt3>=max(alcnt3)/2,]
+targ <- targ[alcnt1>0 & alcnt2>0 & alcnt3>0,]
 	print(nrow(targ))
+
+# trim to loci with at least half of individuals genotyped
+# 	nrow(targ)
+# if(myyr2!='1114') targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2,]
+# if(myyr2=='1114') targ <- targ[alcnt1>=max(alcnt1)/2 & alcnt2>=max(alcnt2)/2 & alcnt3>=max(alcnt3)/2,]
+# 	print(nrow(targ))
 
 
 # how many loci at each sample size
@@ -56,7 +61,7 @@ if(myyr2 == '1114'){
 	setkey(targ, alcnt1, alcnt2, alcnt3)
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
-	nrow(nloci) # Lof 1907-2011-2014: 1717 (>=50% indivs genotyped)
+	nrow(nloci) # Lof 1907-2011-2014: 1717 (>=50% indivs genotyped) 6152 (all)
 				# Lof 1907-2014: 
 				# Can: 143
 
@@ -70,6 +75,7 @@ nloci[,todo:=1] # set up a flag for which we should run
 nloci[,nlocitorun:=nloci] # number of loci left to run at each sample size
 
 for(i in 1:nrow(nloci)){
+	cat(paste(i, " ", sep=''))
 	# check if the simulation files for this sample size exists
 	myalcnt1 <- nloci[i,alcnt1]
 	myalcnt2 <- nloci[i,alcnt2]
@@ -115,19 +121,19 @@ for(i in 1:nrow(nloci)){
 			nloci[i,todo:=0]
 			nloci[i,nlocitorun:=0]
 		} else {
-			if(myyr2 != '1114') print(paste(myalcnt1, myalcnt2, 'Run', sampleparts.n, 'loci of', orig.n, 'loci originally'))
-			if(myyr2 == '1114') print(paste(myalcnt1, myalcnt2, myalcnt3, 'Run', sampleparts.n, 'loci of', orig.n, 'loci originally'))
+			if(myyr2 != '1114') print(paste(i, 'of', nrow(nloci), ':', myalcnt1, myalcnt2, 'Run', sampleparts.n, 'loci of', orig.n, 'loci originally'))
+			if(myyr2 == '1114') print(paste(i, 'of', nrow(nloci), ':', myalcnt1, myalcnt2, myalcnt3, 'Run', sampleparts.n, 'loci of', orig.n, 'loci originally'))
 			nloci[i,nlocitorun:=sampleparts.n]
 		}
 	} else {
 		nloci[i,todo:=0] # can't run this now because sim files don't exist
 		if(myyr2!='1114'){
-			print(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
-			warning(paste(myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
+			print(paste(i, 'of', nrow(nloci), ':', myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
+			warning(paste(i, 'of', nrow(nloci), ':', myalcnt1, myalcnt2, 'Cannot run because not all sim files exist'))
 		}
 		if(myyr2=='1114'){
-			print(paste(myalcnt1, myalcnt2, myalcnt3, 'Cannot run because not all sim files exist'))
-			warning(paste(myalcnt1, myalcnt2, myalcnt3, 'Cannot run because not all sim files exist'))
+			print(paste(i, 'of', nrow(nloci), ':', myalcnt1, myalcnt2, myalcnt3, 'Cannot run because not all sim files exist'))
+			warning(paste(i, 'of', nrow(nloci), ':', myalcnt1, myalcnt2, myalcnt3, 'Cannot run because not all sim files exist'))
 		}
 	}
 }
@@ -141,6 +147,7 @@ nloci[nlocitorun<nloci & nlocitorun>0,]
 
 # trim nloci to rows to do
 nloci2 <- nloci[todo==1,]
+nrow(nloci2)
 
 # break into batches of <= 400
 nbatch <- ceiling(nrow(nloci2)/400)
