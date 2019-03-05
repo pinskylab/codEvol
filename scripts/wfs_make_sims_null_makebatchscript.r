@@ -4,8 +4,6 @@
 #	pop: Can or Lof
 #	yr1: 07 or 11 (not needed for Can)
 #	yr2: 11 or 14 (not needed for Can)
-#	half: 1, 2, or 3 (which half of loci to run, or 3 for run all)
-# 	ncores: number of cores to use
 #	trimlowsampsize: 1 to trim loci with less than half of individuals genotypes, 0 to not trim
 #	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values in wfs_nullmodel_pos&pvals_07-11-14.rds, 2 to only run even more simulations for loci with low p-values in wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz
 
@@ -16,8 +14,6 @@ if(length(args)==0){
     pop <- 'Lof'
     yr1 <- '07'
     yr2 <- '14'
-	half <- 3 # supply default values
-	ncores <- 30
 	trimlowsampsize <- 1
 	rerunlow <- 0
 }else{
@@ -27,12 +23,10 @@ if(length(args)==0){
 	if(!(pop %in% c('Lof', 'Can'))) stop('pop must be Lof or Can!')
 	if(pop=='Lof' & !(yr1 %in% c('07', '11'))) stop('yr1 must be 07 or 11 for Lof!')
 	if(pop=='Lof' & !(yr2 %in% c('11', '14'))) stop('yr2 must be 11 or 14 for Lof!')
-	if(!(half %in% 1:3)) stop('half must be 1, 2, or 3!')
-	if(!(ncores > 0)) stop('ncores must be positive')
 	if(!(trimlowsampsize %in% 0:1)) stop('trimlowsampsize must be 0 or 1!')
 	if(!(rerunlow %in% 0:2)) stop('rerunlow must be 0 or 1 or 2!')
 }
-print(paste('Arguments: pop=', pop, ', yr1=', yr1, ', yr2=', yr2, ', half=', half, ', ncores=', ncores, ', trimlowsampsize=', trimlowsampsize, ', rerunlow=', rerunlow, sep=''))
+print(paste('Arguments: pop=', pop, ', yr1=', yr1, ', yr2=', yr2, ', trimlowsampsize=', trimlowsampsize, ', rerunlow=', rerunlow, sep=''))
 
 
 # load functions
@@ -138,26 +132,6 @@ c2s <- rep(c2s, each=nreps)
 	print(length(reps))
 	
 
-# trim to first or second half (or keep all)
-if(half==1){
-	print('Using first half of sample sizes')
-	c1s <- c1s[1:floor(length(c1s)/2)]
-	c2s <- c2s[1:floor(length(c2s)/2)]
-	reps <- reps[1:floor(length(reps)/2)] # also for reps
-}
-if(half==2){
-	print('Using second half of sample sizes')
-	c1s <- c1s[(floor(length(c1s)/2)+1):length(c1s)]
-	c2s <- c2s[(floor(length(c2s)/2)+1):length(c2s)]
-	reps <- reps[(floor(length(reps)/2)+1):length(reps)]
-}
-if(half==3){
-	print('Using all sample sizes')
-}
-	print(length(c1s))
-	print(length(c2s))
-	print(length(reps))
-
 
 # check that nes >0 
 print(summary(nes))
@@ -203,51 +177,26 @@ print(length(c1s)) # how many to run?
 print(length(c2s))
 print(length(reps))
 
-# run simulations for missing sample sizes
-if(length(c1s)>0){
+# combine into one data.table
+torun <- data.table(c1s=c1s, c2s=c2s, reps=reps)
 
-	# start cluster
-	if(!grepl('hpc.uio.no', Sys.info()["nodename"])){
-		cl <- makeCluster(detectCores()-1) # set up cluster on my mac (or another computer), using all but one core
-	}
-	if(grepl('hpc.uio.no', Sys.info()["nodename"])){
-		cl <- makeCluster(ncores) # set up cluster on a cod node
-	}
-	clusterExport(cl, c('wfs_byf1samp'))
-
-
-	# check where this is to monitor temp file creation in the file system /tmp/Rtmpp__
-	options('fftempdir')
-
-
-	# make simulations (parallel way)
-	for(i in 1:length(c1s)){ # loop through each set of sample sizes
-		print(paste('Sample size', i, 'of', length(c1s), 'to do at', Sys.time()))
-		
-		# only run observed starting sample frequencies
-		nchr1s <- nchrs[c1s[i]==N_CHR_1 & c2s[i]==N_CHR_2, unique(round(Freq_1*N_CHR_1))] # number of starting copies of allele for the retained loci
-		f1samps=rep((nchr1s)/c1s[i], rep(nsims, length(nchr1s)))	
-		
-		thisout <- parSapply(cl, f1samps, FUN=wfs_byf1samp, smin=0, smax=0, c1=c1s[i], c2=c2s[i], gen=gen, ne=nes, h=0.5, simplify=TRUE)
-
-		thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
+# break into batches of <= 400
+nbatch <- ceiling(nrow(torun)/400)
+torun[,batch:=0]
+for(i in 1:nbatch){
+	rows <- ((i-1)*400+1):min(i*400, nrow(torun))
+	torun[rows,batch:=i]
+}
+print(paste(nbatch, 'batches to run'))
 	
-		# save to permanent file (semi-permanent.. in my temp directory)
-		if(pop=='Lof'){
-			ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnull_ff', paste(c1s[i], c2s[i], sep=','), '_', reps[i], sep=''))
+# write out the shell script for each batch
+for(j in 1:nbatch){
+	outfile <- paste('scripts/wfs_make_sims_null_submit_sbatch', j, '.sh', sep='')
+	print(paste('Wrote', outfile))
 
-		}
-		if(pop=='Can'){
-			ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnullCAN_ff', paste(c1s[i], c2s[i], sep=','), '_', reps[i], sep=''))
-		}
-		
-		# remove the temp files
-		delete(thisout.ff)
-		rm(thisout.ff)
+	cat('#!/bin/bash\n', file=outfile, append=FALSE) # header
 
+	for(i in which(torun[,batch==j])){
+		cat(paste('sbatch --job-name=nlsm', torun[i,c1s], ',', torun[i,c2s], ' --cpus-per-task=1 scripts/wfs_make_sims_null_sbatch.sh ', pop, ' ', torun[i,c1s], ' ', torun[i, c2s], ' ', yr1, ' ', yr2, ' ', trimlowsampsize, ' ', rerunlow, ' ', torun[i, reps], ' ', nsims, '\n', sep=''), file=outfile, append=TRUE)
 	}
-
-
-	# stop the cluster
-	stopCluster(cl)
 }
