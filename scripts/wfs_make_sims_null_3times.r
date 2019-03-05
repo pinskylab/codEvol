@@ -1,5 +1,5 @@
 # Make simulations for the null model
-# Use data from 3 samples
+# Use data from 3 samples (NEA/Lof 1907-2011-2014)
 # best to run on cod node with nohup if many sample sizes to make
 # Arguments
 #	half: 1, 2, or 3 (which half of loci to run, or 3 for run all)
@@ -7,7 +7,7 @@
 #	trimlowsampsize: 1 to trim loci with less than half of individuals genotypes, 0 to not trim
 #	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values in wfs_nullmodel_pos&pvals_07-11-14.rds, 2 to only run even more simulations for loci with low p-values in wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz
 
-# read argument (first or 2nd half of loci to run)
+# read arguments
 args=(commandArgs(TRUE))
 if(length(args)==0){
     print("No arguments supplied.")
@@ -159,7 +159,7 @@ nes <- nes[nes>0]
 # check temp directory for previous simulations (only do this if Ne, gen and other parameters are the same)
 if(pop=='Lof' & rerunlow==0){
 	torun <- paste(c1s, c2s, c3s, sep=',') # the list of sample sizes we need to run. these have all starting frequencies
-	existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.*\\.ffData') # the existing simulations
+	existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.*\\.ffData') # the existing simulations. note that this search string assumes the simulations were made by a previous version of the script that didn't append rep# to the end of the file name (see rerunlow==1 below). Changed in fall 2018.
 	existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes
 
 	print('Trimming out files already run for 1 nrep')
@@ -224,6 +224,9 @@ if(length(c1s)>0){
 		# save to permanent file (semi-permanent.. but in my temp directory)
 		if(pop=='Lof'){
 			ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnull_ff', paste(c1s[i], c2s[i], c3s[i], sep=','), '_', reps[i], sep=''))
+		}
+		if(pop != 'Lof'){
+			stop('pop must be Lof for 3 timepoints!')
 		}
 	
 		# remove the temp files
