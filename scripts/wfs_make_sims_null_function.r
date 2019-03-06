@@ -46,7 +46,7 @@ if(pop=='Lof'){
 	nchrs <- fread(freqfile, header=TRUE) # read in frequency table data
 	gen <- 11
 }
-if(pop=='Can'){
+if(pop=='Can') {
 	nes <- read.table('analysis/Can_40_to_Can.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
 	freqfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
 	nchrs <- fread(freqfile, header=TRUE)
@@ -74,7 +74,7 @@ if(rerunlow==1){
 	if(pop=='Lof'){
 		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'))
 	}
-	if(pop=='Can'){
+	if(pop=='Can') {
 		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')) # NOT SURE YET THIS WORKS FOR CAN
 	}
 	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, p)]) # merge in p-values
@@ -94,7 +94,7 @@ if(rerunlow==2){
 		nchrs <- nchrs[pLof071114low<=1e-6,]
 		print(nrow(nchrs))
 	}
-	if(pop=='Can'){
+	if(pop=='Can') {
 		pvals <- fread("gunzip -c analysis/wfs_nullmodel_outliers_lowp_Can.tsv.gz") # NOT SURE YET THIS WORKS FOR CAN
 		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, pCanlow)], all.x=TRUE) # merge in p-values
 		print(nrow(nchrs))		
@@ -126,15 +126,15 @@ thisout <- sapply(f1samps, FUN=wfs_byf1samp, smin=0, smax=0, c1=c1, c2=c2, gen=g
 thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create in tempdir
 
 # save to permanent file (semi-permanent.. in my temp directory)
-if(pop=='Lof'){
+if(pop=='Lof') {
 	ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnull_ff', paste(c1, c2, sep=','), '_', repnum, sep=''))
 }
-if(pop=='Can'){
+if(pop=='Can') {
 	ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnullCAN_ff', paste(c1, c2, sep=','), '_', repnum, sep=''))
 }
 
 # remove the temp files
-delete(thisout.ff)
+delete(thisout.ff) # returns TRUE
 rm(thisout.ff)
 
 
