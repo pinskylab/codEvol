@@ -101,7 +101,7 @@ dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.ad
 # write.table(dat[,.(CHROM, POS, p, p.adj, p.adj3)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.txt', sep=''), quote=FALSE, sep='\t', row.names=FALSE)
 outfile <- paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.rds', sep='')
 outfile
-saveRDS(dat[,.(CHROM, POS, p, p.adj, p.adj3)], file=outfile)
+saveRDS(dat[,.(CHROM, POS, n, p, p.adj, p.adj3)], file=outfile)
 
 # calculate a running mean -log10(p-value) (FDR-adjusted)
 stp = 1e5
