@@ -39,7 +39,7 @@ require(ff, lib.loc="/projects/cees/lib/R_packages/") # for big objects shared a
 require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
-# read in Ne and frequency data
+# read in Ne and frequency data (latter for starting frequencies)
 if(pop=='Lof'){
 	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
 	freqfile <- paste('data_2018.09.05/Frequency_table_Lof', yr1, '_Lof', yr2, '.txt', sep='')
@@ -77,7 +77,7 @@ if(rerunlow==1){
 	if(pop=='Can') {
 		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')) # NOT SURE YET THIS WORKS FOR CAN
 	}
-	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, p)]) # merge in p-values
+	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, p)], by=c('CHROM', 'POS')) # merge in p-values
 	print(nrow(nchrs))		
 	nchrs <- nchrs[p<=8e-6,]
 	print(nrow(nchrs))

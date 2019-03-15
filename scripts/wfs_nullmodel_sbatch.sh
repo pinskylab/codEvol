@@ -7,7 +7,7 @@
 #SBATCH --account=nn9244k
 #
 # Wall clock limit:
-#SBATCH --time=100
+#SBATCH --time=120:00:00
 #
 # Max memory usage:
 #SBATCH --mem-per-cpu=2G

@@ -11,8 +11,8 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
-#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
+pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
@@ -42,7 +42,8 @@ if(myyr2=='1114'){
 
 # trim out missing loci
 	nrow(targ)
-targ <- targ[alcnt1>0 & alcnt2>0 & alcnt3>0,]
+if(myyr2!='1114') targ <- targ[alcnt1>0 & alcnt2>0,]
+if(myyr2=='1114') targ <- targ[alcnt1>0 & alcnt2>0 & alcnt3>0,]
 	print(nrow(targ))
 
 # trim to loci with at least half of individuals genotyped
@@ -63,12 +64,12 @@ if(myyr2 == '1114'){
 }
 	nrow(nloci) # Lof 1907-2011-2014: 1717 (>=50% indivs genotyped) 6152 (all)
 				# Lof 1907-2014: 
-				# Can: 143
+				# Can: 143 (>=50% genotyped) 497 (all)
 
 # sample sizes with >5000 loci
-nloci[nloci>5000,]  # Lof 1907-2011-2014: 0 sample sizes
+nloci[nloci>5000, .(.N, max(nloci))]  # Lof 1907-2011-2014: 0 sample sizes
 					# Lof 1907-2014:  samplesizes					
-					# Can: 29
+					# Can: 29 (>=50%) 49 (all)
 
 # check which sample sizes are already run
 nloci[,todo:=1] # set up a flag for which we should run
@@ -82,11 +83,11 @@ for(i in 1:nrow(nloci)){
 	if(myyr2=='1114') myalcnt3 <- nloci[i,alcnt3]
 	
 	if(pop=='Lof'){
-		exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims
-		if(myyr2=='1114') exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, ',', myalcnt3, '.RData', sep='')) # null model sims
+		exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, '_1.RData', sep='')) # null model sims
+		if(myyr2=='1114') exist <- file.exists(paste('analysis/temp/wfs_simsnull_ff', myalcnt1, ',', myalcnt2, ',', myalcnt3, '_1.RData', sep='')) # null model sims
 	}
 	if(pop=='Can'){
-		exist <- file.exists(paste('analysis/temp/wfs_simsnullCAN_ff', myalcnt1, ',', myalcnt2, '.RData', sep='')) # null model sims	
+		exist <- file.exists(paste('analysis/temp/wfs_simsnullCAN_ff', myalcnt1, ',', myalcnt2, '_1.RData', sep='')) # null model sims	
 	}
 
 	if(exist){
@@ -137,7 +138,7 @@ for(i in 1:nrow(nloci)){
 		}
 	}
 }
-	
+
 # how many sample sizes to run?
 sum(nloci$todo)
 nrow(nloci) # compare to number we could run
@@ -148,6 +149,9 @@ nloci[nlocitorun<nloci & nlocitorun>0,]
 # trim nloci to rows to do
 nloci2 <- nloci[todo==1,]
 nrow(nloci2)
+
+# loci with large sample sizes?
+nloci2[nlocitorun>1000,.(.N, max(nlocitorun))]
 
 # break into batches of <= 400
 nbatch <- ceiling(nrow(nloci2)/400)

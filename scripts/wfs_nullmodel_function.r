@@ -105,11 +105,11 @@ if(pop %in% c('Lof', 'Pow')){
 	if(myyr2 == '1114'){
 		existingfilespattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, myalcnt3, sep=','), '_locus*', sep='')
 		existingfilesgsubpattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, myalcnt3, sep=','), '_locus|.csv.gz', sep='')
- 		ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, myalcnt3, sep=','), sep='') # ff file name for Lof simulations
+ 		ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, myalcnt3, sep=','), '_1', sep='') # ff file name for Lof simulations
 	}
 }
 if(pop %in% c('Can', 'PowCan')){
-	ffnm <- paste('analysis/temp/wfs_simsnullCAN_ff', paste(myalcnt1, myalcnt2, sep=','), sep='')
+	ffnm <- paste('analysis/temp/wfs_simsnullCAN_ff', paste(myalcnt1, myalcnt2, sep=','), '_1', sep='')
 }
 
 # Null model test: how likely are results this extreme?
@@ -205,7 +205,7 @@ if(sampleparts.n > 0){
 
 	# load the appropriate file of abc simulations
 		# null model
-	ffload(ffnm, overwrite=TRUE) # takes 30 sec or so. loads thisout.ff
+	ffload(ffnm, overwrite=TRUE, rootpath=getOption('fftempdir')) # takes 30 sec or so. loads thisout.ff
 
 	# loop through each chunk of data, writing each to file
 	for(partnum in parts){
