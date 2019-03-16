@@ -188,10 +188,10 @@ pvals[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.adj3 := p.ad
 
 
 # need to write out pos&pvals again
-if(pop=='Lof' & yr=='071114') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'
-if(pop=='Lof' & yr=='0711') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-11.rds'
-if(pop=='Lof' & yr=='0714') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-14.rds'
-if(pop=='Lof' & yr=='1114') outfile <- 'analysis/wfs_nullmodel_pos&pvals_11-14.rds'
+if(pop=='Lof' & yrs=='071114') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'
+if(pop=='Lof' & yrs=='0711') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-11.rds'
+if(pop=='Lof' & yrs=='0714') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-14.rds'
+if(pop=='Lof' & yrs=='1114') outfile <- 'analysis/wfs_nullmodel_pos&pvals_11-14.rds'
 if(pop=='Can') outfile <- 'analysis/wfs_nullmodel_pos&pvals_Can.rds'
 print(outfile)
 saveRDS(pvals[,.(CHROM, POS, n, p, p.adj, p.adj3)], file=outfile)

@@ -5,7 +5,7 @@
 #	yr1: 07 or 11 (not needed for Can)
 #	yr2: 11 or 14 (not needed for Can)
 #	trimlowsampsize: 1 to trim loci with less than half of individuals genotypes, 0 to not trim
-#	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values in wfs_nullmodel_pos&pvals_07-11-14.rds, 2 to only run even more simulations for loci with low p-values in wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz
+#	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values (<=4/(n+1)) in wfs_nullmodel_pos&pvals_*.rds
 
 # read arguments
 # args=(commandArgs(TRUE))
@@ -24,12 +24,11 @@
 # 	if(pop=='Lof' & !(yr1 %in% c('07', '11'))) stop('yr1 must be 07 or 11 for Lof!')
 # 	if(pop=='Lof' & !(yr2 %in% c('11', '14'))) stop('yr2 must be 11 or 14 for Lof!')
 # 	if(!(trimlowsampsize %in% 0:1)) stop('trimlowsampsize must be 0 or 1!')
-# 	if(!(rerunlow %in% 0:2)) stop('rerunlow must be 0 or 1 or 2!')
+# 	if(!(rerunlow %in% 0:1)) stop('rerunlow must be 0 or 1!')
 # }
 
 pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-0 # initial run for all CAN loci
 pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-1 # re-run low p-values for all CAN loci
-pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-2 # 2nd re-run low p-values for all CAN loci
 
 print(paste('Arguments: pop=', pop, ', yr1=', yr1, ', yr2=', yr2, ', trimlowsampsize=', trimlowsampsize, ', rerunlow=', rerunlow, sep=''))
 
@@ -79,45 +78,28 @@ if(trimlowsampsize==1){
 
 # trim only to loci with low p-values in wfs_nullmodel_pos&pvals_*.rds (from analysis of a previous run)?
 if(rerunlow==1){
-	print('Trimming to loci with p<=8e-6 (4 out of 500,000)')
+	print('Trimming to loci with p<=4/(n+1)')
 	if(pop=='Lof'){
 		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'))
 	}
 	if(pop=='Can'){
 		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')) # NOT SURE YET THIS WORKS FOR CAN
 	}
-	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, p)], by=c('CHROM', 'POS')) # merge in p-values
+	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, n, p)], by=c('CHROM', 'POS')) # merge in p-values
 	print(nrow(nchrs))		
-	nchrs <- nchrs[p<=8e-6,]
+	nchrs <- nchrs[p<=4/(n+1),]
 	print(nrow(nchrs))
+	print(paste('retained p=', paste(signif(nchrs[,.(min(p), max(p))], digits=2), collapse=' to '), ', n=', paste(nchrs[,.(min(n), max(n))], collapse=' to '), sep=''))
 }
 
-# trim only to loci with low p-values in wfs_nullmodel_outliers_lowp_*.tsv.gz (from analysis of a previous rerunlow=1 run)?
-if(rerunlow==2){
-	print('Trimming to loci with p<=1e-6 (4 out of 5,000,000)')
-	
-	if(pop=='Lof'){
-		pvals <- fread("gunzip -c analysis/wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz")
-		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, pLof071114low)], all.x=TRUE) # merge in p-values for Lof
-		print(nrow(nchrs))		
-		nchrs <- nchrs[pLof071114low<=1e-6,]
-		print(nrow(nchrs))
-	}
-	if(pop=='Can'){
-		pvals <- fread("gunzip -c analysis/wfs_nullmodel_outliers_lowp_Can.tsv.gz") # NOT SURE YET THIS WORKS FOR CAN
-		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, pCanlow)], all.x=TRUE) # merge in p-values
-		print(nrow(nchrs))		
-		nchrs <- nchrs[pCanlow<=1e-6,]
-		print(nrow(nchrs))
-	}
-}
 
 
 # parameters for the simulation
 nsims <- 500000 # number of sims to run for each starting frequency in each sample size
 nreps <- 1 # number of repetitions of the number of simulations
-if(rerunlow==1) nreps <- 10 # number of reps to run for loci with low p-values (50M sims total)
-if(rerunlow==2) nreps <- 100 # number of reps to run for loci with really low p-values (500M sims total)
+if(rerunlow==1){
+	nreps <- 10*nchrs[,max(n)]/nsims # run 10x more sims than already run
+}
 print(paste('Running', nreps, 'reps of', nsims, 'simulations for', nreps*nsims, 'total per sample size.'))
 
 c1s <- nchrs[!duplicated(paste(N_CHR_1, N_CHR_2)),N_CHR_1] # the sample sizes to simulate (first sample)
@@ -155,7 +137,7 @@ if(pop=='Lof' & rerunlow==0){
 	c2s <- c2s[keep]
 	reps <- reps[keep]
 }
-if(pop=='Lof' & rerunlow %in% 1:2){ # if we need more than 1 rep of each sample size. these files only have the starting frequencies we need
+if(pop=='Lof' & rerunlow==1){ # if we need more than 1 rep of each sample size. these files only have the starting frequencies we need
 	torun <- paste(paste(c1s, c2s, sep=','), reps, sep='_') # the list of sample sizes we need to run
 	existing <- list.files(path='analysis/temp', pattern='wfs_simsnull_ff.+_[[:digit:]]+\\.ffData') # the existing simulations
 	existing <- gsub('wfs_simsnull_ff|.ffData', '', existing) # trim file names to just sample sizes and rep#

@@ -7,7 +7,7 @@
 #	yr1: 07 or 11 (not needed for Can)
 #	yr2: 11 or 14 (not needed for Can)
 #	trimlowsampsize: 1 to trim loci with less than half of individuals genotypes, 0 to not trim
-#	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values in wfs_nullmodel_pos&pvals_07-11-14.rds, 2 to only run even more simulations for loci with low p-values in wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz
+#	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values (<=4/(n+1)) in wfs_nullmodel_pos&pvals_07-11-14.rds
 #	repnum: which repetition number to run
 # 	nsims: usually 500k
 
@@ -28,7 +28,7 @@ if(!(pop %in% c('Lof', 'Can'))) stop('pop must be Lof or Can!')
 if(pop=='Lof' & !(yr1 %in% c('07', '11'))) stop('yr1 must be 07 or 11 for Lof!')
 if(pop=='Lof' & !(yr2 %in% c('11', '14'))) stop('yr2 must be 11 or 14 for Lof!')
 if(!(trimlowsampsize %in% 0:1)) stop('trimlowsampsize must be 0 or 1!')
-if(!(rerunlow %in% 0:2)) stop('rerunlow must be 0 or 1 or 2!')
+if(!(rerunlow %in% 0:1)) stop('rerunlow must be 0 or 1!')
 
 print(paste('Arguments: pop=', pop, ', c1=', c1, ', c2=', c2, ', yr1=', yr1, ', yr2=', yr2, ', trimlowsampsize=', trimlowsampsize, ', repnum=', repnum, ', nsims=', nsims, sep=''))
 
@@ -70,38 +70,19 @@ if(trimlowsampsize==1){
 
 # trim only to loci with low p-values in wfs_nullmodel_pos&pvals_*.rds (from analysis of a previous run)?
 if(rerunlow==1){
-	print('Trimming to loci with p<=8e-6 (4 out of 500,000)')
+	print('Trimming to loci with p<=4/(n+1)')
 	if(pop=='Lof'){
 		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'))
 	}
 	if(pop=='Can') {
-		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')) # NOT SURE YET THIS WORKS FOR CAN
+		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds'))
 	}
-	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, p)], by=c('CHROM', 'POS')) # merge in p-values
+	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, n, p)], by=c('CHROM', 'POS')) # merge in p-values
 	print(nrow(nchrs))		
-	nchrs <- nchrs[p<=8e-6,]
+	nchrs <- nchrs[p<=4/(n+1),]
 	print(nrow(nchrs))
 }
 
-# trim only to loci with low p-values in wfs_nullmodel_outliers_lowp_*.tsv.gz (from analysis of a previous rerunlow=1 run)?
-if(rerunlow==2){
-	print('Trimming to loci with p<=1e-6 (4 out of 5,000,000)')
-	
-	if(pop=='Lof'){
-		pvals <- fread("gunzip -c analysis/wfs_nullmodel_outliers_lowp_Lof_07-11-14.tsv.gz")
-		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, pLof071114low)], all.x=TRUE) # merge in p-values for Lof
-		print(nrow(nchrs))		
-		nchrs <- nchrs[pLof071114low<=1e-6,]
-		print(nrow(nchrs))
-	}
-	if(pop=='Can') {
-		pvals <- fread("gunzip -c analysis/wfs_nullmodel_outliers_lowp_Can.tsv.gz") # NOT SURE YET THIS WORKS FOR CAN
-		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, pCanlow)], all.x=TRUE) # merge in p-values
-		print(nrow(nchrs))		
-		nchrs <- nchrs[pCanlow<=1e-6,]
-		print(nrow(nchrs))
-	}
-}
 
 # check that nes >0 
 print(summary(nes))
@@ -117,7 +98,7 @@ options('fftempdir')
 nchr1s <- nchrs[c1==N_CHR_1 & c2==N_CHR_2, unique(round(Freq_1*N_CHR_1))] # number of starting copies of allele for the retained loci
 f1samps=rep((nchr1s)/c1, rep(nsims, length(nchr1s)))	
 
-print(paste(length(nchr1s), 'sample sizes to run'))
+print(paste(length(nchr1s), 'starting frequencies to run'))
 print(paste(length(f1samps), 'simulations to run'))
 
 # make simulations	
@@ -127,11 +108,13 @@ thisout.ff <- ff(thisout, dim=dim(thisout), dimnames=dimnames(thisout)) # create
 
 # save to permanent file (semi-permanent.. in my temp directory)
 if(pop=='Lof') {
-	ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnull_ff', paste(c1, c2, sep=','), '_', repnum, sep=''))
+	outfile <- paste('analysis/temp/wfs_simsnull_ff', paste(c1, c2, sep=','), '_', repnum, sep='')
 }
 if(pop=='Can') {
-	ffsave(thisout.ff, file=paste('analysis/temp/wfs_simsnullCAN_ff', paste(c1, c2, sep=','), '_', repnum, sep=''))
+	outfile=paste('analysis/temp/wfs_simsnullCAN_ff', paste(c1, c2, sep=','), '_', repnum, sep='')
 }
+ffsave(thisout.ff, file=outfile)
+print(paste('saved', outfile))
 
 # remove the temp files
 delete(thisout.ff) # returns TRUE
