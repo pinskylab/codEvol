@@ -5,7 +5,7 @@
 #	c1: the first sample size (# chromosomes)
 #	c2: the second sample size (# chromosomes)
 #	yr1: 07 or 11 (not needed for Can)
-#	yr2: 11 or 14 (not needed for Can)
+#	yr2: 11_14 (not needed for Can): 11_14 means both 1907-2011 and 1907-2014
 #	trimlowsampsize: 1 to trim loci with less than half of individuals genotypes, 0 to not trim
 #	rerunlow: 0 for default, 1 to only run simulations for loci with low p-values (<=4/(n+1)) in wfs_nullmodel_pos&pvals_07-11-14.rds
 #	repnum: which repetition number to run
@@ -17,20 +17,20 @@ args=(commandArgs(trailingOnly=TRUE))
 pop <- args[1]
 c1 <- as.numeric(args[2])
 c2 <- as.numeric(args[3])
-yr1 <- as.numeric(args[4])
-yr2 <- as.numeric(args[5])
+yr1 <- args[4]
+yr2 <- args[5]
 trimlowsampsize <- as.numeric(args[6])
 rerunlow <- as.numeric(args[7])
 repnum <- as.numeric(args[8])
 nsims <- as.numeric(args[9])
 
+print(paste('Arguments: pop=', pop, ', c1=', c1, ', c2=', c2, ', yr1=', yr1, ', yr2=', yr2, ', trimlowsampsize=', trimlowsampsize, ', repnum=', repnum, ', nsims=', nsims, sep=''))
+
 if(!(pop %in% c('Lof', 'Can'))) stop('pop must be Lof or Can!')
 if(pop=='Lof' & !(yr1 %in% c('07', '11'))) stop('yr1 must be 07 or 11 for Lof!')
-if(pop=='Lof' & !(yr2 %in% c('11', '14'))) stop('yr2 must be 11 or 14 for Lof!')
+if(pop=='Lof' & !(yr2 %in% c('11', '14', '11_14'))) stop('yr2 must be 11 or 14 or 11_14 for Lof!')
 if(!(trimlowsampsize %in% 0:1)) stop('trimlowsampsize must be 0 or 1!')
 if(!(rerunlow %in% 0:1)) stop('rerunlow must be 0 or 1!')
-
-print(paste('Arguments: pop=', pop, ', c1=', c1, ', c2=', c2, ', yr1=', yr1, ', yr2=', yr2, ', trimlowsampsize=', trimlowsampsize, ', repnum=', repnum, ', nsims=', nsims, sep=''))
 
 # load functions: assume this is run on a cod or abel node
 source('scripts/wfs_byf1samp.r')
@@ -39,11 +39,27 @@ require(ff, lib.loc="/projects/cees/lib/R_packages/") # for big objects shared a
 require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
-# read in Ne and frequency data (latter for starting frequencies)
-if(pop=='Lof'){
+# read in Ne and frequency data (latter to get starting frequencies)
+if(pop=='Lof' & yr1=='07' & yr2=='11'){
 	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	freqfile <- paste('data_2018.09.05/Frequency_table_Lof', yr1, '_Lof', yr2, '.txt', sep='')
-	nchrs <- fread(freqfile, header=TRUE) # read in frequency table data
+	nchrs <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE) # read in frequency table data
+	gen <- 11
+}
+if(pop=='Lof' & yr1=='07' & yr2=='14'){
+	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	nchrs <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE) # read in frequency table data
+	gen <- 11
+}
+if(pop=='Lof' & yr1=='11' & yr2=='14'){
+	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	nchrs <- fread('data_2019_03_18/Frequency_table_Lof11_Lof14.txt', header=TRUE) # read in frequency table data
+	gen <- 11
+}
+if(pop=='Lof' & yr1=='07' & yr2=='11_14'){
+	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	nchrs11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE) # read in frequency table data
+	nchrs14 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE) # read in frequency table data
+	nchrs <- rbind(nchrs11, nchrs14) # all possible sample size combinations across both pairs of years
 	gen <- 11
 }
 if(pop=='Can') {
