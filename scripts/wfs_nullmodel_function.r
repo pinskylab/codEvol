@@ -67,11 +67,11 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 # load observed data
 if(pop == 'Lof'){
 	if(myyr2 != '1114'){
-		targfile <- paste('data_2018.09.05/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
+		targfile <- paste('data_2019_03_18/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
 	}
 	if(myyr2 == '1114'){
-		targfile <- paste('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', sep='')
-		targfile2 <- paste('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', sep='')
+		targfile <- paste('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', sep='')
+		targfile2 <- paste('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', sep='')
 	}
 }
 if(pop == 'Can'){
@@ -100,7 +100,7 @@ existingfilespattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2
 existingfilesgsubpattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, sep=','), '_locus|.csv.gz', sep='') # regexp to strip out all but locus numbers from existing file names
 if(pop %in% c('Lof', 'Pow')){
 	if(myyr2 != '1114'){
-		ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, sep=','), sep='') # ff file name for Lof simulations
+		ffnm <- paste('analysis/temp/wfs_simsnull_ff', paste(myalcnt1, myalcnt2, sep=','), '_1', sep='') # ff file name for Lof simulations
 	}
 	if(myyr2 == '1114'){
 		existingfilespattern <- paste('wfs_nullmodel_sampsize', paste(myalcnt1, myalcnt2, myalcnt3, sep=','), '_locus*', sep='')

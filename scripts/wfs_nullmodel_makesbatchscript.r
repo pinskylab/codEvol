@@ -8,21 +8,21 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 }
 
 # settings
+pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
-#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
-pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
+#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
 if(pop == 'Lof'){
 	if(myyr2 != '1114'){
-		targfile <- paste('data_2018.09.05/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
+		targfile <- paste('data_2019_03_18/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
 	}
 	if(myyr2 == '1114'){
-		targfile <- paste('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', sep='')
-		targfile2 <- paste('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', sep='')
+		targfile <- paste('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', sep='')
+		targfile2 <- paste('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', sep='')
 	}
 }
 if(pop == 'Can'){
@@ -62,12 +62,14 @@ if(myyr2 == '1114'){
 	setkey(targ, alcnt1, alcnt2, alcnt3)
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
-	nrow(nloci) # Lof 1907-2011-2014: 1717 (>=50% indivs genotyped) 6152 (all)
+	nrow(nloci) # Lof 1907-2011-2014:  (>=50% indivs genotyped)  (all)
+				# Lof 1907-2011: 519 (all)
 				# Lof 1907-2014: 
 				# Can: 143 (>=50% genotyped) 497 (all)
 
 # sample sizes with >5000 loci
 nloci[nloci>5000, .(.N, max(nloci))]  # Lof 1907-2011-2014: 0 sample sizes
+					# Lof 1907-2011: 28 samplesizes	up to 8903
 					# Lof 1907-2014:  samplesizes					
 					# Can: 29 (>=50%) 49 (all)
 
