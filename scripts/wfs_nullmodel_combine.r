@@ -9,21 +9,21 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load data
-#targ <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
-#targ <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); suffix='_07-11' # Lof 1907-2011
-#targ <- fread('data_2018.09.05/Frequency_table_Lof11_Lof14.txt', header=TRUE); suffix='_11-14' # Lof 2011-2014
-#targ <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); targ2 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-11-14' # Lof 1907-2011-2014
-targ <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); suffix='_Can' # Can
+targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); suffix='_07-11' # Lof 1907-2011
+#targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
+#targ <- fread('data_2019_03_18/Frequency_table_Lof11_Lof14.txt', header=TRUE); suffix='_11-14' # Lof 2011-2014
+#targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); targ2 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-11-14' # Lof 1907-2011-2014
+# targ <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); suffix='_Can' # Can
 #targ <- fread('analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt', header=TRUE); suffix='_Power_Lof_Ne46000_cnt46_44' # Lof power analysis
 #targ <- fread('analysis/Frequency_table_PowerSims_Can_Ne5900_cnt32_40.txt', header=TRUE); suffix='_Power_Can_Ne5900_cnt32_40' # Can power analysis
-setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
+setnames(targ, 3:7, c('alcnt1', 'Freq_1', 'alcnt2', 'Freq_2', 'ABS_DIFF'))
 targ[,locusnum:=1:nrow(targ)] # add a locus number indicator
 
 if(suffix=='_07-11-14'){
-	setnames(targ2, 3:7, c('alcnt1', 'f1samp', 'alcnt3', 'f3samp', 'ABS_DIFF13'))
+	setnames(targ2, 3:7, c('alcnt1', 'Freq_1', 'alcnt3', 'Freq_3', 'ABS_DIFF2'))
 	setkey(targ, CHROM, POS)
 	setkey(targ2, CHROM, POS)
-	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, f1samp, f2samp, f3samp)]
+	targ <- targ[targ2,.(locusnum, CHROM, POS, alcnt1, alcnt2, alcnt3, Freq_1, Freq_2, Freq_3)]
 }
 
 # trim out missing loci
@@ -48,8 +48,8 @@ if(suffix == '_07-11-14'){
 	setkey(targ, alcnt1, alcnt2, alcnt3)
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
-	nrow(nloci) # 1907-2014: 
-				# 1907-2011: 
+	nrow(nloci) # 1907-2011: 519 (all >0) 
+				# 1907-2014: 
 				# 2011-2014: 
 				# 1907-2011-2014: 1717 (trimming to 50% genotyped) 6152 (all >0 indivs)
 				# Can: 143 (>50%) 497 (all >0)
@@ -103,16 +103,20 @@ nrow(targ) - nrow(dat) # number missing loci
 sum(is.na(dat$p)) # 0
 
 # How many p=x/nsims?
-sum(dat$p == 1/500001)
-sum(dat$p <= 4/500001)
-
-# adjusted p-values
-dat$p.adj <- p.adjust(dat$p, method='fdr')
+sum(dat$p == 1/(dat$n+1))
+sum(dat$p <= 4/(dat$n+1))
 
 
-# write out
-outfile <- paste('analysis/wfs_nullmodel_pvals', suffix, '.rdata', sep='')
+# merge in CHROM, POS
+dat <- as.data.table(dat)
+if(suffix != '_07-11-14'){
+	dat <- merge(dat, targ[,.(CHROM, POS, locusnum)], by='locusnum')
+}
+if(suffix == '_07-11-14'){
+	dat <- merge(dat, targ[,.(CHROM, POS, locusnum)], by='locusnum') 
+}
+
+# write out a nice version
+outfile <- paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.rds', sep='')
 outfile
-save(dat, file=outfile)
-
-
+saveRDS(dat[,.(CHROM, POS, n, p)], file=outfile)

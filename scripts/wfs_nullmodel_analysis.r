@@ -10,22 +10,16 @@ require(data.table)
 # Choose one set to read in
 	# 1907-2014
 	locnms <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-	load('analysis/wfs_nullmodel_pvals_07-14.rdata') # dat (has p-values)
 	locnms11 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); 
-	kmer25 <- fread('data_2018.09.05/Norway_25K_mer_positions.txt') # the 25kmer mask
 	setnames(locnms11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # for 1907-2011 (for comparison)
 	suffix <- '_07-14'
 
 	# 1907-2011
 	locnms <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-	load('analysis/wfs_nullmodel_pvals_07-11.rdata') # dat
-	kmer25 <- fread('data_2018.09.05/Norway_25K_mer_positions.txt') # the 25kmer mask
 	suffix <- '_07-11'
 
 	# 2011-2014
 	locnms <- fread('data_2018.09.05/Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-	load('analysis/wfs_nullmodel_pvals_11-14.rdata') # dat
-	kmer25 <- fread('data_2018.09.05/Norway_25K_mer_positions.txt') # the 25kmer mask
 	suffix <- '_11-14'
 
 	# 1907-2011-2014
@@ -34,74 +28,18 @@ require(data.table)
 	setkey(locnms, CHROM, POS, N_CHR_1, Freq_1)
 	setkey(locnms2, CHROM, POS, N_CHR_1, Freq_1)
 	locnms <- locnms[locnms2,]
-	load('analysis/wfs_nullmodel_pvals_07-11-14.rdata') # dat
-#	kmer25 <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # the 25kmer mask (no longer needed)
 	suffix <- '_07-11-14'
 
 	# Canada
 	locnms <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-	load('analysis/wfs_nullmodel_pvals_Can.rdata') # dat. the p-values.
-#	kmer25 <- fread('data_2017.11.24/Canada_25K_mer_positions.txt') # the 25kmer mask (no longer needed)
 	suffix <- '_Can'
 
 # Then continue here:
 
-# prep for merging
-locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting and merging
-dat <- as.data.table(dat)
-
-# make a nucleotide position for the whole genome
-chrmax <- locnms[,.(len=max(POS)), by=CHROM]
-chrmax$start=c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
-
-setkey(locnms, CHROM)
-setkey(chrmax, CHROM)
-locnms <- locnms[chrmax[,.(CHROM, start)], ]
-locnms[,POSgen:=POS+start]
-
-	# trim locus names to match rest of data (if needed)
-# locnms <- locnms[!(locnms$CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),] # trim out inversions
-if(suffix != '_07-11-14') locnms <- locnms[N_CHR_1>0 & N_CHR_2>0,] # trim to genotypes >0 individuals
-if(suffix == '_07-11-14') locnms <- locnms[N_CHR_1>0 & N_CHR_2>0 & N_CHR_3>0,] # trim to # if(suffix != '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2,] # trim to genotypes >50%
-# if(suffix == '_07-11-14') locnms <- locnms[N_CHR_1>=max(N_CHR_1)/2 & N_CHR_2>=max(N_CHR_2)/2 & N_CHR_3>=max(N_CHR_3)/2,] # trim to genotypes >50%
-
-	# make sure it matches
-	nrow(dat)
-	nrow(locnms)
-
-
-	# merge
-if(suffix != '_07-11-14') dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, ABS_DIFF)], by='locusnum')
-if(suffix == '_07-11-14') dat <- merge(dat, locnms[,.(locusnum, CHROM, POS, POSgen, Freq_1, Freq_2, Freq_3, ABS_DIFF, ABS_DIFF2)], by='locusnum')
-
-# merge in 25kmer mask marker: NO LONGER NEEDED FOR data_2018.09.05 since pre-trimmed
-#kmer25[,kmer25 := 1] # add a flag
-#dat <- merge(dat, kmer25, by=c('CHROM', 'POS'), all.x=TRUE)
-#dat[is.na(kmer25), kmer25:=0] # set NAs to 0
-#	nrow(dat)
-#	dat[,sum(kmer25)]
-dat[, kmer25:=1]
-
-# re-order columns
-if(suffix != '_07-11-14') setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'kmer25', 'n', 'cnt1', 'cnt2', 'Freq_1', 'Freq_2', 'ABS_DIFF', 'p', 'p.adj'))
-if(suffix == '_07-11-14') setcolorder(dat, c('CHROM', 'POS', 'locusnum', 'POSgen', 'kmer25', 'n', 'cnt1', 'cnt2', 'cnt3', 'Freq_1', 'Freq_2', 'Freq_3', 'ABS_DIFF', 'ABS_DIFF2', 'p', 'p.adj'))
-
-
-# re-calculate p.adj (after masking out inversions and unplaced)
-# no longer relevant, since kmer and depth trimming has already been done
-#dat[,p.adj2 := NULL]
-#dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.adj2 := p.adjust(p, method='fdr')]
-
-# re-calculate p.adj (after masking out inversions, unplaced, and loci that fail the 25-kmer filter)
-#dat[,p.adj2 := NULL]
-dat[kmer25==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.adj3 := p.adjust(p, method='fdr')]
-
-
-# write out a nice version
-# write.table(dat[,.(CHROM, POS, p, p.adj, p.adj3)], file=paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.txt', sep=''), quote=FALSE, sep='\t', row.names=FALSE)
-outfile <- paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.rds', sep='')
-outfile
-saveRDS(dat[,.(CHROM, POS, n, p, p.adj, p.adj3)], file=outfile)
+# Read in p-values by locus
+infile <- paste('analysis/wfs_nullmodel_pos&pvals', suffix, '.rds', sep='')
+infile
+dat <- readRDS(file=infile) # has p-values
 
 # calculate a running mean -log10(p-value) (FDR-adjusted)
 stp = 1e5
