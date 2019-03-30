@@ -193,9 +193,9 @@ for(i in 1:nrow(targ)){
 
 # examine
 summary(pvals)
-pvals[,min(p)] # min p
-pvals[,min(p*(n+1)-1)] # if <=4, have more to re-run
-pvals[min(p*(n+1)-1)==p*(n+1)-1,.N] # number left to run
+pvals[p==min(p),.(CHROM, POS, p, r=p*(n+1)-1, n=n)] # low p-values
+pvals[,min(p*(n+1)-1)] # if <=3, have more to re-run
+pvals[p*(n+1)-1 <= 3,.(CHROM, POS, nloci=.N, r=p*(n+1)-1, n=n)] # number left to run
 
 # need to write out pos&pvals again
 if(pop=='Lof' & yrs=='071114') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'
