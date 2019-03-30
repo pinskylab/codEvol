@@ -4,7 +4,9 @@
 # This version set up to run for Lof
 
 # pop <- 'Lof'; yrs <- '071114' # for Lof 3 time points
-pop <- 'Can'; yrs <- '00'
+# pop <- 'Lof'; yrs <- '0711'
+pop <- 'Lof'; yrs <- '0714'
+# pop <- 'Can'; yrs <- '00'
 
 # load functions: assume this is run on a cod or abel node
 require(parallel, lib.loc="/projects/cees/lib/R_packages/")
@@ -20,12 +22,15 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 # load observed data
 if(pop == 'Lof'){
-	if(yrs != '071114'){
-		targfile <- paste('data_2018.09.05/Frequency_table_Lof', myyr1, '_Lof', myyr2, '.txt', sep='')
+	if(yrs == '0711'){
+		targfile <- 'data_2019_03_18/Frequency_table_Lof07_Lof11.txt'
+	}
+	if(yrs == '0714'){
+		targfile <- 'data_2019_03_18/Frequency_table_Lof07_Lof14.txt'
 	}
 	if(yrs == '071114'){
-		targfile <- paste('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', sep='')
-		targfile2 <- paste('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', sep='')
+		targfile <- 'data_2019_03_18/Frequency_table_Lof07_Lof11.txt'
+		targfile2 <- 'data_2019_03_18/Frequency_table_Lof07_Lof14.txt'
 	}
 }
 if(pop == 'Can'){
@@ -183,9 +188,14 @@ for(i in 1:nrow(targ)){
 }
 
 # recalculate p.adj and p.adj3 (from wfs_nullmodel_combine.r and wfs_nullmodel_analysis.r)
-pvals[,p.adj := p.adjust(p, method='fdr')]
-pvals[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.adj3 := p.adjust(p, method='fdr')]
+# pvals[,p.adj := p.adjust(p, method='fdr')]
+# pvals[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),p.adj3 := p.adjust(p, method='fdr')]
 
+# examine
+summary(pvals)
+pvals[,min(p)] # min p
+pvals[,min(p*(n+1)-1)] # if <=4, have more to re-run
+pvals[min(p*(n+1)-1)==p*(n+1)-1,.N] # number left to run
 
 # need to write out pos&pvals again
 if(pop=='Lof' & yrs=='071114') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'
@@ -194,4 +204,5 @@ if(pop=='Lof' & yrs=='0714') outfile <- 'analysis/wfs_nullmodel_pos&pvals_07-14.
 if(pop=='Lof' & yrs=='1114') outfile <- 'analysis/wfs_nullmodel_pos&pvals_11-14.rds'
 if(pop=='Can') outfile <- 'analysis/wfs_nullmodel_pos&pvals_Can.rds'
 print(outfile)
-saveRDS(pvals[,.(CHROM, POS, n, p, p.adj, p.adj3)], file=outfile)
+# saveRDS(pvals[,.(CHROM, POS, n, p, p.adj, p.adj3)], file=outfile)
+saveRDS(pvals, file=outfile)

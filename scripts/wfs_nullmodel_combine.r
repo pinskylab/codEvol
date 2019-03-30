@@ -9,8 +9,8 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/")
 
 
 # load data
-targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); suffix='_07-11' # Lof 1907-2011
-#targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
+# targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); suffix='_07-11' # Lof 1907-2011
+targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-14' # Lof 1907-2014
 #targ <- fread('data_2019_03_18/Frequency_table_Lof11_Lof14.txt', header=TRUE); suffix='_11-14' # Lof 2011-2014
 #targ <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); targ2 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); suffix='_07-11-14' # Lof 1907-2011-2014
 # targ <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); suffix='_Can' # Can
@@ -49,7 +49,7 @@ if(suffix == '_07-11-14'){
 	nloci <- targ[,.(nloci=length(locusnum)), by=.(alcnt1, alcnt2, alcnt3)]
 }
 	nrow(nloci) # 1907-2011: 519 (all >0) 
-				# 1907-2014: 
+				# 1907-2014: 399 (all >0)
 				# 2011-2014: 
 				# 1907-2011-2014: 1717 (trimming to 50% genotyped) 6152 (all >0 indivs)
 				# Can: 143 (>50%) 497 (all >0)

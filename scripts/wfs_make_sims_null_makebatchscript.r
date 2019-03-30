@@ -27,7 +27,8 @@
 # 	if(!(rerunlow %in% 0:1)) stop('rerunlow must be 0 or 1!')
 # }
 
-pop<-'Lof'; yr1<-'07';yr2<-'11_14';trimlowsampsize<-0;rerunlow<-0 # initial run for all Lof loci 07-11 and 07-14
+# pop<-'Lof'; yr1<-'07';yr2<-'11_14';trimlowsampsize<-0;rerunlow<-0 # initial run for all Lof loci 07-11 and 07-14
+pop<-'Lof'; yr1<-'07';yr2<-'11_14';trimlowsampsize<-0;rerunlow<-1 # re-run low p-values for all Lof loci 07-11 and 07-14
 # pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-0 # initial run for all CAN loci
 # pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-1 # re-run low p-values for all CAN loci
 
@@ -64,6 +65,8 @@ if(pop=='Lof' & yr1=='07' & yr2=='11_14'){ # both 07-11 and 07-14
 	nes <- read.table('analysis/LOF_07_to_LOF_S_11_to_LOF_S_14.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
 	nchrs11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE) # read in frequency table data
 	nchrs14 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE) # read in frequency table data
+	nchrs11[,yr:=11]
+	nchrs14[,yr:=14]
 	nchrs <- rbind(nchrs11, nchrs14) # all possible sample size combinations across both pairs of years
 	gen <- 11
 }
@@ -92,13 +95,18 @@ if(trimlowsampsize==1){
 # trim only to loci with low p-values in wfs_nullmodel_pos&pvals_*.rds (from analysis of a previous run)?
 if(rerunlow==1){
 	print('Trimming to loci with p<=4/(n+1)')
-	if(pop=='Lof'){
-		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-11-14.rds'))
+	if(pop=='Lof' & yr2=='11_14'){
+		pvals11 <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-11.rds'))
+		pvals14 <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_07-14.rds'))
+		pvals11[,yr:=11]
+		pvals14[,yr:=14]
+		pvals <- rbind(pvals11, pvals14)
+		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, n, p, yr)], by=c('CHROM', 'POS', 'yr')) # merge in p-values
 	}
 	if(pop=='Can'){
 		pvals <- as.data.table(readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')) # NOT SURE YET THIS WORKS FOR CAN
+		nchrs <- merge(nchrs, pvals[,.(CHROM, POS, n, p)], by=c('CHROM', 'POS')) # merge in p-values
 	}
-	nchrs <- merge(nchrs, pvals[,.(CHROM, POS, n, p)], by=c('CHROM', 'POS')) # merge in p-values
 	print(nrow(nchrs))		
 	nchrs <- nchrs[p<=4/(n+1),]
 	print(nrow(nchrs))
