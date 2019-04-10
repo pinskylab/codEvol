@@ -3,53 +3,52 @@
 
 require(data.table)
 
-# read in data
-	# Lof 1907-2011-2014 and 1907-2014
-locnms <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-locnms2 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(locnms2, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-	setkey(locnms, CHROM, POS, N_CHR_07, Freq_07)
-	setkey(locnms2, CHROM, POS, N_CHR_07, Freq_07)
-	locnms <- locnms[locnms2,]
-load('analysis/wfs_nullmodel_pvals_07-11-14.rdata') # dat. has the p-values from 1907-2011-2014
-locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting and merging
-locnms <- locnms[N_CHR_07>=max(N_CHR_07)/2 & N_CHR_11>=max(N_CHR_11)/2 & N_CHR_14>=max(N_CHR_14)/2,] # trim to genotypes >50%
+##################
+## Read in data
+##################
 
+# read in Lof
+locnms11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE) # the name and observed frequencies of all the loci, from output by Bastiaan Star
+	setnames(locnms11, 3:7, c('cnt07', 'Freq_07', 'cnt11', 'Freq_11', 'ABS_DIFF0711'))
+dat11 <- readRDS('analysis/wfs_nullmodel_pos&pvals_07-11.rds') # has the p-values from 1907-2011
+	setnames(dat11, c('n', 'p'), c('nLof0711', 'pLof0711'))
+locnms14 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE)
+	setnames(locnms14, 3:7, c('cnt07', 'Freq_07', 'cnt14', 'Freq_14', 'ABS_DIFF0714'))
+dat14 <- readRDS('analysis/wfs_nullmodel_pos&pvals_07-14.rds')
+	setnames(dat14, c('n', 'p'), c('nLof0714', 'pLof0714'))
 
-		# make sure it matches
-		nrow(dat)
-		nrow(locnms)
+	# merge
+setkey(dat11, CHROM, POS)
+setkey(dat14, CHROM, POS)
+datLof <- merge(dat11, dat14, all=TRUE)
+	nrow(dat11)
+	nrow(dat14)
+	nrow(datLof)
 
-		# merge
-		dat <- as.data.table(dat)
-		datLof <- merge(dat, locnms[,.(locusnum, CHROM, POS, Freq_07, Freq_11, Freq_14)], by='locusnum')
-		setnames(datLof, c('p', 'p.adj', 'cnt1', 'cnt2', 'cnt3'), c('pLof071114', 'p.adjLof071114', 'cnt07', 'cnt11', 'cnt14'))
+setkey(datLof, CHROM, POS)
+setkey(locnms11, CHROM, POS)
+setkey(locnms14, CHROM, POS)
+datLof <- merge(datLof, locnms11[, .(CHROM, POS, cnt07, Freq_07, cnt11, Freq_11)])
+datLof <- merge(datLof, locnms14[, .(CHROM, POS, cnt14, Freq_14)])
+	nrow(locnms11)
+	nrow(locnms14)
+	nrow(datLof)
 
-		# Lof 1907-2014
-#	load('analysis/wfs_nullmodel_pvals_07-14.rdata') # dat. has the p-values from 1907-2014
-#
-#			# make sure it matches
-#			nrow(dat)
-#			nrow(datLof)
-#
-#			# merge
-#			dat <- as.data.table(dat)
-#			datLof <- merge(dat[,.(locusnum, p, p.adj)], datLof, by='locusnum')
-#			setnames(datLof, c('p', 'p.adj'), c('pLof0714', 'p.adjLof0714'))
+# Read in Canada
+locnmsCan <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE)
+	setnames(locnmsCan, 3:7, c('cntCan40', 'Freq_Can40', 'cntCanMod', 'Freq_CanMod', 'ABS_DIFFCan'))
+	locnmsCan <- locnmsCan[cntCan40>0 & cntCanMod>0,] # trim to genotypes >0%
+datCan <- readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')
+	setnames(datCan, c('n', 'p'), c('nCan', 'pCan'))
 
-	# Canada
-locnms <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(locnms, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF')) # the name and observed frequencies of all the loci, from output by Bastiaan Star
-load('analysis/wfs_nullmodel_pvals_Can.rdata') # dat
-locnms[,locusnum:=1:nrow(locnms)] # add a locusnumber for plotting and merging
-locnms <- locnms[N_CHR_Can40>=max(N_CHR_Can40)/2 & N_CHR_CanMod>=max(N_CHR_CanMod)/2,] # trim to genotypes >50%
+	# make sure it matches
+	nrow(datCan)
+	nrow(locnmsCan)
 
-		# make sure it matches
-		nrow(dat)
-		nrow(locnms)
-
-		# merge
-		dat <- as.data.table(dat)
-		datCan <- merge(dat, locnms[,.(locusnum, CHROM, POS, Freq_Can40, Freq_CanMod)], by='locusnum')
-		setnames(datCan, c('p', 'p.adj', 'cnt1', 'cnt2'), c('pCan', 'p.adjCan', 'cntCan40', 'cntCanMod'))
+	# merge
+setkey(locnmsCan, CHROM, POS)
+setkey(datCan, CHROM, POS)
+datCan <- merge(datCan, locnmsCan)
 
 ##################
 # merge Lof and Can
@@ -57,321 +56,185 @@ locnms <- locnms[N_CHR_Can40>=max(N_CHR_Can40)/2 & N_CHR_CanMod>=max(N_CHR_CanMo
 
 setkey(datLof, CHROM, POS)
 setkey(datCan, CHROM, POS)
-#dat <- merge(datCan, datLof, all=TRUE)[, .(CHROM, POS, cnt07, cnt11, cnt14, cntCan40, cntCanMod, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pLof071114, pCan)]
-dat <- merge(datCan, datLof, all=TRUE)[, .(CHROM, POS, cnt07, cnt11, cnt14, cntCan40, cntCanMod, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof071114, pCan)]
+dat <- merge(datCan, datLof, all=TRUE)[, .(CHROM, POS, cnt07, cnt11, cnt14, cntCan40, cntCanMod, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0711, pLof0714, pCan)]
 
 	# make sure the merge worked
 	nrow(dat)
-	nrow(datLof)
-	dat[,.(sum(!is.na(Freq_07)), sum(!is.na(Freq_11)), sum(!is.na(Freq_14)))] # should match nrow(datLof)
+	nrow(dat11)
+	nrow(dat14)
+	dat[,.(sum(!is.na(Freq_07)), sum(!is.na(Freq_11)), sum(!is.na(Freq_14)))] # should match nrow(dat11) and nrow(dat14)
 	nrow(datCan)
 	dat[,.(sum(!is.na(Freq_Can40)), sum(!is.na(Freq_CanMod)))] # should match nrow(datCan)
 	dat[,sum(!is.na(Freq_07) & !is.na(Freq_Can40))] # number of loci genotyped in both
 	
-################
-# add kmer25 (no longer needed: for 2018.09.05, already trimmed)
-################
-kmer='25' # flag for file names
-
-#kmer25Lof <- fread('data_2017.11.24/Norway_25K_mer_positions.txt') # loci that pass ther kmer25 mapping filter
-#kmer25Can <- fread('data_2017.11.24/Canada_25K_mer_positions.txt')
-#
-#setkey(kmer25Lof, CHROM, POS)
-#setkey(kmer25Can, CHROM, POS)
-#kmer25 <- merge(kmer25Lof, kmer25Can, all=TRUE) # merge and keep all
-#	nrow(kmer25Lof)
-#	nrow(kmer25Can)
-#	nrow(kmer25)
-#
-#kmer25[,kmer25 := 1] # add a flag for loci that pass kmer25 filter
-#dat <- merge(dat, kmer25, by=c('CHROM', 'POS'), all.x=TRUE)
-#dat[is.na(kmer25), kmer25:=0] # set NAs to 0
-#
-#	# make sure the merge worked
-#	nrow(dat)
-#	dat[,sum(kmer25)] == nrow(kmer25) # should match
-#	dat[!is.na(Freq_07), sum(kmer25)] == nrow(kmer25Lof)
-#	dat[!is.na(Freq_Can40), sum(kmer25)] == nrow(kmer25Can)
-#	dat[!is.na(Freq_07) & !is.na(Freq_Can40),sum(kmer25)] # number of loci genotyped in both populations that pass kmer filter
-
-# since already trimmed
-dat[,kmer25:=1]
-
-#########################
-# add depth statistic (no longer needed: for 2018.09.05, already trimmed)
-#########################
-#dpLof <- fread('analysis/Outlier_sequencing_depth_statistic_All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz.txt')
-#dpCan <- fread('analysis/Outlier_sequencing_depth_statistic_All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Canada.vcf.gz.txt')
-#	setnames(dpLof, c('CHROM', 'POS', 'dpstatLof'))
-#	setnames(dpCan, c('CHROM', 'POS', 'dpstatCan'))
-#depthstat <- merge(dpLof, dpCan, all=TRUE)
-#	nrow(dpLof)
-#	nrow(dpCan)
-#	nrow(depthstat)
-#
-#dat <- merge(dat, depthstat, by=c('CHROM', 'POS'), all.x=TRUE)
-#	nrow(dat)
-#
-#dat[,dpLofFlag := dpstatLof < quantile(dpstatLof, na.rm=TRUE, probs=0.95)] # TRUE if not a depth outlier (outlier are top 5%)
-#	dat[is.na(dpLofFlag), dpLofFlag := FALSE] # FALSE if locus not genotyped
-#dat[,dpCanFlag := dpstatCan < quantile(dpstatCan, na.rm=TRUE, probs=0.95)]
-#	dat[is.na(dpCanFlag), dpCanFlag := FALSE] 
-#
-#	dat[,sum(dpLofFlag)]
-#	dat[,sum(dpLofFlag)]/dat[,sum(!is.na(dpstatLof))] # should be 0.95
-#	dat[,sum(dpCanFlag)]
-#	dat[,sum(dpCanFlag)]/dat[,sum(!is.na(dpstatCan))]
-#
-
-# since already trimmed
-dat[!is.na(Freq_07) & !is.na(Freq_11) & !is.na(Freq_14), dpLofFlag:=1]
-	dat[,sum(dpLofFlag, na.rm=TRUE)]
-dat[!is.na(Freq_Can40) & !is.na(Freq_CanMod), dpCanFlag:=1]
-	dat[,sum(dpCanFlag, na.rm=TRUE)]
-
-# combined dp Flags
-dat[,dpFlag := dpLofFlag & dpCanFlag]
-dat[is.na(dpFlag), dpFlag:=FALSE]
-	dat[,sum(dpFlag, na.rm=TRUE)] # number of loci genotyped in both that pass kmer and depth filter in both
-
-
-#########################
-# add snp density filter
-#########################
-# skip this section by reading in previous file:
-dat <- fread('analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz')
-
-# or redo it from scratch (30 min+)
-# dens <- fread('data_2018.10.23/SNP_regions_with_top5_perc_SNPdensity_w150_s50bp.tab')
-# setnames(dens, 1:3, c('CHROM', 'POS1', 'POS2'))
-# 
-# dat[,densFlag:=1]
-# for(i in 1:nrow(dens)){ # 30 min?
-# 	if(i %% 1000 == 0) print(paste(i, 'of', nrow(dens)))
-# 	dat[CHROM==dens$CHROM[i] & POS>=dens$POS1[i] & POS<=dens$POS2[i], densFlag:=0]
-# }
-
-
-dat[,sum(densFlag)]
-dat[,sum(densFlag==0)]
-dat[,sum(densFlag)]/dat[,.N]
-dat[,sum(densFlag==0)]/dat[,.N]
-
-dat[!(CHROM %in% 'Unplaced') & kmer25==1 & dpLofFlag==1, sum(densFlag)]
-dat[!(CHROM %in% 'Unplaced') & kmer25==1 & dpCanFlag==1, sum(densFlag)]
-dat[!(CHROM %in% 'Unplaced') & kmer25==1 & dpLofFlag==1 & dpCanFlag==1, sum(densFlag)]
-
-dat[!(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpLofFlag==1, sum(densFlag)]
-dat[!(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpCanFlag==1, sum(densFlag)]
-dat[!(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpLofFlag==1 & dpCanFlag==1, sum(densFlag)]
-
-
-############################
-# add allele balance filter
-############################
-ab <- fread('Allele_balance/Allele_balance.binomp.tsv')
-
-dim(dat)
-dat <- merge(dat, ab[,.(CHROM, POS, binomp, binompFDR)])
-dim(dat)
-
-# calculate FDR q-value for loci that pass filters
-# after masking out inversions and unplaced, and loci failing filters
-dat[,binompFDRLof :=as.numeric(NA)]
-dat[,binompFDRCan :=as.numeric(NA)]
-dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), binompFDRLof := p.adjust(binomp, method='fdr')]
-dat[kmer25==1 & dpCanFlag==1 & densFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), binompFDRCan := p.adjust(binomp, method='fdr')]
-
-# examine allele balance for specific loci
-badlocs <- c('LG04 11755393', 'LG04 11755397', 'LG04 20504202', 'LG05 13719813', 'LG10 9141390', 'LG11 26830798', 'LG15 2702036', 'LG15 2702039', 'LG16 5723306', 'LG16 19455775', 'LG16 19455778', 'LG20 8881583', 'LG20 8881585', 'LG21 13086866', 'LG21 13086912') # flagged by Bastiaan on 10/26
-ab[paste(CHROM, POS) %in% badlocs, hist(sumRef/(sumRef+sumAlt))]
-ab[paste(CHROM, POS) %in% badlocs, .(CHROM, POS, binomp)]
-
-
-
-# how many loci pass filters?
-dat[,.(sum(binomp>0.05), sum(binomp>0.05)/.N)] # either
-dat[!is.na(cnt07),.(sum(binomp>0.05), sum(binomp>0.05)/.N)] # Lof
-dat[!is.na(cntCan40),.(sum(binomp>0.05), sum(binomp>0.05)/.N)] # Can
-dat[!is.na(cnt07)&!is.na(cntCan40),.(sum(binomp>0.05), sum(binomp>0.05)/.N)] # both
-
-dat[!is.na(cnt07), .(sum(densFlag & !(CHROM %in% 'Unplaced') & kmer25==1 & dpLofFlag==1 & binomp>0.05), sum(densFlag & !(CHROM %in% 'Unplaced') & kmer25==1 & dpLofFlag==1 & binomp>0.05)/.N)] # Lof not Unplaced
-dat[!is.na(cntCan40), .(sum(densFlag & !(CHROM %in% 'Unplaced') & kmer25==1 & dpCanFlag==1 & binomp>0.05), sum(densFlag & !(CHROM %in% 'Unplaced') & kmer25==1 & dpCanFlag==1 & binomp>0.05)/.N)] # Can
-dat[!is.na(cnt07)&!is.na(cntCan40), .(sum(densFlag & !(CHROM %in% 'Unplaced') & kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & binomp>0.05), sum(densFlag & !(CHROM %in% 'Unplaced') & kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & binomp>0.05)/.N)] # both
-
-dat[!is.na(cnt07), .(sum(densFlag & !(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpLofFlag==1 & binomp>0.05), sum(densFlag & !(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpLofFlag==1 & binomp>0.05)/.N)] # Lof not unplaced or inversions
-dat[!is.na(cntCan40), .(sum(densFlag & !(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpCanFlag==1 & binomp>0.05), sum(densFlag & !(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpCanFlag==1 & binomp>0.05)/.N)] # Can
-dat[!is.na(cnt07)&!is.na(cntCan40), .(sum(densFlag & !(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & binomp>0.05), sum(densFlag & !(CHROM %in% c('Unplaced', 'LG01', 'LG02', 'LG07', 'LG12')) & kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & binomp>0.05)/.N)] # both
-
 
 ###############################################
 # combine p-values for individual loci
 # https://mikelove.wordpress.com/2012/03/12/combining-p-values-fishers-method-sum-of-p-values-binomial/
 ###############################################
 
-#dat[,p.comb0714Can := pchisq(-2 * sum(log(c(pLof0714, pCan))),df=2*2,lower=FALSE), by=1:nrow(dat)] # Lof 07-14 and Can
-dat[,p.comb071114Can := pchisq(-2 * sum(log(c(pLof071114, pCan))),df=2*2,lower=FALSE), by=1:nrow(dat)] # Lof 07-11-14 and Can
+dat[,p.comb0711Can := pchisq(-2 * sum(log(c(pLof0711, pCan))),df=2*2,lower=FALSE), by=1:nrow(dat)] # Lof 07-11 and Can
+dat[,p.comb0714Can := pchisq(-2 * sum(log(c(pLof0714, pCan))),df=2*2,lower=FALSE), by=1:nrow(dat)] # Lof 07-14 and Can
 
 ##################################
 # FDR-correct p-values
 ##################################
 
 # FDR-correct each population separately
-# after masking out unplaced and loci failing filters
-#dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & !(CHROM %in% c('Unplaced')),q2.Lof0714 := p.adjust(pLof0714, method='fdr')] 
-dat[,q2.Lof071114:=NA]
-dat[,q2.Can:=NA]
-dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('Unplaced')),q2.Lof071114 := p.adjust(pLof071114, method='fdr')] 
-dat[kmer25==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('Unplaced')),q2.Can := p.adjust(pCan, method='fdr')]
+# after masking out unplaced
+dat[,q2.Lof0711:=as.double(NA)]
+dat[,q2.Lof0714:=as.double(NA)]
+dat[,q2.Can:=as.double(NA)]
+dat[!(CHROM %in% c('Unplaced')), q2.Lof0711 := p.adjust(pLof0711, method='fdr')] 
+dat[!(CHROM %in% c('Unplaced')), q2.Lof0714 := p.adjust(pLof0714, method='fdr')] 
+dat[!(CHROM %in% c('Unplaced')), q2.Can := p.adjust(pCan, method='fdr')]
 
 # FDR-correct each population separately
-# after masking out inversions and unplaced, and loci failing filters
-#dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),q3.Lof0714 := p.adjust(pLof0714, method='fdr')] 
-dat[,q3.Lof071114:=NA]
-dat[,q3.Can:=NA]
-dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),q3.Lof071114 := p.adjust(pLof071114, method='fdr')] 
-dat[kmer25==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),q3.Can := p.adjust(pCan, method='fdr')]
+# after masking out inversions and unplaced
+dat[,q3.Lof0711:=as.double(NA)]
+dat[,q3.Lof0714:=as.double(NA)]
+dat[,q3.Can:=as.double(NA)]
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),q3.Lof0711 := p.adjust(pLof0711, method='fdr')] 
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),q3.Lof0714 := p.adjust(pLof0714, method='fdr')] 
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),q3.Can := p.adjust(pCan, method='fdr')]
 
 # For combined p-value
-# masking out only loci failing filters
-#dat[kmer25==1 & dpFlag==1 & densFlag==1, q.comb0714Can := p.adjust(p.comb0714Can, method='fdr')]
-dat[,p.comb071114Can:=NA]
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & binomp>0.05, q.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+# after masking out unplaced
+dat[,q2.comb0711Can:=as.double(NA)]
+dat[,q2.comb0714Can:=as.double(NA)]
+dat[!(CHROM %in% c('Unplaced')), q2.comb0711Can := p.adjust(p.comb0711Can, method='fdr')]
+dat[!(CHROM %in% c('Unplaced')), q2.comb0714Can := p.adjust(p.comb0714Can, method='fdr')]
 
 # For combined p-value
-# after masking out unplaced and loci failing filters
-#dat[kmer25==1 & dpFlag==1 & densFlag==1 & !(CHROM %in% c('Unplaced')), q2.comb0714Can := p.adjust(p.comb0714Can, method='fdr')]
-dat[,q2.comb071114Can:=NA]
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('Unplaced')), q2.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
-
-# For combined p-value
-# after masking out inversions and unplaced, and loci failing filters
-#dat[kmer25==1 & dpFlag==1 & densFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q3.comb0714Can := p.adjust(p.comb0714Can, method='fdr')]
-dat[,q3.comb071114Can:=NA]
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q3.comb071114Can := p.adjust(p.comb071114Can, method='fdr')]
+# after masking out inversions and unplaced
+dat[,q3.comb0711Can:=as.double(NA)]
+dat[,q3.comb0714Can:=as.double(NA)]
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q3.comb0711Can := p.adjust(p.comb0711Can, method='fdr')]
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')), q3.comb0714Can := p.adjust(p.comb0714Can, method='fdr')]
 
 
 ###################################################
 # mark outliers based on fdr-corrected q-values
 # or low p-values in both populations
 ###################################################
-qthresh <- 0.6
-
-# in each pop
-# with inversions
-#dat[,outlierLof0714_q2 := 0]
-#dat[q2.Lof0714<qthresh, outlierLof0714_q2 := 1]
-#	dat[,sum(outlierLof0714_q2, na.rm=TRUE)]
-
-dat[,outlierLof071114_q2 := 0]
-dat[q2.Lof071114<qthresh, outlierLof071114_q2 := 1]
-	dat[,sum(outlierLof071114_q2, na.rm=TRUE)]
-
-dat[,outlierCan_q2 := 0]
-dat[q2.Can<qthresh, outlierCan_q2 := 1]
-	dat[,sum(outlierCan_q2, na.rm=TRUE)]
-
-# in each pop
-# without inversions
-#dat[,outlierLof0714_q3 := 0]
-#dat[q3.Lof0714<qthresh, outlierLof0714_q3 := 1]
-#	dat[,sum(outlierLof0714_q3, na.rm=TRUE)]
-
-dat[,outlierLof071114_q3 := 0]
-dat[q3.Lof071114<qthresh, outlierLof071114_q3 := 1]
-	dat[,sum(outlierLof071114_q3, na.rm=TRUE)]
-
-	dat[, sum(q3.Lof071114<0.3, na.rm=TRUE)] # higher FDR threshold
-
-
-dat[,outlierCan_q3 := 0]
-dat[q3.Can<qthresh, outlierCan_q3 := 1]
-	dat[,sum(outlierCan_q3, na.rm=TRUE)]
-
-	dat[,sum(outlierLof071114_q3 & outlierCan_q3, na.rm=TRUE)] # Lof and Can?
-
-
-# combined Lof and Can
-# with inversions
-#dat[,outlierLof0714_Can_q2 := 0]
-#dat[q2.comb0714Can<qthresh, outlierLof0714_Can_q2 := 1]
-#	dat[,sum(outlierLof0714_Can_q2, na.rm=TRUE)]
-
-dat[,outlierLof071114_Can_q2 := 0]
-dat[q2.comb071114Can<qthresh, outlierLof071114_Can_q2 := 1]
-	dat[,sum(outlierLof071114_Can_q2, na.rm=TRUE)]
-
-# combined Lof and Can
-# without inversions
-#dat[,outlierLof0714_Can_q3 := 0]
-#dat[q3.comb0714Can<qthresh, outlierLof0714_Can_q3 := 1]
-#	dat[,sum(outlierLof0714_Can_q3, na.rm=TRUE)]
-
-dat[,outlierLof071114_Can_q3 := 0]
-dat[q3.comb071114Can<qthresh, outlierLof071114_Can_q3 := 1]
-	dat[,sum(outlierLof071114_Can_q3, na.rm=TRUE)]
-
-	dat[,sum(outlierLof071114_q3 & outlierLof071114_Can_q3, na.rm=TRUE)] # Lof and combined?
-	dat[,sum(q3.Lof071114<0.3 & outlierLof071114_Can_q3, na.rm=TRUE)] # Lof<0.03 and combined?
-	dat[,sum(outlierCan_q3 & outlierLof071114_Can_q3, na.rm=TRUE)] # Can and combined?
-	
-
-# loci with low p-values in both populations
-# with inversions
-#dat[,outlierLof0714andCan_p2 := 0]
-#dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('Unplaced')) & pLof0714<0.001 & pCan<0.001, outlierLof0714andCan_p2 := 1]
-#	dat[,sum(outlierLof0714andCan_p2, na.rm=TRUE)]
-
-dat[,outlierLof071114andCan_p2 := 0]
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & !(CHROM %in% c('Unplaced')) & pLof071114<0.001 & pCan<0.001, outlierLof071114andCan_p2 := 1]
-	dat[,sum(outlierLof071114andCan_p2, na.rm=TRUE)]
-	
-
-# loci with low p-values in both populations
-# without inversions
-#dat[,outlierLof0714andCan_p3 := 0]
-#dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pLof0714<0.001 & pCan<0.001, outlierLof0714andCan_p3 := 1]
-#	dat[,sum(outlierLof0714andCan_p3, na.rm=TRUE)]
-
-dat[,outlierLof071114andCan_p3 := 0]
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pLof071114<0.001 & pCan<0.001, outlierLof071114andCan_p3 := 1]
-	dat[,sum(outlierLof071114andCan_p3, na.rm=TRUE)]
-
-	dat[,sum(outlierLof071114_Can_q3 & outlierLof071114andCan_p3, na.rm=TRUE)]
-
+# qthresh <- 0.6
+# 
+# # in each pop
+# # with inversions
+# #dat[,outlierLof0714_q2 := 0]
+# #dat[q2.Lof0714<qthresh, outlierLof0714_q2 := 1]
+# #	dat[,sum(outlierLof0714_q2, na.rm=TRUE)]
+# 
+# dat[,outlierLof071114_q2 := 0]
+# dat[q2.Lof071114<qthresh, outlierLof071114_q2 := 1]
+# 	dat[,sum(outlierLof071114_q2, na.rm=TRUE)]
+# 
+# dat[,outlierCan_q2 := 0]
+# dat[q2.Can<qthresh, outlierCan_q2 := 1]
+# 	dat[,sum(outlierCan_q2, na.rm=TRUE)]
+# 
+# # in each pop
+# # without inversions
+# #dat[,outlierLof0714_q3 := 0]
+# #dat[q3.Lof0714<qthresh, outlierLof0714_q3 := 1]
+# #	dat[,sum(outlierLof0714_q3, na.rm=TRUE)]
+# 
+# dat[,outlierLof071114_q3 := 0]
+# dat[q3.Lof071114<qthresh, outlierLof071114_q3 := 1]
+# 	dat[,sum(outlierLof071114_q3, na.rm=TRUE)]
+# 
+# 	dat[, sum(q3.Lof071114<0.3, na.rm=TRUE)] # higher FDR threshold
+# 
+# 
+# dat[,outlierCan_q3 := 0]
+# dat[q3.Can<qthresh, outlierCan_q3 := 1]
+# 	dat[,sum(outlierCan_q3, na.rm=TRUE)]
+# 
+# 	dat[,sum(outlierLof071114_q3 & outlierCan_q3, na.rm=TRUE)] # Lof and Can?
+# 
+# 
+# # combined Lof and Can
+# # with inversions
+# #dat[,outlierLof0714_Can_q2 := 0]
+# #dat[q2.comb0714Can<qthresh, outlierLof0714_Can_q2 := 1]
+# #	dat[,sum(outlierLof0714_Can_q2, na.rm=TRUE)]
+# 
+# dat[,outlierLof071114_Can_q2 := 0]
+# dat[q2.comb071114Can<qthresh, outlierLof071114_Can_q2 := 1]
+# 	dat[,sum(outlierLof071114_Can_q2, na.rm=TRUE)]
+# 
+# # combined Lof and Can
+# # without inversions
+# #dat[,outlierLof0714_Can_q3 := 0]
+# #dat[q3.comb0714Can<qthresh, outlierLof0714_Can_q3 := 1]
+# #	dat[,sum(outlierLof0714_Can_q3, na.rm=TRUE)]
+# 
+# dat[,outlierLof071114_Can_q3 := 0]
+# dat[q3.comb071114Can<qthresh, outlierLof071114_Can_q3 := 1]
+# 	dat[,sum(outlierLof071114_Can_q3, na.rm=TRUE)]
+# 
+# 	dat[,sum(outlierLof071114_q3 & outlierLof071114_Can_q3, na.rm=TRUE)] # Lof and combined?
+# 	dat[,sum(q3.Lof071114<0.3 & outlierLof071114_Can_q3, na.rm=TRUE)] # Lof<0.03 and combined?
+# 	dat[,sum(outlierCan_q3 & outlierLof071114_Can_q3, na.rm=TRUE)] # Can and combined?
+# 	
+# 
+# # loci with low p-values in both populations
+# # with inversions
+# #dat[,outlierLof0714andCan_p2 := 0]
+# #dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('Unplaced')) & pLof0714<0.001 & pCan<0.001, outlierLof0714andCan_p2 := 1]
+# #	dat[,sum(outlierLof0714andCan_p2, na.rm=TRUE)]
+# 
+# dat[,outlierLof071114andCan_p2 := 0]
+# dat[kmer25==1 & dpFlag==1 & densFlag==1 & !(CHROM %in% c('Unplaced')) & pLof071114<0.001 & pCan<0.001, outlierLof071114andCan_p2 := 1]
+# 	dat[,sum(outlierLof071114andCan_p2, na.rm=TRUE)]
+# 	
+# 
+# # loci with low p-values in both populations
+# # without inversions
+# #dat[,outlierLof0714andCan_p3 := 0]
+# #dat[kmer25==1 & dpFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pLof0714<0.001 & pCan<0.001, outlierLof0714andCan_p3 := 1]
+# #	dat[,sum(outlierLof0714andCan_p3, na.rm=TRUE)]
+# 
+# dat[,outlierLof071114andCan_p3 := 0]
+# dat[kmer25==1 & dpFlag==1 & densFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pLof071114<0.001 & pCan<0.001, outlierLof071114andCan_p3 := 1]
+# 	dat[,sum(outlierLof071114andCan_p3, na.rm=TRUE)]
+# 
+# 	dat[,sum(outlierLof071114_Can_q3 & outlierLof071114andCan_p3, na.rm=TRUE)]
+# 
 
 #############
 # write out
 #############
-# write out tab-separated so Bastiaan can read easily
-outfile <- paste('analysis/wfs_nullmodel_outliers_07-11-14_Can_', kmer, 'k.tsv.gz', sep='')
+# write out
+outfile <- paste('analysis/wfs_nullmodel_outliers_07-11-14_Can.csv.gz', sep='')
 outfile
-write.table(dat, file=gzfile(outfile), sep='\t', row.names=FALSE, quote=FALSE)
+write.table(dat, file=gzfile(outfile), sep=',', row.names=FALSE, quote=FALSE)
 
 
-#write out for Udi: just the ranked p-values, dropping Unplaced, inversions, SNPs that fail kmer25 filter, SNPs that fail depth filter, and SNPs that fail allele balance filter
+#write out for Udi: just the ranked p-values, dropping Unplaced, inversions
 # have to write out each population separately so that locus trimming is done appropriately	
+# NEED TO REDO WITH 07-11 AND 07-14
 outfile1 <- paste('analysis/wfs_nullmodel_outliers_Udi_Lof.tsv.gz', sep='')
 outfile1
-out1 <- dat[kmer25==1 & dpLofFlag==TRUE & densFlag==1 & binomp>0.05 & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.Lof071114), .(CHROM, POS, q3.Lof071114)]
+out1 <- dat[!(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.Lof0711), .(CHROM, POS, q3.Lof071114)]
 nrow(out1)
 write.table(out1, file=gzfile(outfile1), sep='\t', row.names=FALSE, quote=FALSE)
 
 outfile2 <- paste('analysis/wfs_nullmodel_outliers_Udi_Can.tsv.gz', sep='')
 outfile2
-out2 <- dat[kmer25==1 & dpCanFlag==TRUE & densFlag==1 & binomp>0.05 & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.Can), .(CHROM, POS, q3.Can)]
+out2 <- dat[!(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.Can), .(CHROM, POS, q3.Can)]
 nrow(out2)
 write.table(out2, file=gzfile(outfile2), sep='\t', row.names=FALSE, quote=FALSE)
 
 outfile3 <- paste('analysis/wfs_nullmodel_outliers_Udi_comb.tsv.gz', sep='')
 outfile3
-out3 <- dat[kmer25==1 & dpCanFlag==TRUE & dpLofFlag==TRUE & densFlag==1 & binomp>0.05 & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.comb071114Can), .(CHROM, POS, q3.comb071114Can)]
+out3 <- dat[!(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & !is.na(q3.comb071114Can), .(CHROM, POS, q3.comb071114Can)]
 nrow(out3)
 write.table(out3, file=gzfile(outfile3), sep='\t', row.names=FALSE, quote=FALSE)
 
 outfile4 <- paste('analysis/wfs_nullmodel_outliers_Udi_union.tsv.gz', sep='')
 outfile4
-out4 <- dat[kmer25==1 & (dpCanFlag==TRUE | dpLofFlag==TRUE) & densFlag==1 & binomp>0.05 & !(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & (!is.na(q3.Lof071114) | !is.na(q3.Can) | !is.na(q3.comb071114Can)), .(CHROM, POS, q3.union = pmin(q3.Lof071114, q3.Can, q3.comb071114Can, na.rm=TRUE))]
+out4 <- dat[!(CHROM %in% c("Unplaced", "LG01", 'LG02', 'LG07', 'LG12')) & (!is.na(q3.Lof0711) | !is.na(q3.Lof0714) | !is.na(q3.Can) | !is.na(q3.comb071114Can)), .(CHROM, POS, q3.union = pmin(q3.Lof071114, q3.Can, q3.comb071114Can, na.rm=TRUE))]
 nrow(out4)
 write.table(out4, file=gzfile(outfile4), sep='\t', row.names=FALSE, quote=FALSE)
 
@@ -380,98 +243,92 @@ write.table(out4, file=gzfile(outfile4), sep='\t', row.names=FALSE, quote=FALSE)
 #########################
 ## number of loci
 nrow(dat) # total
-dat[,sum(!is.na(cnt07))] # Lof
-dat[,sum(!is.na(cntCan40))] # Can
-dat[,sum(!is.na(cnt07) & !is.na(cntCan40))] # both
+dat[,sum(!is.na(Freq_11))] # Lof 07-11
+dat[,sum(!is.na(Freq_14))] # Lof 07-14
+dat[,sum(!is.na(Freq_Can40))] # Can
+dat[,sum(!is.na(Freq_11) & !is.na(Freq_14))] # both
+dat[,sum(!is.na(Freq_11) & !is.na(Freq_Can40))] # both
+dat[,sum(!is.na(Freq_14) & !is.na(Freq_Can40))] # both
+dat[,sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40))] # all
 
-	# that pass kmer filter
-nrow(dat[kmer25==1,])
-dat[kmer25==1,sum(!is.na(cnt07))] # Lof
-dat[kmer25==1,sum(!is.na(cntCan40))] # Can
-dat[kmer25==1,sum(!is.na(cnt07) & !is.na(cntCan40))] # both
+	# not in unplaced
+dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11))] # Lof 07-11
+dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_14))] # Lof 07-14
+dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_Can40))] # Can
+dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14))] # both
+dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_Can40))] # both
+dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_14) & !is.na(Freq_Can40))] # both
+dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40))] # all
 
-	# that pass kmer and depth filters
-dat[kmer25==1 & dpLofFlag==1,sum(!is.na(cnt07))] # Lof
-dat[kmer25==1 & dpCanFlag==1,sum(!is.na(cntCan40))] # Can
-dat[kmer25==1 & dpFlag==1,sum(!is.na(cnt07) & !is.na(cntCan40))] # both
-
-	# that pass kmer, depth, and density filters
-dat[kmer25==1 & dpLofFlag==1 & densFlag==1,sum(!is.na(cnt07))] # Lof
-dat[kmer25==1 & dpCanFlag==1 & densFlag==1,sum(!is.na(cntCan40))] # Can
-dat[kmer25==1 & dpFlag==1 & densFlag==1,sum(!is.na(cnt07) & !is.na(cntCan40))] # both
-
-	# that pass kmer, depth, density, and allelel balance filters
-dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05,sum(!is.na(cnt07))] # Lof
-dat[kmer25==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05,sum(!is.na(cntCan40))] # Can
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & binomp>0.05,sum(!is.na(cnt07) & !is.na(cntCan40))] # both
-
-	# that pass filters, not in unplaced
-dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('Unplaced')),sum(!is.na(cnt07))] # Lof
-dat[kmer25==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('Unplaced')),sum(!is.na(cntCan40))] # Can
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('Unplaced')),sum(!is.na(cnt07) & !is.na(cntCan40))] # both
-
-	# that pass filters, not in unplaced or inversion LGs
-dat[kmer25==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(cnt07))] # Lof
-dat[kmer25==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(cntCan40))] # Cam
-dat[kmer25==1 & dpFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(cnt07) & !is.na(cntCan40))] # both
+	# not in unplaced or inversion LGs
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11))] # Lof
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_14))] # Lof
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_Can40))] # Can
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14))] # both
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_Can40))] # both
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_14) & !is.na(Freq_Can40))] # both
+dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40))] # all
 
 
 ## number of outliers: each population separately
-	# with inversions
-#dat[,sum(outlierLof0714_q2)]
-#	dat[outlierLof0714_q2==TRUE, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof0714, q2.Lof0714)]
+	# without unplaced
+dat[,sum(q2.Lof0711<0.2, na.rm=TRUE)]
+	dat[q2.Lof0711<0.2, table(CHROM)]
+	dat[q2.Lof0711<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof0711, q2.Lof0711)]
 
-dat[,sum(outlierLof071114_q2)]
-	dat[outlierLof071114_q2==TRUE, table(CHROM)]
-	dat[outlierLof071114_q2==TRUE, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof071114, q2.Lof071114)]
+dat[,sum(q2.Lof0714<0.2, na.rm=TRUE)]
+	dat[q2.Lof0714<0.2, table(CHROM)]
+	dat[q2.Lof0714<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof0714, q2.Lof0714)]
 
-dat[,sum(outlierCan_q2)]
-	dat[outlierCan_q2==TRUE, table(CHROM)]
-	dat[outlierCan_q2==TRUE, .(CHROM, POS, Freq_Can40, Freq_CanMod, pCan, q2.Can)]
+dat[,sum(q2.Can<0.2, na.rm=TRUE)]
+	dat[q2.Can<0.2, table(CHROM)]
+	dat[q2.Can<0.2, .(CHROM, POS, Freq_Can40, Freq_CanMod, pCan, q2.Can)]
 
-	# without inversions
-#dat[,sum(outlierLof0714_q3)]
-#	dat[outlierLof0714_q3==TRUE, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof0714, q3.Lof0714)]
+		# overlap
+	dat[,sum(q2.Lof0711<0.2 & q2.Lof0714<0.2, na.rm=TRUE)]
+	dat[,sum(q2.Lof0711<0.2 & q2.Can<0.2, na.rm=TRUE)]
+	dat[,sum(q2.Lof0714<0.2 & q2.Can<0.2, na.rm=TRUE)]
 
-dat[,sum(outlierLof071114_q3)]
-	dat[outlierLof071114_q3==TRUE, table(CHROM)]
-	dat[outlierLof071114_q3==TRUE, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof071114, q3.Lof071114)]
+	# without inversions or unplaced
+dat[,sum(q3.Lof0711<0.2, na.rm=TRUE)]
+	dat[q3.Lof0711<0.2, table(CHROM)]
+	dat[q3.Lof0711<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof0711, q3.Lof0711)]
 
-dat[,sum(outlierCan_q3)]
+dat[,sum(q3.Lof0714<0.2, na.rm=TRUE)]
+	dat[q3.Lof0714<0.2, table(CHROM)]
+	dat[q3.Lof0714<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof0714, q3.Lof0714)]
+
+dat[,sum(q3.Can<0.2, na.rm=TRUE)]
 	dat[outlierCan_q3==TRUE, table(CHROM)]
 	dat[outlierCan_q3==TRUE, .(CHROM, POS, Freq_Can40, Freq_CanMod, pCan, q3.Can)]
+
+		# overlap
+	dat[,sum(q3.Lof0711<0.2 & q3.Lof0714<0.2, na.rm=TRUE)]
+	dat[,sum(q3.Lof0711<0.2 & q3.Can<0.2, na.rm=TRUE)]
+	dat[,sum(q3.Lof0714<0.2 & q3.Can<0.2, na.rm=TRUE)]
 
 
 # number of outliers: combined p-values
 	# with inversions
-#dat[, sum(q2.comb0714Can<qthresh, na.rm=TRUE)]
-#	dat[q2.comb0714Can<qthresh, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan, outlierLof0714_Can_q2, outlierLof071114_Can_q2)]
+dat[, sum(q2.comb0711Can<0.2, na.rm=TRUE)]
+	dat[q2.comb0711Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0711, pCan)]
 
-dat[, sum(q2.comb071114Can<qthresh, na.rm=TRUE)]
-	dat[q2.comb071114Can<qthresh, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan, outlierLof0714_Can_q2, outlierLof071114_Can_q2)]
+dat[, sum(q2.comb0714Can<0.2, na.rm=TRUE)]
+	dat[q2.comb0714Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan)]
+
+		# overlap
+	dat[,sum(q2.comb0711Can<0.2 & q2.comb0714Can<0.2, na.rm=TRUE)]
 
 	# without inversions
-#dat[, sum(q3.comb0714Can<qthresh, na.rm=TRUE)]
-#	dat[q3.comb0714Can<qthresh, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan, outlierLof071114_Can_q3)]
+dat[, sum(q3.comb0711Can<0.2, na.rm=TRUE)]
+	dat[q3.comb0711Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0711, pCan)]
 
-dat[, sum(q3.comb071114Can<qthresh, na.rm=TRUE)]
-	dat[q3.comb071114Can<qthresh, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof071114, pCan, outlierLof071114_Can_q3)]
+dat[, sum(q3.comb0714Can<0.2, na.rm=TRUE)]
+	dat[q3.comb0714Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan)]
 
+		# overlap
+	dat[,sum(q3.comb0711Can<0.2 & q3.comb0714Can<0.2, na.rm=TRUE)]
 
-# examine specific loci for allele balance
-locs <- c('LG04 20683296', 'LG04 20726021', 'LG04 20726024', 'LG09 3061988', 'LG09 3062018', 'LG13 3904018', 'LG13 3904045', 'LG18 17062082')
-dat[paste(CHROM, POS) %in% locs, .(CHROM, POS, binomp, binompFDR, pLof071114, pCan, q3.Lof071114, q3.Can, q3.comb071114Can)]
-
-
-dat[pLof071114<1e-5 & binomp>0.05 & densFlag==1, .(CHROM, POS, binomp, binompFDRLof, Freq_07, Freq_11, Freq_14, pLof071114, pCan, q3.Lof071114, q3.Can, q3.comb071114Can)]
-
-dat[pCan<1e-5 & binomp>0.05 & densFlag==1, .(CHROM, POS, binomp, binompFDRCan, Freq_Can40, Freq_CanMod, pLof071114, pCan, q3.Lof071114, q3.Can, q3.comb071114Can)]
-
-
-# plot null model test vs. allele balance test
-dat[!is.na(cnt07) & densFlag==1, plot(binompFDRLof, -log10(pLof071114), col='#00000055')]; abline(v=0.05, col='red'); abline(h=5, col='red')
-
-dat[!is.na(cntCan40) & densFlag==1, plot(binompFDRCan, -log10(pCan), col='#00000055')]; abline(v=0.05, col='red'); abline(h=5, col='red')
 
 ####################################################################
 ## do the same SNPs appear as outliers in both? p value approach
@@ -479,38 +336,38 @@ dat[!is.na(cntCan40) & densFlag==1, plot(binompFDRCan, -log10(pCan), col='#00000
 
 	# Lof 1907-2014 and Can
 	# with inversions
-#ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('Unplaced')) & !is.na(pCan) & !is.na(pLof0714),.N]
-#nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('Unplaced')) & !is.na(pCan),sum(pLof0714<1e-3)]
-#nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('Unplaced')) & !is.na(pLof0714),sum(pCan<1e-3)]
-#ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('Unplaced')),sum(pCan<1e-3 & pLof0714<1e-3)]
-#nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
-#nLof
-#nCan
-#ncomb # number in both
-#nexp
-#
-#dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('Unplaced')) & pCan<1e-3 & pLof0714<1e-3,.(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pCan, pLof0714)]
-#
-#binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations
-#binom.test(x=5, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each cluster separately
+# ntot <- dat[!(CHROM %in% c('Unplaced')) & !is.na(q2.Can) & !is.na(q2.Lof0714),.N]
+# nLof <- dat[!(CHROM %in% c('Unplaced')) & !is.na(pCan),sum(q2.Lof0714<0.2, na.rm=TRUE)]
+# nCan <- dat[!(CHROM %in% c('Unplaced')) & !is.na(q2.Lof0714),sum(q2.Can<0.2, na.rm=TRUE)]
+# ncomb <- dat[!(CHROM %in% c('Unplaced')),sum(q2.Can<0.2 & q2.Lof0714<0.2, na.rm=TRUE)]
+# nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
+# nLof
+# nCan
+# ncomb # number in both
+# nexp
+# 
+# dat[!(CHROM %in% c('Unplaced')) & q2.Can<0.2 & q2.Lof0714<0.2,.(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pCan, pLof0714)]
+# 
+# binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations
+# binom.test(x=5, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each cluster separately
 
 
 	# Lof 1907-2014 and Can
 	# without inversions
-#ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan) & !is.na(pLof0714),.N]
-#nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),sum(pLof0714<1e-3)]
-#nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pLof0714),sum(pCan<1e-3)]
-#ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(pCan<1e-3 & pLof0714<1e-3)]
-#nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
-#nLof
-#nCan
-#ncomb # number in both
-#nexp
-#
-#dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<1e-3 & pLof0714<1e-3,.(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pCan, pLof0714)]
-#
-#binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations
-#binom.test(x=4, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each cluster separately
+# ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan) & !is.na(pLof0714),.N]
+# nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),sum(pLof0714<1e-3)]
+# nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pLof0714),sum(pCan<1e-3)]
+# ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(pCan<1e-3 & pLof0714<1e-3)]
+# nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
+# nLof
+# nCan
+# ncomb # number in both
+# nexp
+# 
+# dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<1e-3 & pLof0714<1e-3,.(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pCan, pLof0714)]
+# 
+# binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations
+# binom.test(x=4, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each cluster separately
 
 	# Lof 1907-2011-2014 and Can
 	# with inversions
@@ -531,22 +388,22 @@ dat[!is.na(cntCan40) & densFlag==1, plot(binompFDRCan, -log10(pCan), col='#00000
 
 	# Lof 1907-2011-2014 and Can
 	# without inversions
-pthresh <- 1e-2
-ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan) & !is.na(pLof071114),.N]
-nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),sum(pLof071114<pthresh)]
-nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pLof071114),sum(pCan<pthresh)]
-ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(pCan<1e-2 & pLof071114<pthresh)]
-nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
-nLof
-nCan
-ncomb # number in both
-nexp
-
-dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<pthresh & pLof071114<pthresh,.(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pCan, pLof071114)] # look at loci
-dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<pthresh & pLof071114<pthresh,table(CHROM)] # look at number of LGs
-
-binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations
-binom.test(x=7, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each cluster separately
+# pthresh <- 1e-2
+# ntot <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan) & !is.na(pLof071114),.N]
+# nLof <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pCan),sum(pLof071114<pthresh)]
+# nCan <- dat[kmer25==1 & dpLofFlag==1 & dpCanFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & !is.na(pLof071114),sum(pCan<pthresh)]
+# ncomb <- dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(pCan<1e-2 & pLof071114<pthresh)]
+# nexp <- nLof/ntot * nCan/ntot * ntot # expected number in both
+# nLof
+# nCan
+# ncomb # number in both
+# nexp
+# 
+# dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<pthresh & pLof071114<pthresh,.(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pCan, pLof071114)] # look at loci
+# dat[kmer25==1 & dpCanFlag==1 & dpLofFlag==1 & densFlag==1 & binomp>0.05 & !(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & pCan<pthresh & pLof071114<pthresh,table(CHROM)] # look at number of LGs
+# 
+# binom.test(x=ncomb, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations
+# binom.test(x=7, n=ntot, p=nLof/ntot * nCan/ntot) # statistical test relative to expectations: each cluster separately
 
 
 
