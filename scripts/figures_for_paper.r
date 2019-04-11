@@ -28,14 +28,14 @@ cols3 <- c('#e7d4e8', '#af8dc3', '#762a83', '#d9f0d3', '#1b7837') # Lof07, Lof11
 ######################
 
 # read in files
-dat <- fread('gunzip -c analysis/wfs_nullmodel_outliers_07-11-14_Can_25k.tsv.gz')
+dat <- fread('gunzip -c analysis/wfs_nullmodel_outliers_07-11-14_Can.csv.gz')
 freqs <- fread('analysis/freq_init_final_outliers.csv')
 ld <- fread('analysis/ld_outliers_union.csv')
 pi <- fread('analysis/pi_outliers_union.csv', )
 d <- fread('analysis/TajimaD_outliers_1000bp_union.csv', )
 
 # trim loci
-dat <- dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')) & kmer25==1]
+dat <- dat[!(CHROM %in% c('Unplaced'))]
 	nrow(dat)
 
 # make a nucleotide position for the whole genome (start position for each chr)
@@ -71,19 +71,21 @@ linelet <- -0.7
 linelet2 <- 0
 
 ### A: Manhattan plot
-ymax <- dat[dpCanFlag==TRUE | dpLofFlag==TRUE, max(-log10(c(pLof071114, pCan, p.comb071114Can)), na.rm=TRUE)]
-xlims <- dat[dpCanFlag==TRUE | dpLofFlag==TRUE, range(POSgen/1e6, na.rm=TRUE)]
-fdrln <- min(c(dat[outlierLof071114_Can_q3==1, -log10(p.comb071114Can)], dat[outlierCan_q3==1, -log10(pCan)], dat[outlierLof071114_q3==1, -log10(pLof071114)])) # find FDR cutoff across all 3 populations
+ymax <- dat[, max(-log10(c(pLof0711, pLof0714, pCan, p.comb0711Can, p.comb0714Can)), na.rm=TRUE)]
+xlims <- dat[, range(POSgen/1e6, na.rm=TRUE)]
+fdrln <- min(c(dat[q3.comb0711Can<0.2, -log10(p.comb0711Can)], dat[q3.comb0714Can<0.2, -log10(p.comb0714Can)], dat[q3.Can<0.2, -log10(pCan)], dat[q3.Lof0711<0.2, -log10(pLof0711)], dat[q3.Lof0714<0.2, -log10(pLof0714)])) # find FDR cutoff across all 3 populations
 
 plot(0, 0, type='n', xaxt='n', xlab='', ylab=expression(-log[10]*(italic(p))), bty='l', xlim=xlims, ylim=c(0,ymax), xaxs='i', cex.axis=1, cex.lab=1.5) # set up axes
 opar <- par(mgp=c(2,0.5,0)); axis(side=1, at=chrmax$mid/1e6, labels=gsub('LG|LG0', '', chrmax$CHROM), tick=FALSE, las=0, hadj=0.5, cex.axis=1); par(opar) # plot x-axis
 
 abline(h=fdrln, lty=2) # draw line for FDR cutoff
 
-dat[dpCanFlag==TRUE  & dpLofFlag==TRUE & outlierLof071114_Can_q3==0,points(POSgen/1e6, -log10(p.comb071114Can), type='p', cex=0.2, col=lgcol)] # plot non-outliers points
-dat[outlierLof071114_Can_q3==1, points(POSgen/1e6, -log10(p.comb071114Can), type='p', cex=1, col=lgcol2)] # plot outliers combined
-dat[outlierLof071114_q3==1, points(POSgen/1e6, -log10(pLof071114), type='p', cex=1, pch= 4, col=lgcol2)] # plot outliers Lof
-dat[outlierCan_q3==1, points(POSgen/1e6, -log10(pCan), type='p', cex=1, pch = 17, col=lgcol2)] # plot outliers Can
+dat[!(q3.comb0711Can<0.2 | q3.comb0714Can<0.2 | q3.Lof0711<0.2 | q3.Lof0714<0.2 | q3.Can<0.2),points(POSgen/1e6, -log10(p.comb0711Can), type='p', cex=0.2, col=lgcol)] # plot non-outliers points
+dat[q3.comb0711Can<0.2, points(POSgen/1e6, -log10(p.comb0711Can), type='p', cex=1, col=lgcol2)] # plot outliers combined
+dat[q3.comb0714Can<0.2, points(POSgen/1e6, -log10(p.comb0714Can), type='p', cex=1, col=lgcol2)] # plot outliers combined
+dat[q3.Lof0711<0.2, points(POSgen/1e6, -log10(pLof0711), type='p', cex=1, pch= 4, col=lgcol2)] # plot outliers Lof
+dat[q3.Lof0714<0.2, points(POSgen/1e6, -log10(pLof0714), type='p', cex=1, pch= 4, col=lgcol2)] # plot outliers Lof
+dat[q3.Can<0.2, points(POSgen/1e6, -log10(pCan), type='p', cex=1, pch = 17, col=lgcol2)] # plot outliers Can
 
 legend('bottomright', pch=c(1,4,17), col=cols2[2], legend=c('Combined', 'Norway', 'Canada'), ncol=3, bty='o', cex=0.6, bg='white', box.lwd=0)
 mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
