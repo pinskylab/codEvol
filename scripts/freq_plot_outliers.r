@@ -16,9 +16,9 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 }
 
 # read in data
-dat14 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
-dat11 <- fread('data_2017.11.24/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
-datCAN <- fread('data_2017.11.24/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF_Can')) # for Canada
+dat14 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
+dat11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
+datCAN <- fread('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF_Can')) # for Canada
 
 # make a nucleotide position for the whole genome (start position for each chr)
 chrmax <- dat14[,.(len=max(POS)), by=CHROM]
@@ -53,26 +53,38 @@ datCAN_11_14 <- datCAN_14[dat11, .(CHROM, POS, POSgen, N_CHR_Can40, N_CHR_CanMod
 # plot frequency change
 # no smoothing
 ##########################
-cols = c('black', 'blue', 'red')
-#dat14[,plot(POSgen, ABS_DIFF, pch=16, cex=0.3)]
-quartz(height=4, width=8)
-# png(height=4, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_NEA_CAN_raw.png')
-dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='l', lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
-dat11[,lines(POSgen/1e6, ABS_DIFF_0711, lwd=0.3, col=cols[2])]
-datCAN[,lines(POSgen/1e6, ABS_DIFF_Can, lwd=0.3, col=cols[3])]
-
-col='black'
-lgs <- sort(unique(dat14[,CHROM]))
-for(j in 1:length(lgs)){
-	rng <- range(dat14[CHROM==lgs[j], POSgen])
-	if(j %% 2 == 0) lines(x=rng/1e6, y=c(0,0), col=col, lwd=2, lend=2)
-	if(j %% 2 == 1) lines(x=rng/1e6, y=c(0.02,0.02), col=col, lwd=2, lend=2)
-	text(x=mean(rng/1e6), y=0.03, labels=lgs[j], col=col, cex=0.5)
+addchroms <- function(){
+	col='black'
+	lgs <- sort(unique(dat14[,CHROM]))
+	for(j in 1:length(lgs)){
+		rng <- range(dat14[CHROM==lgs[j], POSgen])
+		if(j %% 2 == 0) lines(x=rng/1e6, y=c(0,0), col=col, lwd=2, lend=2)
+		if(j %% 2 == 1) lines(x=rng/1e6, y=c(0.02,0.02), col=col, lwd=2, lend=2)
+		text(x=mean(rng/1e6), y=0.03, labels=lgs[j], col=col, cex=0.5)
 	
+	}
 }
 
-#legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011'), lwd=1, col=cols[1:2], bty='n', cex=0.5)
+cols = c('black', 'blue', 'red')
+#dat14[,plot(POSgen, ABS_DIFF, pch=16, cex=0.3)]
+quartz(height=12, width=8)
+# png(height=12, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_NEA_CAN_raw.png')
+par(mfrow=c(4,1), mai=c(0.5, 1, 0.2, 0.5))
+dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
+dat11[,points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, lwd=0.3, col=cols[2])]
+datCAN[,points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, lwd=0.3, col=cols[3])]
+
+addchroms()
 legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada'), lwd=1, col=cols, bty='n', cex=0.5)
+
+dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
+addchroms()
+
+dat11[,plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[2])]
+addchroms()
+
+datCAN[,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[3])]
+addchroms()
 
 
 dev.off()
@@ -166,25 +178,52 @@ dev.off()
 #################################################################
 # plot frequency difference for specific regions of the genome
 #################################################################
+#require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
+require(data.table) # not on cod node
+
+# read in WFS drift null model outlier values for all populations (combined by wfs_nullmodel_analysis_Canada,1907-2011&2014.r)
+dat <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can.csv.gz") # on mac
+setkey(dat, CHROM, POS)
+
+# find outliers
+locinds <- dat[, which(q3.Lof0711<0.2 | q3.Lof0714<0.2 | q3.Can<0.2 | q3.comb0711Can<0.2 | q3.comb0714Can<0.2)]
+
+# plot parameters
 wndw <- 5e4
-lg1 <- 'LG04'; xlims1 <- c(11755415,11755733); nm1<-'LG04 11755415-733'
-
+div <- 1e3; unit='kb'
 cols = c('black', 'blue', 'red')
+colstr = c('#00000055', '#0000FF55', '#FF000055')
 
-quartz(height=4, width=8)
-# png(height=4, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_outlierszoom_NEA&CAN.png')
-par(mfrow=c(1,1), mai=c(0.7, 0.7, 0.2, 0.1), las=1, mgp=c(2.5, 1,0))
+# make plot
+quartz(height=ceiling(2*length(locinds)/3), width=8)
+# png(height=ceiling(2*length(locinds)/3), width=8, units='in', res=600, file='figures/abs_diff_vs_pos_outlierszoom_NEA&CAN.png')
+par(mfrow=c(ceiling(length(locinds)/3),3), mai=c(0.3, 0.25, 0.1, 0.05), las=1, mgp=c(1, 0.3,0), tcl=-0.2)
 
-lg <- lg1; xlims <- xlims1
-dat14_25k[CHROM==lg,plot(POS/1e6, ABS_DIFF_0714, type='o', lwd=1, xlab='Position (Mb)', ylab='∆ frequency', ylim=c(0,0.5), cex=0.5, col=cols[1], main=nm1, xlim=(xlims+c(-wndw, wndw))/1e6)]
-dat11_25k[CHROM==lg,lines(POS/1e6, ABS_DIFF_0711, lwd=1, cex=0.5, type='o', col=cols[2])]
-datCAN_25k[CHROM==lg,lines(POS/1e6, ABS_DIFF_Can, lwd=1,cex=0.5,  type='o', col=cols[3])]
-dat14_150k[CHROM==lg,lines(POS/1e6, ABS_DIFF_0714, lwd=1,cex=0.5,  type='o', col=cols[1], lty=2)]
-dat11_150k[CHROM==lg,lines(POS/1e6, ABS_DIFF_0711, lwd=1, cex=0.5, type='o', col=cols[2], lty=2)]
-datCAN_150k[CHROM==lg,lines(POS/1e6, ABS_DIFF_Can, lwd=1,cex=0.5,  type='o', col=cols[3], lty=2)]
+for(i in 1:length(locinds)){
+	# find region to plot
+	indx <- dat[locinds[i], .(CHROM, start=POS-wndw, end=POS+wndw)]
+	dat[CHROM==indx$CHROM & POS > indx$start & POS < indx$end, plot(POS/div, abs(Freq_11-Freq_07), type='p', cex=0.5, xlab=paste('Position (', unit, ')', sep=''), ylab='∆ frequency', ylim=c(0,1), col=cols[1], main=paste(dat[locinds[i], .(CHROM, POS)], collapse=' '), cex.axis=0.5)]
+	dat[CHROM==indx$CHROM & POS > indx$start & POS < indx$end, points(POS/div, abs(Freq_14-Freq_07), cex=0.5, col=cols[2])]
+	dat[CHROM==indx$CHROM & POS > indx$start & POS < indx$end, points(POS/div, abs(Freq_CanMod-Freq_Can40), cex=0.5, col=cols[3])]
 
+	# loess lines
+	lw1 <- dat[CHROM==indx$CHROM & POS > indx$start & POS < indx$end, loess(I(abs(Freq_11-Freq_07)) ~ I(POS/div))]
+	lw2 <- dat[CHROM==indx$CHROM & POS > indx$start & POS < indx$end, loess(I(abs(Freq_14-Freq_07)) ~ I(POS/div))]
+	lw3 <- dat[CHROM==indx$CHROM & POS > indx$start & POS < indx$end, loess(I(abs(Freq_CanMod-Freq_Can40)) ~ I(POS/div))]
+	lines(lw1$x,lw1$fitted,col=cols[1],lwd=1)
+	lines(lw2$x,lw2$fitted,col=cols[2],lwd=1)
+	lines(lw3$x,lw3$fitted,col=cols[3],lwd=1)
 
-legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada', '25k', '150k'), lwd=1, col=c(cols, 'black', 'black'), lty=c(1,1,1,1,2), bty='n', cex=0.6)
+	# legend
+	if(i==1) legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada'), pch=1, cex=0.5, col=cols, bty='o')
+
+	# vertical lines for outlier loci
+	dat[(q3.Lof0711<0.2 | q3.comb0711Can<0.2) & CHROM==indx$CHROM, abline(v=(POS-wndw/150)/div, lty=2, col=colstr[1])]
+	dat[(q3.Lof0714<0.2 | q3.comb0714Can<0.2) & CHROM==indx$CHROM, abline(v=POS/div, lty=2, col=colstr[2])]
+	dat[(q3.Can<0.2 | q3.comb0711Can<0.2 | q3.comb0714Can<0.2) & CHROM==indx$CHROM, abline(v=(POS+wndw/150)/div, lty=2, col=colstr[3])]
+
+}
+
 
 
 dev.off()
