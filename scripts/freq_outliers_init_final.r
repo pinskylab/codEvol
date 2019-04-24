@@ -179,10 +179,13 @@ locinds <- out[, which(q3.Lof0711<0.2 | q3.Lof0714<0.2 | q3.Can<0.2 | q3.comb071
 
 quartz(width=6, height=3)
 # pdf(width=6, height=3, file='figures/freq_init_final_outliers_union_bylocus.pdf')
-par(mfrow=c(1,2), mai=c(0.5, 0.5, 0.3, 0.05), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
+par(mfrow=c(1,2), mai=c(0.5, 0.1, 0.3, 0.05), omi=c(0,0.8,0,0), cex.axis=0.7, las=1, mgp=c(1.5, 0.3, 0), tcl=-0.15)
 
 	# Canada
-plot(-1,-1, xlim=c(0,1), ylim=c(0,n), xlab='Frequency', ylab='Loci', main='Canada')
+plot(-1,-1, xlim=c(0,1), ylim=c(0,n), xlab='Frequency', ylab='Loci', main='Canada', yaxt='n')
+for(i in 1:length(locinds)){
+	text(x=-0.2, y=i, paste(out[locinds[i], .(CHROM, POS)], collapse=' '), cex=0.4, xpd=NA)
+}
 for(i in 1:length(locinds)){
 	thislty <- 2
 	if(out[locinds[i], (q3.Can<0.2 | q3.comb0711Can<0.2 | q3.comb0714Can<0.2) & !is.na(q3.Can)]) thislty <- 1
@@ -195,7 +198,7 @@ for(i in 1:length(locinds)){
 legend('topleft', legend=c('CAN40', 'CANMod', 'outlier', 'not outlier'), col=c(cols[c(1,3)], 'black', 'black'), pch=c(1,1,NA,NA), lty=c(NA, NA, 1,3), bty='n', cex=0.5)
 
 	# Norway
-plot(-1,-1, xlim=c(0,1), ylim=c(0,n), xlab='Frequency', ylab='Loci', main='Norway')
+plot(-1,-1, xlim=c(0,1), ylim=c(0,n), xlab='Frequency', ylab='Loci', main='Norway', yaxt='n')
 for(i in 1:length(locinds)){
 	thislty <- 2
 	if(out[locinds[i], (q3.Lof0711<0.2 | q3.Lof0714<0.2 | q3.comb0711Can<0.2 | q3.comb0714Can<0.2) & (!is.na(q3.Lof0711) | !is.na(q3.Lof0714))]) thislty <- 1
