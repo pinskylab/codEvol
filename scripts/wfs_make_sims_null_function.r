@@ -67,8 +67,8 @@ if(pop=='Lof' & yr1=='07' & yr2=='11_14'){
 	gen <- 11
 }
 if(pop=='Can') {
-	nes <- read.table('analysis/Can_40_to_Can.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	freqfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
+	nes <- read.table('analysis/Can_40_to_Can_25kmer_dp.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	freqfile <- paste('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', sep='')
 	nchrs <- fread(freqfile, header=TRUE)
 	gen <- 8
 }

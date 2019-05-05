@@ -35,20 +35,21 @@ datLof <- merge(datLof, locnms14[, .(CHROM, POS, cnt14, Freq_14)])
 	nrow(datLof)
 
 # Read in Canada
-locnmsCan <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE)
+locnmsCan <- fread('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', header=TRUE)
 	setnames(locnmsCan, 3:7, c('cntCan40', 'Freq_Can40', 'cntCanMod', 'Freq_CanMod', 'ABS_DIFFCan'))
 	locnmsCan <- locnmsCan[cntCan40>0 & cntCanMod>0,] # trim to genotypes >0%
 datCan <- readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')
 	setnames(datCan, c('n', 'p'), c('nCan', 'pCan'))
 
-	# make sure it matches
-	nrow(datCan)
-	nrow(locnmsCan)
+	# compare
+	nrow(datCan) # more loci, since based on 2018 dataset pre-quality trimming
+	nrow(locnmsCan) # fewer loci since after quality trimming
 
 	# merge
 setkey(locnmsCan, CHROM, POS)
 setkey(datCan, CHROM, POS)
 datCan <- merge(datCan, locnmsCan)
+	nrow(datCan)
 
 ##################
 # merge Lof and Can

@@ -9,10 +9,10 @@ if(grepl('hpc.uio.no|login', Sys.info()["nodename"])){
 
 # settings
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '11'
-pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
+#pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '11'; myyr2 <- '14'
 #pop <- 'Lof'; myyr1 <- '07'; myyr2 <- '1114' # all 3 time points
-#pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
+pop <- 'Can'; myyr1 <- '00'; myyr2 <- '00' # myyr are placeholders since only one set of years for Canada
 
 
 # load observed data
@@ -26,7 +26,7 @@ if(pop == 'Lof'){
 	}
 }
 if(pop == 'Can'){
-	targfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
+	targfile <- paste('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))
@@ -65,13 +65,13 @@ if(myyr2 == '1114'){
 	nrow(nloci) # Lof 1907-2011-2014:  (>=50% indivs genotyped) 399 (all)
 				# Lof 1907-2011: 519 (all)
 				# Lof 1907-2014: 
-				# Can: 143 (>=50% genotyped) 497 (all)
+				# Can:  (>=50% genotyped) 488 (all)
 
 # sample sizes with >5000 loci
 nloci[nloci>5000, .(.N, max(nloci))]  # Lof 1907-2011-2014: 0 sample sizes
 					# Lof 1907-2011: 28 samplesizes	up to 8903
 					# Lof 1907-2014: 38 samplesizes	up to 14731
-					# Can: 29 (>=50%) 49 (all)
+					# Can:  (>=50%) 50 (all)
 
 # check which sample sizes are already run
 nloci[,todo:=1] # set up a flag for which we should run

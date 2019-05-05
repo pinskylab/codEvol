@@ -28,9 +28,9 @@
 # }
 
 # pop<-'Lof'; yr1<-'07';yr2<-'11_14';trimlowsampsize<-0;rerunlow<-0 # initial run for all Lof loci 07-11 and 07-14
-pop<-'Lof'; yr1<-'07';yr2<-'11_14';trimlowsampsize<-0;rerunlow<-1 # re-run low p-values for all Lof loci 07-11 and 07-14
+#pop<-'Lof'; yr1<-'07';yr2<-'11_14';trimlowsampsize<-0;rerunlow<-1 # re-run low p-values for all Lof loci 07-11 and 07-14
 # pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-0 # initial run for all CAN loci
-# pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-1 # re-run low p-values for all CAN loci
+ pop<-'Can'; yr1<-'00';yr2<-'00';trimlowsampsize<-0;rerunlow<-1 # re-run low p-values for all CAN loci
 
 print(paste('Arguments: pop=', pop, ', yr1=', yr1, ', yr2=', yr2, ', trimlowsampsize=', trimlowsampsize, ', rerunlow=', rerunlow, sep=''))
 
@@ -71,8 +71,8 @@ if(pop=='Lof' & yr1=='07' & yr2=='11_14'){ # both 07-11 and 07-14
 	gen <- 11
 }
 if(pop=='Can'){
-	nes <- read.table('analysis/Can_40_to_Can.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
-	freqfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
+	nes <- read.table('analysis/Can_40_to_Can_25kmer_dp.w_Ne_bootstrap.txt')[,1] # the values of Ne from wfabc_1
+	freqfile <- paste('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', sep='')
 	nchrs <- fread(freqfile, header=TRUE)
 	gen <- 8
 }

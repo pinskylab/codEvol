@@ -16,29 +16,41 @@ ntimes <- 2
 # read in data
 	# NEA 1907-2014
 #datNEA <- fread('data_2018.09.13/Frequency_table_Lof07_Lof14.txt', header=TRUE); outfileNEA <- 'analysis/LOF_07_to_LOF_S_14.wfabc' # w/out kmer25 mask
-datNEA <- fread('data_2018.09.05/Frequency_table_Lof07_Lof14.txt', header=TRUE); outfileNEA <- 'analysis/LOF_07_to_LOF_S_14_25kmer_dp.wfabc' # w/ kmer25 mask
+datNEA <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); outfileNEA <- 'analysis/LOF_07_to_LOF_S_14_25kmer_dp.wfabc' # w/ kmer25 mask
 	
 	setnames(datNEA, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 	genNEA=11 # for 1907 vs. 2014. sample sizes
 
 	# NEA 1907-2011
 #datNEA11 <- fread('data_2018.09.13/Frequency_table_Lof07_Lof11.txt', header=TRUE); outfileNEA11 <- 'analysis/LOF_07_to_LOF_S_11.wfabc' # w/out kmer25 mask
-datNEA11 <- fread('data_2018.09.05/Frequency_table_Lof07_Lof11.txt', header=TRUE); outfileNEA11 <- 'analysis/LOF_07_to_LOF_S_11_25kmer_dp.wfabc' # w/ kmer25 mask
+datNEA11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); outfileNEA11 <- 'analysis/LOF_07_to_LOF_S_11_25kmer_dp.wfabc' # w/ kmer25 mask
 	setnames(datNEA11, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 	genNEA11=11 # for 1907 vs. 2011. sample sizes
 
 	# CAN
 #datCAN <- fread('data_2018.09.13/Frequency_table_CAN_40_TGA.txt', header=TRUE); outfileCAN <- 'analysis/Can_40_to_Can.wfabc' # w/out kmer25 mask
-datCAN <- fread('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', header=TRUE); outfileCAN <- 'analysis/Can_40_to_Can_25kmer_dp.wfabc' # w/ kmer25 mask
+datCAN <- fread('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', header=TRUE); outfileCAN <- 'analysis/Can_40_to_Can_25kmer_dp.wfabc' # w/ kmer25 mask
 	setnames(datCAN, 3:7, c('N_CHR_1', 'Freq_1', 'N_CHR_2', 'Freq_2', 'ABS_DIFF'))
 	genCAN=8 # for 1940 to contemporary. Guess 8 generations
 
 
 	
 # trim out inversions and Unplaced
-datNEA <- datNEA[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
-datNEA11 <- datNEA11[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
-datCAN <- datCAN[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),]
+	dim(datNEA)
+	dim(datNEA11)
+	dim(datCAN)
+
+datNEA <- datNEA[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),]
+datNEA11 <- datNEA11[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),]
+datCAN <- datCAN[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12')),]
+
+	dim(datNEA)
+	dim(datNEA11)
+	dim(datCAN)
+
+datNEA <- datNEA[!(CHROM %in% c('Unplaced')),]
+datNEA11 <- datNEA11[!(CHROM %in% c('Unplaced')),]
+datCAN <- datCAN[!(CHROM %in% c('Unplaced')),]
 
 	dim(datNEA)
 	dim(datNEA11)

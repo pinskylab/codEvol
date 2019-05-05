@@ -75,7 +75,7 @@ if(pop == 'Lof'){
 	}
 }
 if(pop == 'Can'){
-	targfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
+	targfile <- paste('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 if(pop == 'Pow'){
 	targfile <- 'analysis/Frequency_table_PowerSims_Lof_Ne46000_cnt46_44.txt'
