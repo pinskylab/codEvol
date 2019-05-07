@@ -240,6 +240,14 @@ anno2 <- anno2[, c("CHROM", "POS", "cluster", "q3.Lof0711", "q3.Lof0714", "q3.Ca
 ########################
 # Summary statistics
 ########################
+	# check suspect snps
+	anno2[as.numeric(as.character(anno2$q3.Lof0711))<0.2 & (anno2$Freq_07 %in% c(0.5, 1) | anno2$Freq_11 %in% c(0.5, 1)),]  # lof11
+	anno2[as.numeric(as.character(anno2$q3.Lof0714))<0.2 & (anno2$Freq_07 %in% c(0.5, 1) | anno2$Freq_14 %in% c(0.5, 1)),]	# lof14
+	anno2[as.numeric(as.character(anno2$q3.Can))<0.2 & (anno2$Freq_Can40 %in% c(0.5, 1) | anno2$Freq_CanMod %in% c(0.5, 1)),]	# Can
+	anno2[as.numeric(as.character(anno2$q3.comb0711Can))<0.2 & (anno2$Freq_07 %in% c("0.5", "1") | anno2$Freq_11 %in% c("0.5", "1") | anno2$Freq_Can40 %in% c("0.5", "1") | anno2$Freq_CanMod %in% c("0.5", "1")),]  # comb0711can
+	anno2[as.numeric(as.character(anno2$q3.comb0714Can))<0.2 & (anno2$Freq_07 %in% c("0.5", "1") | anno2$Freq_14 %in% c("0.5", "1") | anno2$Freq_Can40 %in% c("0.5", "1") | anno2$Freq_CanMod %in% c("0.5", "1")),]  # comb0714can
+
+
 	nrow(anno2)
 	length(unique(anno2$CHROM)) # number of LGs
 	length(grep('gene', anno2$feature)); length(grep('gene', anno2$feature))/nrow(anno2) # fraction in genes
