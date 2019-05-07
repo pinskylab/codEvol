@@ -5,8 +5,8 @@
 
 # pop <- 'Lof'; yrs <- '071114' # for Lof 3 time points
 # pop <- 'Lof'; yrs <- '0711'
-pop <- 'Lof'; yrs <- '0714'
-# pop <- 'Can'; yrs <- '00'
+#pop <- 'Lof'; yrs <- '0714'
+ pop <- 'Can'; yrs <- '00'
 
 # load functions: assume this is run on a cod or abel node
 require(parallel, lib.loc="/projects/cees/lib/R_packages/")
@@ -34,7 +34,7 @@ if(pop == 'Lof'){
 	}
 }
 if(pop == 'Can'){
-	targfile <- paste('data_2018.09.05/Frequency_table_CAN_40_TGA.txt', sep='')
+	targfile <- paste('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', sep='')
 }
 targ <- fread(targfile, header=TRUE)
 setnames(targ, 3:7, c('alcnt1', 'f1samp', 'alcnt2', 'f2samp', 'ABS_DIFF'))

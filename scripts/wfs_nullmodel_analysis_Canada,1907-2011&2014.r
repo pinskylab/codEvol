@@ -42,8 +42,8 @@ datCan <- readRDS('analysis/wfs_nullmodel_pos&pvals_Can.rds')
 	setnames(datCan, c('n', 'p'), c('nCan', 'pCan'))
 
 	# compare
-	nrow(datCan) # more loci, since based on 2018 dataset pre-quality trimming
-	nrow(locnmsCan) # fewer loci since after quality trimming
+	nrow(datCan) # now has 2019 dataset
+	nrow(locnmsCan) # matches
 
 	# merge
 setkey(locnmsCan, CHROM, POS)
@@ -244,32 +244,32 @@ write.table(out4, file=gzfile(outfile4), sep='\t', row.names=FALSE, quote=FALSE)
 #########################
 ## number of loci
 nrow(dat) # total
-dat[,sum(!is.na(Freq_11))] # Lof 07-11
-dat[,sum(!is.na(Freq_14))] # Lof 07-14
-dat[,sum(!is.na(Freq_Can40))] # Can
-dat[,sum(!is.na(Freq_11) & !is.na(Freq_14))] # both
-dat[,sum(!is.na(Freq_11) & !is.na(Freq_Can40))] # both
-dat[,sum(!is.na(Freq_14) & !is.na(Freq_Can40))] # both
-dat[,sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40))] # all
+dat[,.(sum(!is.na(Freq_11)), sum(!is.na(Freq_11))/.N)] # Lof 07-11
+dat[,.(sum(!is.na(Freq_14)), sum(!is.na(Freq_14))/.N)] # Lof 07-14
+dat[,.(sum(!is.na(Freq_Can40)), sum(!is.na(Freq_Can40))/.N)] # Can
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_14)), sum(!is.na(Freq_11) & !is.na(Freq_14))/.N)] # both
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_Can40)), sum(!is.na(Freq_11) & !is.na(Freq_Can40))/.N)] # both
+dat[,.(sum(!is.na(Freq_14) & !is.na(Freq_Can40)), sum(!is.na(Freq_14) & !is.na(Freq_Can40))/.N)] # both
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40)), sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40))/.N)] # all
 
 	# not in unplaced
-dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11))] # Lof 07-11
-dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_14))] # Lof 07-14
-dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_Can40))] # Can
-dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14))] # both
-dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_Can40))] # both
-dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_14) & !is.na(Freq_Can40))] # both
-dat[!(CHROM %in% c('Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40))] # all
+dat[,.(sum(!is.na(Freq_11) & !(CHROM %in% c('Unplaced'))), round(sum(!is.na(Freq_11) & !(CHROM %in% c('Unplaced')))/.N, 2))] # Lof 07-11
+dat[,.(sum(!is.na(Freq_14) & !(CHROM %in% c('Unplaced'))), round(sum(!is.na(Freq_14) & !(CHROM %in% c('Unplaced')))/.N, 2))] # Lof 07-14
+dat[,.(sum(!is.na(Freq_Can40) & !(CHROM %in% c('Unplaced'))), round(sum(!is.na(Freq_Can40) & !(CHROM %in% c('Unplaced')))/.N,2))] # Can
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_14) & !(CHROM %in% c('Unplaced'))), round(sum(!is.na(Freq_11) & !is.na(Freq_14) & !(CHROM %in% c('Unplaced')))/.N,2))] # both
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_Can40) & !(CHROM %in% c('Unplaced'))), round(sum(!is.na(Freq_11) & !is.na(Freq_Can40) & !(CHROM %in% c('Unplaced')))/.N, 2))] # both
+dat[,.(sum(!is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% c('Unplaced'))), round(sum(!is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% c('Unplaced')))/.N,2))] # both
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% c('Unplaced'))), round(sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% c('Unplaced')))/.N,2))] # all
 
 	# not in unplaced or inversion LGs
-dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11))] # Lof
-dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_14))] # Lof
-dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_Can40))] # Can
-dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14))] # both
-dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_Can40))] # both
-dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_14) & !is.na(Freq_Can40))] # both
-dat[!(CHROM %in% c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')),sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40))] # all
-
+locs <- c('LG01', 'LG02', 'LG07', 'LG12', 'Unplaced')
+dat[,.(sum(!is.na(Freq_11) & !(CHROM %in% locs)), round(sum(!is.na(Freq_11) & !(CHROM %in% locs))/.N, 2))] # Lof 07-11
+dat[,.(sum(!is.na(Freq_14) & !(CHROM %in% locs)), round(sum(!is.na(Freq_14) & !(CHROM %in% locs))/.N, 2))] # Lof 07-14
+dat[,.(sum(!is.na(Freq_Can40) & !(CHROM %in% locs)), round(sum(!is.na(Freq_Can40) & !(CHROM %in% locs))/.N,2))] # Can
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_14) & !(CHROM %in% locs)), round(sum(!is.na(Freq_11) & !is.na(Freq_14) & !(CHROM %in% locs))/.N,2))] # both
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_Can40) & !(CHROM %in% locs)), round(sum(!is.na(Freq_11) & !is.na(Freq_Can40) & !(CHROM %in% locs))/.N, 2))] # both
+dat[,.(sum(!is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% locs)), round(sum(!is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% locs))/.N,2))] # both
+dat[,.(sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% locs)), round(sum(!is.na(Freq_11) & !is.na(Freq_14) & !is.na(Freq_Can40) & !(CHROM %in% locs))/.N,2))] # all
 
 ## number of outliers: each population separately
 	# without unplaced
@@ -300,8 +300,8 @@ dat[,sum(q3.Lof0714<0.2, na.rm=TRUE)]
 	dat[q3.Lof0714<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, pLof0714, q3.Lof0714)]
 
 dat[,sum(q3.Can<0.2, na.rm=TRUE)]
-	dat[outlierCan_q3==TRUE, table(CHROM)]
-	dat[outlierCan_q3==TRUE, .(CHROM, POS, Freq_Can40, Freq_CanMod, pCan, q3.Can)]
+	dat[q3.Can<0.2, table(CHROM)]
+	dat[q3.Can<0.2, .(CHROM, POS, Freq_Can40, Freq_CanMod, pCan, q3.Can)]
 
 		# overlap
 	dat[,sum(q3.Lof0711<0.2 & q3.Lof0714<0.2, na.rm=TRUE)]
@@ -328,7 +328,14 @@ dat[, sum(q3.comb0714Can<0.2, na.rm=TRUE)]
 	dat[q3.comb0714Can<0.2, .(CHROM, POS, Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0714, pCan)]
 
 		# overlap
+	dat[,sum(q3.comb0711Can<0.2 & q3.Lof0711<0.2, na.rm=TRUE)]
+	dat[,sum(q3.comb0711Can<0.2 & q3.Lof0714<0.2, na.rm=TRUE)]
+	dat[,sum(q3.comb0711Can<0.2 & q3.Can<0.2, na.rm=TRUE)]
+
 	dat[,sum(q3.comb0711Can<0.2 & q3.comb0714Can<0.2, na.rm=TRUE)]
+	dat[,sum(q3.comb0714Can<0.2 & q3.Lof0711<0.2, na.rm=TRUE)]
+	dat[,sum(q3.comb0714Can<0.2 & q3.Lof0714<0.2, na.rm=TRUE)]
+	dat[,sum(q3.comb0714Can<0.2 & q3.Can<0.2, na.rm=TRUE)]
 
 
 ####################################################################
