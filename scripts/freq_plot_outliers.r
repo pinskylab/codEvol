@@ -50,53 +50,27 @@ setkey(chrmax, CHROM)
 setkey(dat14, CHROM)
 dat14 <- dat14[chrmax[,.(CHROM, start)], ]
 dat14[,POSgen:=POS+start]
+dat14[,start:=NULL]
 
 setkey(dat11, CHROM)
 dat11 <- dat11[chrmax[,.(CHROM, start)], ]
 dat11[,POSgen:=POS+start]
+dat11[,start:=NULL]
 
 setkey(datCAN, CHROM)
 datCAN <- datCAN[chrmax[,.(CHROM, start)], ]
 datCAN[,POSgen:=POS+start]
+datCAN[,start:=NULL]
 
 # combine the datasets to look at correlations across them
 setkey(dat11, CHROM, POS)
 setkey(dat14, CHROM, POS)
 setkey(datCAN, CHROM, POS)
 
-dat <- merge(datCAN, dat14, all=TRUE)
+dat <- merge(datCAN, dat14[,.(CHROM, POS, N_CHR_07, N_CHR_14, Freq_07, Freq_14, ABS_DIFF_0714)], all=TRUE)
 dat <- merge(dat, dat11[,.(CHROM, POS, N_CHR_11, Freq_11, ABS_DIFF_0711)], all=TRUE)
 	nrow(dat)
 	dat
-
-##########################
-# plot frequency change
-# no smoothing
-##########################
-
-cols = c('black', 'blue', 'red')
-#dat14[,plot(POSgen, ABS_DIFF, pch=16, cex=0.3)]
-quartz(height=12, width=8)
-# png(height=12, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_NEA_CAN_raw.png')
-par(mfrow=c(4,1), mai=c(0.5, 1, 0.2, 0.5))
-dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
-dat11[,points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, lwd=0.3, col=cols[2])]
-datCAN[,points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, lwd=0.3, col=cols[3])]
-
-addchroms(dat14)
-legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada'), lwd=1, col=cols, bty='n', cex=0.5)
-
-dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
-addchroms(dat14)
-
-dat11[,plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[2])]
-addchroms(dat14)
-
-datCAN[,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[3])]
-addchroms(dat14)
-
-
-dev.off()
 
 
 #############################
@@ -117,7 +91,7 @@ nrow(datmean)
 setkey(dat, CHROM, POS)
 setkey(datmean, CHROM, POSmid)
 
-# round POS to nearest POSmid, once for each step in width before the windows no longer overlap
+# round POS to nearest POSmid, once for each step in width
 for(j in 1:(width/stp)){
 	nm <- paste('POSmid', j, sep='') # create column name
 	for(i in 1:length(chroms)){
@@ -217,14 +191,23 @@ datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 
 	
 
-# save
+# save region means data
 filenm <- paste('analysis/Frequency_table_ABS_DIFF_runmean', windsz, '.rds', sep='')
 filenm
 saveRDS(datmean, file=filenm)
 
 
 # add region outlier stats to locus-by-locus frequency change file
-dat2 <- merge(dat, datmean[, .(CHROM, POSmid, perc0711, perc0714, percCAN, cluster0711, cluster0714, clusterCAN)], by=c('CHROM', 'POSmid'))
+dat2 <- merge(dat, datmean[, .(CHROM, POSmid, perc0711, perc0714, percCAN, cluster0711, cluster0714, clusterCAN)], by.x=c('CHROM', 'POSmid1'), by.y=c('CHROM', 'POSmid'))
+	dim(dat)
+	dim(dat2)
+	dim(datmean)
+setnames(dat2, c('perc0711', 'perc0714', 'percCAN', 'cluster0711', 'cluster0714', 'clusterCAN'), c('region10kb_perc0711', 'region10kb_perc0714', 'region10kb_percCAN', 'region10kb_cluster0711', 'region10kb_cluster0714', 'region10kb_clusterCAN'))
+
+# save locus data with region data appended
+filenm2 <- paste('analysis/Frequency_table_ABS_DIFF_w_region_outliers_', windsz, '.rds', sep='')
+filenm2
+saveRDS(dat2, file=filenm2)
 
 
 ###########################
@@ -241,6 +224,72 @@ setkey(outlregCAN, score)
 tail(outlreg0711[CHROM != 'LG01'], 20)
 tail(outlreg0714[CHROM != 'LG01'], 20)
 tail(outlregCAN[CHROM != 'LG01'], 20)
+
+##########################
+# plot frequency change
+# no smoothing
+##########################
+
+cols = c('black', 'blue', 'red')
+#dat14[,plot(POSgen, ABS_DIFF, pch=16, cex=0.3)]
+quartz(height=12, width=8)
+# png(height=12, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_NEA_CAN_raw.png')
+par(mfrow=c(4,1), mai=c(0.5, 1, 0.2, 0.5))
+dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
+dat11[,points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, lwd=0.3, col=cols[2])]
+datCAN[,points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, lwd=0.3, col=cols[3])]
+
+addchroms(dat14)
+legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada'), lwd=1, col=cols, bty='n', cex=0.5)
+
+dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
+addchroms(dat14)
+
+dat11[,plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[2])]
+addchroms(dat14)
+
+datCAN[,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[3])]
+addchroms(dat14)
+
+
+dev.off()
+
+
+##########################
+# plot frequency change
+# no smoothing
+# color if in a 10kb outlier region shared across populations
+##########################
+
+# 1e4
+dat2 <- readRDS('analysis/Frequency_table_ABS_DIFF_w_region_outliers_1e4.rds'); width='1e4'
+
+# 1e6
+# NOTE: loads dat14mean and dat11mean, without _25k or _150k suffixes
+# load('analysis/Frequency_table_Lof07_Lof14_runmean1e6.rdata'); load('analysis/Frequency_table_Lof07_Lof11_runmean1e6.rdata'); ylims=c(0,0.15); width='1e6'
+# load('analysis/Frequency_table_CAN_runmean1e6.rdata')
+
+
+cols = c('grey', 'purple')
+quartz(height=6, width=8)
+# png(height=6, width=8, units='in', res=300, file=paste('figures/abs_diff_vs_pos_NEA_CAN_bylocus_regionoutliers_', width, '.png', sep=''))
+par(mfrow=c(3,1), mai=c(0.5, 1, 0.2, 0.5))
+dat2[region10kb_perc0711<=0.99 | region10kb_perc0714<=0.99 | region10kb_percCAN<=0.99, plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0711', ylim=c(0,1), col=cols[1])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.5, col=cols[2])]
+addchroms(dat2)
+
+legend('topright', legend=c(paste('Not in shared', width, 'bp 1% outlier region'), 'In shared outlier region'), pch=1, col=cols, bty='n')
+
+dat2[region10kb_perc0711<=0.99 | region10kb_perc0714<=0.99 | region10kb_percCAN<=0.99,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0714', ylim=c(0,1), col=cols[1])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.5, col=cols[2])]
+addchroms(dat2)
+
+dat2[region10kb_perc0711<=0.99 | region10kb_perc0714<=0.99 | region10kb_percCAN<=0.99,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change CAN', ylim=c(0,1), col=cols[1])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.5, col=cols[2])]
+addchroms(dat2)
+
+dev.off()
+
 
 ###########################################
 # plot frequency change from running mean
