@@ -5,6 +5,22 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
 
 width <- 1e4; stp <- 1e4; windsz='1e4'# window parameters
 
+##### 
+# functions
+######
+
+addchromsld <- function(dat, at=-1){
+	col='black'
+	lgs <- sort(unique(dat[,CHR]))
+	for(j in 1:length(lgs)){
+		rng <- range(dat[CHR==lgs[j], POSgen])
+		if(j %% 2 == 0) lines(x=rng/1e6, y=c(at,at), col=col, lwd=2, lend=2)
+		if(j %% 2 == 1) lines(x=rng/1e6, y=c(at+0.02,at+0.02), col=col, lwd=2, lend=2)
+		text(x=mean(rng/1e6), y=at+0.03, labels=lgs[j], col=col, cex=0.5)
+	}
+}
+
+
 
 ######################
 # calculate LD decay
@@ -83,6 +99,16 @@ bins[,ld_diff_0711:=r2ave_11-r2ave_07]
 bins[,ld_diff_0714:=r2ave_14-r2ave_07]
 bins[,ld_diff_CAN:=r2ave_Mod-r2ave_40]
 
+# make a nucleotide position for the whole genome (start position for each chr)
+chrmax <- datloc[,.(len=max(POS)), by=CHROM]
+chrmax$start=c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
+setkey(chrmax, CHROM)
+setkey(bins, CHR)
+bins <- merge(bins, chrmax[,.(CHROM, start)], by.x='CHR', by.y='CHROM')
+bins[,POSgen:=POS1mid1+start]
+bins[,start:=NULL]
+
+
 # calculate percentiles (like Oziolor et al. 2019 Science)
 ecdf0711 <- ecdf(bins$ld_diff_0711)
 ecdf0714 <- ecdf(bins$ld_diff_0714)
@@ -153,11 +179,29 @@ filenm <- paste('analysis/ld_change_region_', windsz, '.rds', sep='')
 filenm
 saveRDS(bins, file=filenm)
 
+
+###########################
+## rank the outlier regions
+##########################
+outlreg0711 = bins[,.(CHROM=unique(CHR), POSmin=min(POS1mid1), POSmax=max(POS1mid1), score=sum(ld_diff_0711)), by=ld_region10kb_cluster0711]
+outlreg0714 = bins[,.(CHROM=unique(CHR), POSmin=min(POS1mid1), POSmax=max(POS1mid1), score=sum(ld_diff_0714)), by=ld_region10kb_cluster0714]
+outlregCAN = bins[,.(CHROM=unique(CHR), POSmin=min(POS1mid1), POSmax=max(POS1mid1), score=sum(ld_diff_CAN)), by=ld_region10kb_clusterCAN]
+
+setkey(outlreg0711, score)
+setkey(outlreg0714, score)
+setkey(outlregCAN, score)
+
+tail(outlreg0711, 5)
+tail(outlreg0714, 5)
+tail(outlregCAN, 5)
+
+
+
 ###########################################
 # plot LD change from regions
 ###########################################
 # 1e4
-datmean <- readRDS('analysis/Frequency_table_ABS_DIFF_runmean1e4.rds'); width='1e4'
+bins <- readRDS('analysis/ld_change_region_1e4.rds'); width='1e4'
 
 # 1e6
 # NOTE: loads dat14mean and dat11mean, without _25k or _150k suffixes
@@ -167,20 +211,20 @@ datmean <- readRDS('analysis/Frequency_table_ABS_DIFF_runmean1e4.rds'); width='1
 
 cols = c('grey', 'purple')
 quartz(height=6, width=8)
-# png(height=6, width=8, units='in', res=300, file=paste('figures/abs_diff_vs_pos_NEA_CAN_', width, '.png', sep=''))
+# png(height=6, width=8, units='in', res=300, file=paste('figures/ld_change_vs_pos_NEA_CAN_runmean', width, '.png', sep=''))
 par(mfrow=c(3,1), mai=c(0.5, 1, 0.2, 0.5))
-datmean[,plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0711', ylim=c(0,1), col=cols[1])]
-datmean[perc0711>0.99 & perc0714>0.99 & percCAN>0.99,points(POSgen/1e6, ABS_DIFF_0711, cex=0.5, col=cols[2])]
-addchroms(datmean)
+bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen/1e6, ld_diff_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='LD change Lof0711', ylim=c(-1,1), col=cols[1])]
+bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99, points(POSgen/1e6, ld_diff_0711, cex=0.5, col=cols[2])]
+addchromsld(bins)
 
 legend('topright', legend=c(paste(width, 'bp moving window average'), 'Outlier shared among all 3 pops'), pch=1, col=cols, bty='n')
 
-datmean[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0714', ylim=c(0,1), col=cols[1])]
-datmean[perc0711>0.99 & perc0714>0.99 & percCAN>0.99,points(POSgen/1e6, ABS_DIFF_0714, cex=0.5, col=cols[2])]
-addchroms(datmean)
+bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen/1e6, ld_diff_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='LD change Lof0714', ylim=c(-1,1), col=cols[1])]
+bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99,points(POSgen/1e6, ld_diff_0714, cex=0.5, col=cols[2])]
+addchromsld(bins)
 
-datmean[,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change CAN', ylim=c(0,1), col=cols[1])]
-datmean[perc0711>0.99 & perc0714>0.99 & percCAN>0.99,points(POSgen/1e6, ABS_DIFF_Can, cex=0.5, col=cols[2])]
-addchroms(datmean)
+bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen/1e6, ld_diff_CAN, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='LD change CAN', ylim=c(-1,1), col=cols[1])]
+bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99, points(POSgen/1e6, ld_diff_CAN, cex=0.5, col=cols[2])]
+addchromsld(bins)
 
 dev.off()

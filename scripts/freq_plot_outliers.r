@@ -213,6 +213,8 @@ saveRDS(dat2, file=filenm2)
 ###########################
 ## rank the outlier regions (see Oziolor et al. 2019 Science)
 ##########################
+datmean <- readRDS('analysis/Frequency_table_ABS_DIFF_runmean1e4.rds'); width='1e4'
+
 outlreg0711 = datmean[,.(CHROM=unique(CHROM), POSmin=min(POSmid), POSmax=max(POSmid), score=sum(ABS_DIFF_0711)), by=cluster0711]
 outlreg0714 = datmean[,.(CHROM=unique(CHROM), POSmin=min(POSmid), POSmax=max(POSmid), score=sum(ABS_DIFF_0714)), by=cluster0714]
 outlregCAN = datmean[,.(CHROM=unique(CHROM), POSmin=min(POSmid), POSmax=max(POSmid), score=sum(ABS_DIFF_Can)), by=clusterCAN]
@@ -221,9 +223,9 @@ setkey(outlreg0711, score)
 setkey(outlreg0714, score)
 setkey(outlregCAN, score)
 
-tail(outlreg0711[CHROM != 'LG01'], 20)
-tail(outlreg0714[CHROM != 'LG01'], 20)
-tail(outlregCAN[CHROM != 'LG01'], 20)
+tail(outlreg0711[CHROM != 'LG01'], 5)
+tail(outlreg0714[CHROM != 'LG01'], 5)
+tail(outlregCAN[CHROM != 'LG01'], 5)
 
 ##########################
 # plot frequency change
