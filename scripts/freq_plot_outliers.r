@@ -139,7 +139,7 @@ datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 	datmean[plot(perc0711, percCAN, cex=0.5, col='#00000005')]
 	
 # group the 1% outliers
-	# find distance among outlier loci
+	# find distance among outlier regions
 	setkey(datmean, CHROM, POSmid)
 	datmean[,dist0711 := as.numeric(NA)] # nearest neighbor at an earlier outlier (measure only to left)
 	datmean[,dist0714 := as.numeric(NA)] # nearest neighbor at an earlier outlier (measure only to left)
@@ -270,22 +270,40 @@ dat2 <- readRDS('analysis/Frequency_table_ABS_DIFF_w_region_outliers_1e4.rds'); 
 # load('analysis/Frequency_table_CAN_runmean1e6.rdata')
 
 
-cols = c('grey', 'purple')
+cols = c('grey', '#e0ecf4', '#9ebcda', '#8856a7') # not outlier, single pop outlier, 2-pop outlier, all pop outlier
 quartz(height=6, width=8)
 # png(height=6, width=8, units='in', res=300, file=paste('figures/abs_diff_vs_pos_NEA_CAN_bylocus_regionoutliers_', width, '.png', sep=''))
 par(mfrow=c(3,1), mai=c(0.5, 1, 0.2, 0.5))
-dat2[region10kb_perc0711<=0.99 | region10kb_perc0714<=0.99 | region10kb_percCAN<=0.99, plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0711', ylim=c(0,1), col=cols[1])]
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.5, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0711', ylim=c(0,1), col=cols[1])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, col=cols[2])] # 1 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0711, cex=0.5, col=cols[4])]
 addchroms(dat2)
 
-legend('topright', legend=c(paste('Not in shared', width, 'bp 1% outlier region'), 'In shared outlier region'), pch=1, col=cols, bty='n')
+legend('topright', legend=c(paste('Not in', width, 'bp 1% outlier region'), 'In single pop outlier region', 'In 2-pop outlier region', 'In 3-pop outlier region'), pch=1, col=cols, bty='n', cex=0.6)
 
-dat2[region10kb_perc0711<=0.99 | region10kb_perc0714<=0.99 | region10kb_percCAN<=0.99,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0714', ylim=c(0,1), col=cols[1])]
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.5, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change Lof0714', ylim=c(0,1), col=cols[1])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.2, col=cols[2])] # 1 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_0714, cex=0.5, col=cols[4])]
 addchroms(dat2)
 
-dat2[region10kb_perc0711<=0.99 | region10kb_perc0714<=0.99 | region10kb_percCAN<=0.99,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change CAN', ylim=c(0,1), col=cols[1])]
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.5, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Freq change CAN', ylim=c(0,1), col=cols[1])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, col=cols[2])] # 1 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.5, col=cols[3])]  # 2 pop
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen/1e6, ABS_DIFF_Can, cex=0.5, col=cols[4])]
 addchroms(dat2)
 
 dev.off()
