@@ -1,4 +1,4 @@
-# compare LD near outlier loci and near non-outlier loci
+# compare LD near outlier loci and near non-outlier loci (as defined by WFS Null model)
 # modified for 2019_03_18 data
 
 # flags
