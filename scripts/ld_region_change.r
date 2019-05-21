@@ -23,7 +23,7 @@ addchromsld <- function(dat, at=-1){
 
 
 ######################
-# calculate LD decay
+# calculate LD change
 ######################
 
 # read in locus data for one population
