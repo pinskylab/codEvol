@@ -29,10 +29,10 @@ setnames(dat40, 3:4, c('N_SNPS_40', 'TajimaD_40'))
 setnames(datMod, 3:4, c('N_SNPS_Mod', 'TajimaD_Mod'))
 
 # merge
-bins <- merge(dat14, dat11, by=c('CHROM', 'BIN_START'))
-bins <- merge(bins, dat07, by=c('CHROM', 'BIN_START'))
-bins <- merge(bins, dat40, by=c('CHROM', 'BIN_START'))
-bins <- merge(bins, datMod, by=c('CHROM', 'BIN_START'))
+bins <- merge(dat14, dat11, by=c('CHROM', 'BIN_START'), all=TRUE)
+bins <- merge(bins, dat07, by=c('CHROM', 'BIN_START'), all=TRUE)
+bins <- merge(bins, dat40, by=c('CHROM', 'BIN_START'), all=TRUE)
+bins <- merge(bins, datMod, by=c('CHROM', 'BIN_START'), all=TRUE)
 
 # calculate change
 bins[,D_diff_0711:=TajimaD_11-TajimaD_07]
