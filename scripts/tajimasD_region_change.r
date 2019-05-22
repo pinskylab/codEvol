@@ -210,7 +210,7 @@ bins[CHROM %in% chrs$CHROM[seq(2, nrow(chrs),by=2)], lgcol := 'grey60']
 
 cols = c('grey', 'purple', 'red')
 quartz(height=6, width=8)
-# png(height=6, width=8, units='in', res=300, file=paste('figures/TajimasD_change_vs_pos_NEA_CAN_runmean', width, '.png', sep=''))
+# png(height=6, width=8, units='in', res=300, file=paste('figures/D_change_vs_pos_NEA_CAN_runmean', width, '.png', sep=''))
 par(mfrow=c(3,1), mai=c(0.3, 0.7, 0.1, 0.5), mgp=c(3.2, 0.6, 0), las=1, tcl=-0.3)
 bins[(D_region10kb_perc0711<=0.995 | D_region10kb_perc0714<=0.995 | D_region10kb_percCAN<=0.995) & (D_region10kb_perc0711>=0.005 | D_region10kb_perc0714>=0.005 | D_region10kb_percCAN>=0.005), plot(POSgen, D_diff_0711, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='D change Lof0711', col=lgcol, las=1)]
 bins[D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995, points(POSgen, D_diff_0711, cex=0.5, col=cols[2])]
