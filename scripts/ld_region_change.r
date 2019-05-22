@@ -1,30 +1,13 @@
 # average LD within windows and calculate change through time
 
-#require(data.table)
-require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
-
-width <- 1e4; stp <- 1e4; windsz='1e4'# window parameters
-
-##### 
-# functions
-######
-
-addchromsld <- function(dat, at=-1){
-	col='black'
-	lgs <- sort(unique(dat[,CHR]))
-	for(j in 1:length(lgs)){
-		rng <- range(dat[CHR==lgs[j], POSgen])
-		if(j %% 2 == 0) lines(x=rng/1e6, y=c(at,at), col=col, lwd=2, lend=2)
-		if(j %% 2 == 1) lines(x=rng/1e6, y=c(at+0.02,at+0.02), col=col, lwd=2, lend=2)
-		text(x=mean(rng/1e6), y=at+0.03, labels=lgs[j], col=col, cex=0.5)
-	}
-}
-
-
 
 ######################
 # calculate LD change
+# run on cod node
 ######################
+require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
+
+width <- 1e4; stp <- 1e4; windsz='1e4'# window parameters
 
 # read in locus data for one population
 datloc <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(datloc, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
@@ -47,28 +30,28 @@ setnames(datMod, 5, 'r2')
 datmean <- data.table(CHROM=character(), POSmid=numeric())
 chroms <- datloc[,unique(CHROM)]
 for(i in 1:length(chroms)){
-	temp <- data.table(CHROM=chroms[i], POSmid=seq(0, datloc[CHROM==chroms[i], max(POS)], by=stp))
+	temp <- data.table(CHROM=chroms[i], POSmid=seq(width/2, datloc[CHROM==chroms[i], max(POS)], by=stp))
 	datmean <- rbind(datmean, temp)
 }
-nrow(datmean) # 64429
+nrow(datmean) # 64418
 
 # round POS1 and POS2 to nearest window midpoint, once for each step in width
 for(j in 1:(width/stp)){
 	nm <- paste('POS1mid', j, sep='') # create column name
 	for(i in 1:length(chroms)){
-		dat14[CHR==chroms[i], eval(nm):=floor((POS1+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		dat11[CHR==chroms[i], eval(nm):=floor((POS1+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		dat07[CHR==chroms[i], eval(nm):=floor((POS1+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		dat40[CHR==chroms[i], eval(nm):=floor((POS1+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		datMod[CHR==chroms[i], eval(nm):=floor((POS1+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
+		dat14[CHR==chroms[i], eval(nm):=floor((POS1+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		dat11[CHR==chroms[i], eval(nm):=floor((POS1+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		dat07[CHR==chroms[i], eval(nm):=floor((POS1+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		dat40[CHR==chroms[i], eval(nm):=floor((POS1+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		datMod[CHR==chroms[i], eval(nm):=floor((POS1+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
 	}
 	nm <- paste('POS2mid', j, sep='') # create column name
 	for(i in 1:length(chroms)){
-		dat14[CHR==chroms[i], eval(nm):=floor((POS2+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		dat11[CHR==chroms[i], eval(nm):=floor((POS2+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		dat07[CHR==chroms[i], eval(nm):=floor((POS2+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		dat40[CHR==chroms[i], eval(nm):=floor((POS2+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
-		datMod[CHR==chroms[i], eval(nm):=floor((POS2+width/2-(j-1)*stp)/width)*width+(j-1)*stp]
+		dat14[CHR==chroms[i], eval(nm):=floor((POS2+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		dat11[CHR==chroms[i], eval(nm):=floor((POS2+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		dat07[CHR==chroms[i], eval(nm):=floor((POS2+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		dat40[CHR==chroms[i], eval(nm):=floor((POS2+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
+		datMod[CHR==chroms[i], eval(nm):=floor((POS2+(j-1)*stp)/width)*width+(j-1)*stp+width/2]
 	}
 }
 posnms <- grep('POS[[:digit:]]mid', colnames(dat14), value=TRUE) # get column names created
@@ -89,10 +72,15 @@ setkey(bins40, CHR, POS1mid1)
 setkey(binsMod, CHR, POS1mid1)
 
 # merge
-bins <- merge(bins14, bins11, by=c('CHR', 'POS1mid1'))
-bins <- merge(bins, bins07, by=c('CHR', 'POS1mid1'))
-bins <- merge(bins, bins40, by=c('CHR', 'POS1mid1'))
-bins <- merge(bins, binsMod, by=c('CHR', 'POS1mid1'))
+bins <- merge(bins14, bins11, by=c('CHR', 'POS1mid1'), all=TRUE)
+bins <- merge(bins, bins07, by=c('CHR', 'POS1mid1'), all=TRUE)
+bins <- merge(bins, bins40, by=c('CHR', 'POS1mid1'), all=TRUE)
+bins <- merge(bins, binsMod, by=c('CHR', 'POS1mid1'), all=TRUE)
+
+nrow(bins)
+
+# add BIN_START
+bins[,BIN_START:=POS1mid1 - width/2]
 
 # calculate change
 bins[,ld_diff_0711:=r2ave_11-r2ave_07]
@@ -200,31 +188,38 @@ tail(outlregCAN, 5)
 ###########################################
 # plot LD change from regions
 ###########################################
+require(data.table)
+
 # 1e4
 bins <- readRDS('analysis/ld_change_region_1e4.rds'); width='1e4'
 
-# 1e6
-# NOTE: loads dat14mean and dat11mean, without _25k or _150k suffixes
-# load('analysis/Frequency_table_Lof07_Lof14_runmean1e6.rdata'); load('analysis/Frequency_table_Lof07_Lof11_runmean1e6.rdata'); ylims=c(0,0.15); width='1e6'
-# load('analysis/Frequency_table_CAN_runmean1e6.rdata')
+# create chromosome labels from an approximate midpoint
+chrs <- bins[, .(pos=mean(POSgen)), by=CHR]
+
+# add a vector for color by LG
+bins[,lgcol := 'grey40']
+bins[CHR %in% chrs$CHR[seq(2, nrow(chrs),by=2)], lgcol := 'grey60']
 
 
 cols = c('grey', 'purple')
 quartz(height=6, width=8)
 # png(height=6, width=8, units='in', res=300, file=paste('figures/ld_change_vs_pos_NEA_CAN_runmean', width, '.png', sep=''))
-par(mfrow=c(3,1), mai=c(0.5, 1, 0.2, 0.5))
-bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen/1e6, ld_diff_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='LD change Lof0711', ylim=c(-1,1), col=cols[1])]
-bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99, points(POSgen/1e6, ld_diff_0711, cex=0.5, col=cols[2])]
-addchromsld(bins)
+par(mfrow=c(3,1), mai=c(0.3, 0.7, 0.1, 0.5), mgp=c(3.2, 0.6, 0), las=1, tcl=-0.3)
+bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen, ld_diff_0711, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='LD change Lof0711', ylim=c(-1,1), col=lgcol, las=1)]
+bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99, points(POSgen, ld_diff_0711, cex=0.5, col=cols[2])]
+
+axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHR), tcl=-0.3, cex.axis=0.7)
 
 legend('topright', legend=c(paste(width, 'bp moving window average'), 'Outlier shared among all 3 pops'), pch=1, col=cols, bty='n')
 
-bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen/1e6, ld_diff_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='LD change Lof0714', ylim=c(-1,1), col=cols[1])]
-bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99,points(POSgen/1e6, ld_diff_0714, cex=0.5, col=cols[2])]
-addchromsld(bins)
+bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen, ld_diff_0714, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='LD change Lof0714', ylim=c(-1,1), col=lgcol, las=1)]
+bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99,points(POSgen, ld_diff_0714, cex=0.5, col=cols[2])]
 
-bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen/1e6, ld_diff_CAN, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='LD change CAN', ylim=c(-1,1), col=cols[1])]
-bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99, points(POSgen/1e6, ld_diff_CAN, cex=0.5, col=cols[2])]
-addchromsld(bins)
+axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHR), tcl=-0.3, cex.axis=0.7)
+
+bins[ld_region10kb_perc0711<=0.99 | ld_region10kb_perc0714<=0.99 | ld_region10kb_percCAN<=0.99, plot(POSgen, ld_diff_CAN, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='LD change CAN', ylim=c(-1,1), col=lgcol, las=1)]
+bins[ld_region10kb_perc0711>0.99 & ld_region10kb_perc0714>0.99 & ld_region10kb_percCAN>0.99, points(POSgen, ld_diff_CAN, cex=0.5, col=cols[2])]
+
+axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHR), tcl=-0.3, cex.axis=0.7)
 
 dev.off()
