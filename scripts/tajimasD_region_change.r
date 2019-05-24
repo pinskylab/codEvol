@@ -1,15 +1,13 @@
 # calculate Tajima's D change through time
 
-# require(data.table)
-require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
-
-width <- 1e4; stp <- 1e4; windsz='1e4'# window parameters
-
-
 
 ######################
 # calculate Tajima's D change
+# on cod node
 ######################
+require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
+
+width <- 1e4; stp <- 1e4; windsz='1e4'# window parameters
 
 # read in locus data for one population
 datloc <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(datloc, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
@@ -37,6 +35,7 @@ bins <- merge(bins, datMod, by=c('CHROM', 'BIN_START'), all=TRUE)
 # calculate change
 bins[,D_diff_0711:=TajimaD_11-TajimaD_07]
 bins[,D_diff_0714:=TajimaD_14-TajimaD_07]
+bins[,D_diff_1114:=TajimaD_14-TajimaD_11]
 bins[,D_diff_CAN:=TajimaD_Mod-TajimaD_40]
 
 # make a nucleotide position for the whole genome (start position for each chr)
@@ -194,6 +193,7 @@ tail(outlregCAN, 5)
 
 ###########################################
 # plot D change from regions
+# on personal computer
 ###########################################
 require(data.table)
 
@@ -209,27 +209,36 @@ bins[CHROM %in% chrs$CHROM[seq(2, nrow(chrs),by=2)], lgcol := 'grey60']
 
 
 cols = c('grey', 'purple', 'red')
-quartz(height=6, width=8)
-# png(height=6, width=8, units='in', res=300, file=paste('figures/TajimasD_change_vs_pos_NEA_CAN_runmean', width, '.png', sep=''))
-par(mfrow=c(3,1), mai=c(0.3, 0.7, 0.1, 0.5), mgp=c(3.2, 0.6, 0), las=1, tcl=-0.3)
-bins[(D_region10kb_perc0711<=0.995 | D_region10kb_perc0714<=0.995 | D_region10kb_percCAN<=0.995) & (D_region10kb_perc0711>=0.005 | D_region10kb_perc0714>=0.005 | D_region10kb_percCAN>=0.005), plot(POSgen, D_diff_0711, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='D change Lof0711', col=lgcol, las=1)]
-bins[D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995, points(POSgen, D_diff_0711, cex=0.5, col=cols[2])]
-bins[D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005, points(POSgen, D_diff_0711, cex=0.5, col=cols[3])]
+ylims <- bins[,range(c(D_diff_0711, D_diff_0714, D_diff_CAN, D_diff_1114), na.rm=TRUE)]
+quartz(height=8, width=8)
+# png(height=8, width=8, units='in', res=300, file=paste('figures/TajimasD_change_vs_pos_NEA_CAN_runmean', width, '.png', sep=''))
+par(mfrow=c(4,1), mai=c(0.3, 0.7, 0.1, 0.5), mgp=c(3.2, 0.6, 0), las=1, tcl=-0.3)
+bins[D_region10kb_perc0711<=0.995 & D_region10kb_perc0711>=0.005, plot(POSgen, D_diff_0711, type='p', cex=0.2, xaxt='n', xlab='', ylab='D change Lof0711', col=lgcol, las=1, ylim=ylims)]
+bins[D_region10kb_perc0711>0.995 | D_region10kb_perc0711<0.005 & !(D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995) & !(D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005), points(POSgen, D_diff_0711, cex=0.5, col=cols[2])]
+bins[(D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995) | (D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005), points(POSgen, D_diff_0711, cex=0.5, col=cols[3])]
 
 axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
 
-legend('topright', legend=c(paste(width, 'bp moving window average'), '+Outlier shared among all 3 pops', '-Outlier shared among all 3 pops'), pch=1, col=cols, bty='n')
+legend('topright', legend=c(paste(width, 'bp moving window average'), 'Outlier in single comparison', 'Outlier shared among 07-11, 07-14, and CAN'), pch=1, col=cols, bty='n')
 
-bins[(D_region10kb_perc0711<=0.995 | D_region10kb_perc0714<=0.995 | D_region10kb_percCAN<=0.995) & (D_region10kb_perc0711>=0.005 | D_region10kb_perc0714>=0.005 | D_region10kb_percCAN>=0.005), plot(POSgen, D_diff_0714, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='D change Lof0714', col=lgcol, las=1)]
-bins[D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995,points(POSgen, D_diff_0714, cex=0.5, col=cols[2])]
-bins[D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005, points(POSgen, D_diff_0714, cex=0.5, col=cols[3])]
+bins[D_region10kb_perc0714<=0.995 & D_region10kb_perc0714>=0.005, plot(POSgen, D_diff_0714, type='p', cex=0.2, xaxt='n', xlab='', ylab='D change Lof0714', col=lgcol, las=1, ylim=ylims)]
+bins[D_region10kb_perc0714>0.995 | D_region10kb_perc0714<0.005 & !(D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995) & !(D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005), points(POSgen, D_diff_0714, cex=0.5, col=cols[2])]
+bins[(D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995) | (D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005), points(POSgen, D_diff_0714, cex=0.5, col=cols[3])]
+
+axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
+
+bins[D_region10kb_percCAN<=0.995 & D_region10kb_percCAN>=0.005, plot(POSgen, D_diff_CAN, type='p', cex=0.2, xaxt='n', xlab='', ylab='D change CAN', col=lgcol, las=1, ylim=ylims)]
+bins[D_region10kb_percCAN>0.995 | D_region10kb_percCAN<0.005 & !(D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995) & !(D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005), points(POSgen, D_diff_CAN, cex=0.5, col=cols[2])]
+bins[(D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995) | (D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005), points(POSgen, D_diff_CAN, cex=0.5, col=cols[3])]
 
 axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
 
-bins[D_region10kb_perc0711<=0.99 | D_region10kb_perc0714<=0.99 | D_region10kb_percCAN<=0.99, plot(POSgen, D_diff_CAN, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='D change CAN', col=lgcol, las=1)]
-bins[D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995, points(POSgen, D_diff_CAN, cex=0.5, col=cols[2])]
-bins[D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005, points(POSgen, D_diff_CAN, cex=0.5, col=cols[3])]
+bins[D_region10kb_perc0711<=0.995 & D_region10kb_perc0714<=0.995 & D_region10kb_percCAN<=0.995 & D_region10kb_perc0711>=0.005 & D_region10kb_perc0714>=0.005 & D_region10kb_percCAN>=0.005, plot(POSgen, D_diff_1114, type='p', cex=0.2, xaxt='n', xlab='', ylab='D change 1114', col=lgcol, las=1, ylim=ylims)]
+bins[D_region10kb_perc0711>0.995 | D_region10kb_perc0714>0.995 | D_region10kb_percCAN>0.995 | D_region10kb_perc0711<0.005 | D_region10kb_perc0714<0.005 | D_region10kb_percCAN<0.005, points(POSgen, D_diff_1114, cex=0.2, col=cols[2])]
+bins[(D_region10kb_perc0711>0.995 & D_region10kb_perc0714>0.995 & D_region10kb_percCAN>0.995) | (D_region10kb_perc0711<0.005 & D_region10kb_perc0714<0.005 & D_region10kb_percCAN<0.005), points(POSgen, D_diff_1114, cex=0.5, col=cols[3])]
 
 axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
+
+legend('topright', legend=c(paste(width, 'bp moving window average'), 'Outlier in 07-11, 07-14, or CAN', 'Outlier shared among 07-11, 07-14, and CAN'), pch=1, col=cols, bty='n')
 
 dev.off()
