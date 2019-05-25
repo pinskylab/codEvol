@@ -1,6 +1,7 @@
 # Compare freq change, LD change, Tajima's D change, pi change
 
 require(data.table)
+require(vioplot)
 
 ################################
 # read in data
@@ -215,10 +216,10 @@ dev.off()
 # Find outlier regions
 #####################
 
-# regions with large frequency change and large increase in LD
-bins[,freqLD0711 := freq_region10kb_perc0711 + ld_region10kb_perc0711]
-bins[,freqLD0714 := freq_region10kb_perc0714 + ld_region10kb_perc0714]
-bins[,freqLDCAN := freq_region10kb_percCAN + ld_region10kb_percCAN]
+#### regions with large frequency change and large increase in LD
+	bins[,freqLD0711 := freq_region10kb_perc0711 + ld_region10kb_perc0711]
+	bins[,freqLD0714 := freq_region10kb_perc0714 + ld_region10kb_perc0714]
+	bins[,freqLDCAN := freq_region10kb_percCAN + ld_region10kb_percCAN]
 	
 	# 07-11
 	setkey(bins, freqLD0711); bins[freq_region10kb_perc0711>0.99 & ld_region10kb_perc0711>0.99,.(CHROM, BIN_START, freq_diff_0711, ld_diff_0711, freqLD0711, freq_region10kb_perc0711, ld_region10kb_perc0711)]
@@ -240,22 +241,141 @@ bins[,freqLDCAN := freq_region10kb_percCAN + ld_region10kb_percCAN]
 	# write out a selection of highly ranked loci
 	setkey(bins, CHROM, BIN_START)
 
-	write.csv(bins[(freq_region10kb_perc0711>0.99 & ld_region10kb_perc0711>0.99) | (freq_region10kb_perc0714>0.99 & ld_region10kb_perc0714>0.99) | (freq_region10kb_percCAN>0.99 & ld_region10kb_percCAN>0.99), .(CHROM, BIN_START, BIN_END=BIN_START+wd, freqLD0711, freqLD0714, freqLDCAN, freq_diff_0711, freq_diff_0714, freq_diff_CAN, ld_diff_0711, ld_diff_0714, ld_diff_CAN)], file='analysis/outlier_10kregions_freqLD_07-11-14_Can.csv')
+	write.csv(bins[(freq_region10kb_perc0711>0.99 & ld_region10kb_perc0711>0.99) | (freq_region10kb_perc0714>0.99 & ld_region10kb_perc0714>0.99) | (freq_region10kb_percCAN>0.99 & ld_region10kb_percCAN>0.99), .(CHROM, BIN_START, BIN_END=BIN_START+wd, outlier0711=(freq_region10kb_perc0711>0.99 & ld_region10kb_perc0711>0.99), outlier0714=(freq_region10kb_perc0714>0.99 & ld_region10kb_perc0714>0.99), outlierCAN=(freq_region10kb_percCAN>0.99 & ld_region10kb_percCAN>0.99), freq_diff_0711, freq_diff_0714, freq_diff_CAN, ld_diff_0711, ld_diff_0714, ld_diff_CAN)], file='analysis/outlier_10kregions_freqLD_07-11-14_Can.csv', row.names=FALSE)
 	
 	
-# rank the outlier regions based in clustering them together (see Oziolor et al. 2019 Science)
-outlreg0711 = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_0711)), by=freq_region10kb_cluster0711]
-outlreg0714 = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_0714)), by=freq_region10kb_cluster0714]
-outlregCAN = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_CAN)), by=freq_region10kb_clusterCAN]
+#### rank the outlier regions based in clustering the frequency changes together (see Oziolor et al. 2019 Science)
+	outlreg0711 = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_0711)), by=freq_region10kb_cluster0711]
+	outlreg0714 = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_0714)), by=freq_region10kb_cluster0714]
+	outlregCAN = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_CAN)), by=freq_region10kb_clusterCAN]
 
-setkey(outlreg0711, score)
-setkey(outlreg0714, score)
-setkey(outlregCAN, score)
+	setkey(outlreg0711, score)
+	setkey(outlreg0714, score)
+	setkey(outlregCAN, score)
 
-outlreg0711[,sort(unique(WIDTH))] # cluster width always 10kb
-outlreg0714[,sort(unique(WIDTH))]
-outlregCAN[,sort(unique(WIDTH))]
+	outlreg0711[,sort(unique(WIDTH))] # cluster width always 10kb
+	outlreg0714[,sort(unique(WIDTH))]
+	outlregCAN[,sort(unique(WIDTH))]
 
-tail(outlreg0711, 10)
-tail(outlreg0714, 10)
-tail(outlregCAN, 10)
+	tail(outlreg0711, 10)
+	tail(outlreg0714, 10)
+	tail(outlregCAN, 10)
+
+#### rank outlier regions based on shared change in allele frequency across populations
+	
+	# LD change
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN, ld_diff_0711, ld_diff_0714, ld_diff_CAN)]
+
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(mean0711=mean(ld_diff_0711, na.rm=TRUE), se0711=sd(ld_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0714=mean(ld_diff_0714, na.rm=TRUE), se0714=sd(ld_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(ld_diff_CAN, na.rm=TRUE), seCAN=sd(ld_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # in outlier regions
+	bins[, .(mean0711=mean(ld_diff_0711, na.rm=TRUE), se0711=sd(ld_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0714=mean(ld_diff_0714, na.rm=TRUE), se0714=sd(ld_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(ld_diff_CAN, na.rm=TRUE), seCAN=sd(ld_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # genome-wide for comparison
+	
+		# simple plot
+		quartz(height=5, width=9)
+		vioplot(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, ld_diff_0711], 
+			bins[,ld_diff_0711],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, ld_diff_0714], 
+			bins[,ld_diff_0714],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, ld_diff_CAN], 
+			bins[,ld_diff_CAN],
+			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
+			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
+			ylab="Change in LD",
+			main='Regions that are 99% frequency change outliers in all three comparisons')
+		abline(h=0, lty=2, col='grey')
+		
+
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, ld_diff_0711], bins[,ld_diff_0711])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, ld_diff_0714], bins[,ld_diff_0714])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, ld_diff_CAN], bins[,ld_diff_CAN])
+
+	# abs(LD change)
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(mean0711=mean(abs(ld_diff_0711), na.rm=TRUE), se0711=sd(abs(ld_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0711=mean(abs(ld_diff_0714), na.rm=TRUE), se0714=sd(abs(ld_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(abs(ld_diff_CAN), na.rm=TRUE), seCAN=sd(abs(ld_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # in outlier regions
+	bins[, .(mean0711=mean(abs(ld_diff_0711), na.rm=TRUE), se0711=sd(abs(ld_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0711=mean(abs(ld_diff_0714), na.rm=TRUE), se0714=sd(abs(ld_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(abs(ld_diff_CAN), na.rm=TRUE), seCAN=sd(abs(ld_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # genome-wide for comparison
+	
+		# simple plot
+		quartz(height=5, width=9)
+		vioplot(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(ld_diff_0711)], 
+			bins[,abs(ld_diff_0711)],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(ld_diff_0714)], 
+			bins[,abs(ld_diff_0714)],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(ld_diff_CAN)], 
+			bins[,abs(ld_diff_CAN)],
+			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
+			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
+			ylab="abs(Change in LD)",
+			main='Regions that are 99% frequency change outliers in all three comparisons')
+		abline(h=0, lty=2, col='grey')
+
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(ld_diff_0711)], bins[,abs(ld_diff_0711)])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(ld_diff_0714)], bins[,abs(ld_diff_0714)])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(ld_diff_CAN)], bins[,abs(ld_diff_CAN)])
+		
+	# Tajima's D change
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN, D_diff_0711, D_diff_0714, D_diff_CAN)]
+
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(mean0711=mean(D_diff_0711, na.rm=TRUE), se0711=sd(D_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(D_diff_0714, na.rm=TRUE), se0714=sd(D_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(D_diff_CAN, na.rm=TRUE), seCAN=sd(D_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # in outlier regions
+	bins[, .(mean0711=mean(D_diff_0711, na.rm=TRUE), se0711=sd(D_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(D_diff_0714, na.rm=TRUE), se0714=sd(D_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(D_diff_CAN, na.rm=TRUE), seCAN=sd(D_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # genome-wide for comparison
+	
+		# simple plot
+		quartz(height=5, width=9)
+		# pdf(height=5, width=9, file='figures/region_change_shared_freq_outliers_Dchange.pdf')
+		vioplot(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, D_diff_0711], 
+			bins[,D_diff_0711],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, D_diff_0714], 
+			bins[,D_diff_0714],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, D_diff_CAN], 
+			bins[,D_diff_CAN],
+			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
+			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
+			ylab="Change in Tajima's D",
+			main='Regions that are 99% frequency change outliers in all three comparisons')
+		abline(h=0, lty=2, col='grey')
+		
+		dev.off()
+
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, D_diff_0711], bins[,D_diff_0711])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, D_diff_0714], bins[,D_diff_0714])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, D_diff_CAN], bins[,D_diff_CAN])
+
+	
+
+	# abs(Tajima's D change)
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(mean0711=mean(abs(D_diff_0711), na.rm=TRUE), se0711=sd(abs(D_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(abs(D_diff_0714), na.rm=TRUE), se0714=sd(abs(D_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(abs(D_diff_CAN), na.rm=TRUE), seCAN=sd(abs(D_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # in outlier regions
+	bins[, .(mean0711=mean(abs(D_diff_0711), na.rm=TRUE), se0711=sd(abs(D_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(abs(D_diff_0714), na.rm=TRUE), se0714=sd(abs(D_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(abs(D_diff_CAN), na.rm=TRUE), seCAN=sd(abs(D_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # genome-wide for comparison
+	
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(D_diff_0711)], bins[,abs(D_diff_0711)])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(D_diff_0714)], bins[,abs(D_diff_0714)])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, abs(D_diff_CAN)], bins[,abs(D_diff_CAN)])
+
+	# Pi change
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN, pi_diff_0711, pi_diff_0714, pi_diff_CAN)]
+
+	bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(mean0711=mean(pi_diff_0711, na.rm=TRUE), se0711=sd(pi_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0711))), mean0711=mean(pi_diff_0714, na.rm=TRUE), se0714=sd(pi_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0714))), meanCAN=mean(pi_diff_CAN, na.rm=TRUE), seCAN=sd(pi_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_CAN))))] # in outlier regions
+	bins[, .(mean0711=mean(pi_diff_0711, na.rm=TRUE), se0711=sd(pi_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0711))), mean0711=mean(pi_diff_0714, na.rm=TRUE), se0714=sd(pi_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0714))), meanCAN=mean(pi_diff_CAN, na.rm=TRUE), seCAN=sd(pi_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_CAN))))] # genome-wide for comparison
+	
+		# simple plot
+		quartz(height=5, width=9)
+		# pdf(height=5, width=9, file='figures/region_change_shared_freq_outliers_pichange.pdf')
+		vioplot(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, pi_diff_0711], 
+			bins[,pi_diff_0711],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, pi_diff_0714], 
+			bins[,pi_diff_0714],
+			bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, pi_diff_CAN], 
+			bins[,pi_diff_CAN],
+			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
+			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
+			ylab="Change in pi",
+			main='Regions that are 99% frequency change outliers in all three comparisons')
+		abline(h=0, lty=2, col='grey')
+		
+		dev.off()
+
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, pi_diff_0711], bins[,pi_diff_0711])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, pi_diff_0714], bins[,pi_diff_0714])
+	t.test(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, pi_diff_CAN], bins[,pi_diff_CAN])
+
+
+	# write out a selection of highly ranked loci
+	setkey(bins, CHROM, BIN_START)
+
+	write.csv(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd)], file='analysis/outlier_10kregions_freqshared_07-11-14_Can.csv', row.names=FALSE)
