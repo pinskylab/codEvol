@@ -22,9 +22,17 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 # read and prep in data
 #####################
 
+# 2019-03 data
 dat14 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
 dat11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
 datCAN <- fread('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF_Can')) # for Canada
+
+# 2019-06 data: trimmed by individual depth (>=7) and for loci genotyped in >=80% of individuals
+dat14 <- fread('data_2019_06_06/DP7_Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
+dat11 <- fread('data_2019_06_06/DP7_Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
+datCAN <- fread('data_2019_06_06/DP7_Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF_Can')) # for Canada
+
+
 	nrow(dat11)
 	nrow(dat14)
 	nrow(datCAN)
@@ -89,6 +97,11 @@ for(j in 1:(width/stp)){
 }
 posnms <- grep('POSmid', colnames(dat), value=TRUE) # get column names created
 	posnms
+	
+# how many SNPs per window?
+dat[,range(table(POSmid1))] # 1 to 115 SNPs per window
+	dat[,hist(table(POSmid1), breaks=0:120)] # 1 to 115 SNPs per window
+
 
 # calculate moving window means
 datmean <- data.table(CHROM=character(), POSmid=numeric(), ABS_DIFF_0711=numeric(), ABS_DIFF_0714=numeric(), ABS_DIFF_Can=numeric())
@@ -124,6 +137,7 @@ datmean[,perc0714 := ecdf0714(ABS_DIFF_0714)]
 datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 
 	# examine
+	datmean[perc0711>0.99 & perc0714>0.99 & percCAN>0.99,]
 	datmean[perc0711>0.999 & perc0714>0.999 & percCAN>0.999,]
 	
 	datmean[plot(perc0711, perc0714, cex=0.5, col='#00000005')]
@@ -180,6 +194,10 @@ datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 		}
 	}
 
+	# examine
+	datmean[,range(table(cluster0711))] # all clusters only 1 window wide
+	datmean[,range(table(cluster0714))] # all clusters only 1 window wide
+	datmean[,range(table(clusterCAN))] # all clusters only 1 window wide
 	
 
 # save region means data
@@ -200,6 +218,12 @@ filenm2 <- paste('analysis/Frequency_table_ABS_DIFF_w_region_outliers_', windsz,
 filenm2
 saveRDS(dat2, file=filenm2)
 
+# write out plot of SNPs/window histogram
+quartz(height=5, width=5)
+# png(height=5, width=5, units='in', res=300, file='figures/window_snps_histogram.png')
+	dat[,hist(table(POSmid1), breaks=0:120, xlab='SNPs/window', main=paste('window size', windsz))] # 1 to 115 SNPs per window
+
+	dev.off()
 
 ###########################
 ## rank the outlier regions (see Oziolor et al. 2019 Science)
@@ -223,26 +247,33 @@ tail(outlregCAN[CHROM != 'LG01'], 5)
 # no smoothing
 ##########################
 
-cols = c('black', 'blue', 'red')
-#dat14[,plot(POSgen, ABS_DIFF, pch=16, cex=0.3)]
+# create chromosome labels from an approximate midpoint
+chrs <- dat[, .(pos=mean(POSgen)), by=CHROM]
+
+# add a vector for color by LG
+dat[,lgcol := 1]
+dat[CHROM %in% chrs$CHROM[seq(2, nrow(chrs),by=2)], lgcol := 2]
+
+cols1 = c('grey40', 'grey60') # alternating colors for lgs
+cols2 = c('#80cdc1', '#018571')
+cols3 = c('#dfc27d', '#a6611a')
+
+ylims <- c(0, dat[,max(ABS_DIFF_0714, ABS_DIFF_0711, ABS_DIFF_Can, na.rm=TRUE)])
+
 quartz(height=12, width=8)
 # png(height=12, width=8, units='in', res=300, file='figures/abs_diff_vs_pos_NEA_CAN_raw.png')
 par(mfrow=c(4,1), mai=c(0.5, 1, 0.2, 0.5))
-dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
-dat11[,points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, lwd=0.3, col=cols[2])]
-datCAN[,points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, lwd=0.3, col=cols[3])]
+dat[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=ylims, col=cols1[lgcol])]
+dat[,points(POSgen/1e6, ABS_DIFF_0711, cex=0.2, lwd=0.3, col=cols2[lgcol])]
+dat[,points(POSgen/1e6, ABS_DIFF_Can, cex=0.2, lwd=0.3, col=cols3[lgcol])]
 
-addchroms(dat14)
-legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada'), lwd=1, col=cols, bty='n', cex=0.5)
+legend('topright', legend=c('NEA 1907-2014', 'NEA 1907-2011', 'Canada'), pch=1, col=c(cols1[1], cols2[1], cols3[1]), bty='n', cex=0.5)
 
-dat14[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[1])]
-addchroms(dat14)
+dat[,plot(POSgen/1e6, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=ylims, col=cols1[lgcol])]
 
-dat11[,plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[2])]
-addchroms(dat14)
+dat[,plot(POSgen/1e6, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=ylims, col=cols2[lgcol])]
 
-datCAN[,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=c(0,1), col=cols[3])]
-addchroms(dat14)
+dat[,plot(POSgen/1e6, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xlab='Position (Mb)', ylab='Allele frequency change', ylim=ylims, col=cols3[lgcol])]
 
 
 dev.off()
@@ -264,43 +295,44 @@ chrs <- dat2[, .(pos=mean(POSgen)), by=CHROM]
 dat2[,lgcol := 'grey40']
 dat2[CHROM %in% chrs$CHROM[seq(2, nrow(chrs),by=2)], lgcol := 'grey60']
 
+ylims <- c(0, dat2[,max(ABS_DIFF_0714, ABS_DIFF_0711, ABS_DIFF_Can, na.rm=TRUE)])
 
-cols = c('grey', '#e0ecf4', '#9ebcda', '#8856a7') # not outlier, single pop outlier, 2-pop outlier, all pop outlier
+cols = c('grey', '#a6dba0', '#008837', 'red') # not outlier, single pop outlier, 2-pop outlier, all pop outlier
 quartz(height=6, width=8)
 # png(height=6, width=8, units='in', res=300, file=paste('figures/abs_diff_vs_pos_NEA_CAN_bylocus_regionoutliers_', width, '.png', sep=''))
 par(mfrow=c(3,1), mai=c(0.3, 0.7, 0.1, 0.5), mgp=c(3.2, 0.6, 0), las=1, tcl=-0.3)
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, plot(POSgen, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change Lof0711', ylim=c(0,1), col=lgcol, las=1)]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, plot(POSgen, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change Lof0711', ylim=ylims, col=lgcol, las=1)]
 dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0711, cex=0.2, col=cols[2])] # 1 pop
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0711, cex=0.2, col=cols[2])]
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0711, cex=0.2, col=lgcol)]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.2, col=lgcol)]
 dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0711, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.5, col=cols[4])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.5, col=cols[3])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.5, col=lgcol)]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0711, cex=0.5, col=cols[4])] # 3 pop
 
 axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
 
 legend('topright', legend=c(paste('Not in', width, 'bp 1% outlier region'), 'In single pop outlier region', 'In 2-pop outlier region', 'In 3-pop outlier region'), pch=1, col=cols, bty='n', cex=0.6)
 
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99,plot(POSgen, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change Lof0714', ylim=c(0,1), col=lgcol, las=1)]
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0714, cex=0.2, col=cols[2])] # 1 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99,plot(POSgen, ABS_DIFF_0714, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change Lof0714', ylim=ylims, col=lgcol, las=1)]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0714, cex=0.2, col=lgcol)] # 1 pop
 dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0714, cex=0.2, col=cols[2])]
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.2, col=lgcol)]
 dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_0714, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.5, col=cols[4])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.5, col=lgcol)]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.5, col=cols[3])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_0714, cex=0.5, col=cols[4])] # 3 pop
 
 axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
 
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99,plot(POSgen, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change CAN', ylim=c(0,1), col=lgcol, las=1)]
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_Can, cex=0.2, col=cols[2])] # 1 pop
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_Can, cex=0.2, col=cols[2])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99,plot(POSgen, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change CAN', ylim=ylims, col=lgcol, las=1)]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_Can, cex=0.2, col=lgcol)] # 1 pop
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_Can, cex=0.2, col=lgcol)]
 dat2[region10kb_perc0711<=0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_Can, cex=0.2, col=cols[2])]
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[3])]  # 2 pop
-dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[4])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN<=0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=lgcol)]  # 2 pop
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714<=0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[3])]
+dat2[region10kb_perc0711<=0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[3])]
+dat2[region10kb_perc0711>0.99 & region10kb_perc0714>0.99 & region10kb_percCAN>0.99, points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[4])] # 3 pop
 
 axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
 
@@ -408,19 +440,38 @@ dev.off()
 ###############################################
 # plot histogram of allele frequency changes
 ###############################################
+# individual SNPs
+# need dat from above
+
+bks <- seq(0,1,by=0.1)
+cols = c('black', 'blue', 'red')
+
+
+hist0711 <- hist(dat$ABS_DIFF_0711, breaks=bks, plot=FALSE)
+hist0714 <- hist(dat$ABS_DIFF_0714, breaks=bks, plot=FALSE)
+histCAN <- hist(dat$ABS_DIFF_Can, breaks=bks, plot=FALSE)
+
+quartz(height=4, width=4)
+par(las=1)
+plot(hist0711$mids, log10(hist0711$counts), type='l', col=cols[1], xlab='Allele frequency change', ylab='log10(counts)', main='SNPs')
+lines(hist0714$mids, log10(hist0714$counts), col=cols[2])
+lines(histCAN$mids, log10(histCAN$counts), col=cols[3])
+
+
+# 1e4 running mean
 datmean <- readRDS('analysis/Frequency_table_ABS_DIFF_runmean1e4.rds'); width='1e4'
 
 bks <- seq(0,1,by=0.1)
 cols = c('black', 'blue', 'red')
 
 
-hist0711 <- hist(datmean$ABS_DIFF_0711, breaks=bks, plot=FALSE)
-hist0714 <- hist(datmean$ABS_DIFF_0714, breaks=bks, plot=FALSE)
-histCAN <- hist(datmean$ABS_DIFF_Can, breaks=bks, plot=FALSE)
+hist0711reg <- hist(datmean$ABS_DIFF_0711, breaks=bks, plot=FALSE)
+hist0714reg <- hist(datmean$ABS_DIFF_0714, breaks=bks, plot=FALSE)
+histCANreg <- hist(datmean$ABS_DIFF_Can, breaks=bks, plot=FALSE)
 
 quartz(height=4, width=4)
 par(las=1)
-plot(hist0711$mids, log10(hist0711$counts), type='l', col=cols[1], xlab='Allele frequency change', ylab='log10(counts)')
-lines(hist0714$mids, log10(hist0714$counts), col=cols[2])
-lines(histCAN$mids, log10(histCAN$counts), col=cols[3])
+plot(hist0711reg$mids, log10(hist0711reg$counts), type='l', col=cols[1], xlab='Allele frequency change', ylab='log10(counts)')
+lines(hist0714reg$mids, log10(hist0714reg$counts), col=cols[2])
+lines(histCANreg$mids, log10(histCANreg$counts), col=cols[3])
 

@@ -12,7 +12,7 @@ require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node
 width <- 1e4; stp <- 1e4; windsz='1e4'# window parameters
 
 # read in locus data for one population
-datloc <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(datloc, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
+datloc <- fread('data_2019_06_06/DP7_Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(datloc, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
 
 # read in LD data on cod node
 dat14 <- fread('analysis/LOF_S_14_10kb.windowed.pi')
@@ -57,8 +57,8 @@ bins[,pi_region10kb_perc0714 := ecdf0714(pi_diff_0714)]
 bins[,pi_region10kb_percCAN := ecdfCan(pi_diff_CAN)]
 
 	# examine
-	bins[pi_region10kb_perc0711>0.99 & pi_region10kb_perc0714>0.99 & pi_region10kb_percCAN>0.99,]
-	bins[pi_region10kb_perc0711<0.01 & pi_region10kb_perc0714<0.01 & pi_region10kb_percCAN<0.01,]
+	bins[pi_region10kb_perc0711>0.995 & pi_region10kb_perc0714>0.995 & pi_region10kb_percCAN>0.995,]
+	bins[pi_region10kb_perc0711<0.005 & pi_region10kb_perc0714<0.005 & pi_region10kb_percCAN<0.005,]
 		
 # group the 1% outliers (increasing or decreasing)
 	# find distance among increasing outlier regions
@@ -166,6 +166,14 @@ bins[,pi_region10kb_percCAN := ecdfCan(pi_diff_CAN)]
 			if(bins$distCANdec[outls[i+1]]>=width | is.na(bins$distCANdec[outls[i+1]])) indx <- indx+1
 		}
 	}
+
+	# examine
+	bins[,range(table(pi_region10kb_cluster0711))] # all clusters only 1 window wide
+	bins[,range(table(pi_region10kb_cluster0714))] # all clusters only 1 window wide
+	bins[,range(table(pi_region10kb_clusterCAN))] # all clusters only 1 window wide
+	bins[,range(table(pi_region10kb_cluster0711dec))] # all clusters only 1 window wide
+	bins[,range(table(pi_region10kb_cluster0714dec))] # all clusters only 1 window wide
+	bins[,range(table(pi_region10kb_clusterCANdec))] # all clusters only 1 window wide
 
 
 # save region means data
