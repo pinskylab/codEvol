@@ -7,7 +7,7 @@ require(vioplot)
 # read in data
 ################################
 
-wd <- 1e4; width='1e4'
+wd <- 1e4; width='10k'
 freq <- readRDS('analysis/Frequency_table_ABS_DIFF_runmean1e4.rds')
 pi <- readRDS('analysis/pi_change_region_1e4.rds')
 tajd <- readRDS('analysis/tajimasD_change_region_1e4.rds')
@@ -378,4 +378,6 @@ dev.off()
 	# write out a selection of highly ranked loci
 	setkey(bins, CHROM, BIN_START)
 
-	write.csv(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd)], file='analysis/outlier_10kregions_freqshared_07-11-14_Can.csv', row.names=FALSE)
+	outfile <- paste('analysis/outlier_', width, 'regions_freqshared_07-11-14_Can.csv', sep='')
+	outfile
+	write.csv(bins[freq_region10kb_perc0711>0.99 & freq_region10kb_perc0714>0.99 & freq_region10kb_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd)], file=outfile, row.names=FALSE)

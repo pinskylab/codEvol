@@ -17,14 +17,15 @@ reg <- fread('analysis/outlier_10kregions_freqshared_07-11-14_Can.csv')
 	reg[,region:=1:nrow(reg)]
 
 # read in SNP data
-nullmod <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can.csv.gz") # on mac 65MB file
+# nullmod <- fread("gzcat analysis/wfs_nullmodel_outliers_07-11-14_Can.csv.gz") # on mac 65MB file
+nullmod <- readRDS('analysis/Frequency_table_ABS_DIFF_w_region_outliers_1e4.rds')
 
 #############
 # get SNPs in each outlier region
 #############
-outl <- nullmod[CHROM==reg$CHROM[1] & POS>=reg$BIN_START[1] & POS<=reg$BIN_END[1], .(CHROM, POS, region=reg$region[1], Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0711, pLof0714, pCan, p.comb0711Can, p.comb0714Can)]
+outl <- nullmod[CHROM==reg$CHROM[1] & POS>=reg$BIN_START[1] & POS<=reg$BIN_END[1], .(CHROM, POS, region=reg$region[1], Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod)] #, pLof0711, pLof0714, pCan, p.comb0711Can, p.comb0714Can)]
 for(i in 2:nrow(reg)){
-	temp <- nullmod[CHROM==reg$CHROM[i] & POS>=reg$BIN_START[i] & POS<=reg$BIN_END[i], .(CHROM, POS, region=reg$region[i], Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod, pLof0711, pLof0714, pCan, p.comb0711Can, p.comb0714Can)]
+	temp <- nullmod[CHROM==reg$CHROM[i] & POS>=reg$BIN_START[i] & POS<=reg$BIN_END[i], .(CHROM, POS, region=reg$region[i], Freq_07, Freq_11, Freq_14, Freq_Can40, Freq_CanMod)] #, pLof0711, pLof0714, pCan, p.comb0711Can, p.comb0714Can)]
 	outl <- rbind(outl, temp)
 }
 
@@ -32,8 +33,8 @@ for(i in 2:nrow(reg)){
 	setkey(nsnps, N); nsnps
 	
 # trim to regions with > 2 SNPs
-outl <- outl[region %in% nsnps[N>2, region], ]
-	dim(outl)
+# outl <- outl[region %in% nsnps[N>2, region], ]
+# 	dim(outl)
 
 ###################
 # Get codon information
@@ -43,27 +44,28 @@ outl[,table(CHROM)] # which LGs to load?
 	
 # read in genome data with readVCV() (one chr at a time... so annoying)
 # need tabix-ed vcf file: on cod node: module load tabix; tabix -p vcf All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Canada.vcf.gz
- 	g2 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG02', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=28303952, numcols=100000, include.unknown=TRUE)
- 	g3 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG03', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=29451055, numcols=100000, include.unknown=TRUE) 
-	g4 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG04', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=34805322, numcols=100000, include.unknown=TRUE)
+#  	g2 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG02', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=28303952, numcols=100000, include.unknown=TRUE)
+#  	g3 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG03', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=29451055, numcols=100000, include.unknown=TRUE) 
+# 	g4 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG04', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=34805322, numcols=100000, include.unknown=TRUE)
 	g5 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG05', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=24067848, numcols=100000, include.unknown=TRUE)
- 	g6 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG06', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25464620, numcols=100000, include.unknown=TRUE)
- 	g8 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG08', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=26796886, numcols=100000, include.unknown=TRUE)
+#  	g6 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG06', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25464620, numcols=100000, include.unknown=TRUE)
+ 	g7 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG07', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=31232877, numcols=100000, include.unknown=TRUE)
+#  	g8 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG08', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=26796886, numcols=100000, include.unknown=TRUE)
 #	g9 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG09', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25382314, numcols=100000, include.unknown=TRUE)
 #	g10 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG10', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25304306, numcols=100000, include.unknown=TRUE)
-	g11 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG11', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=28942968, numcols=100000, include.unknown=TRUE)
-	g12 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG12', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=27297974, numcols=100000, include.unknown=TRUE)
+# 	g11 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG11', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=28942968, numcols=100000, include.unknown=TRUE)
+# 	g12 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG12', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=27297974, numcols=100000, include.unknown=TRUE)
 #	g13 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG13', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25676735, numcols=100000, include.unknown=TRUE)
 # 	g14 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG14', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=29296932, numcols=100000, include.unknown=TRUE)
-	g15 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG15', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=26597959, numcols=100000, include.unknown=TRUE)
+# 	g15 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG15', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=26597959, numcols=100000, include.unknown=TRUE)
 #	g16 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG16', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=31093243, numcols=100000, include.unknown=TRUE)
 #	g17 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG17', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=19149207, numcols=100000, include.unknown=TRUE)
 #	g18 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG18', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=22554255, numcols=100000, include.unknown=TRUE)
-	g19 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG19', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=21176260, numcols=100000, include.unknown=TRUE)
+# 	g19 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG19', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=21176260, numcols=100000, include.unknown=TRUE)
 # 	g20 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG20', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=24149133, numcols=100000, include.unknown=TRUE)
-	g21 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG21', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=22510304, numcols=100000, include.unknown=TRUE)
- 	g22 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG22', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=21735703, numcols=100000, include.unknown=TRUE)
- 	g23 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG23', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=23264654, numcols=100000, include.unknown=TRUE)
+# 	g21 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG21', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=22510304, numcols=100000, include.unknown=TRUE)
+#  	g22 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG22', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=21735703, numcols=100000, include.unknown=TRUE)
+#  	g23 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG23', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=23264654, numcols=100000, include.unknown=TRUE)
 
 	#g <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Canada.vcf.gz', tid='LG05', approx=FALSE, gffpath='../genome_data/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=1000000)
 
@@ -86,6 +88,7 @@ outl[,table(CHROM)] # which LGs to load?
 	if(exists('g4')) g4 <- set.synnonsyn(g4, ref.chr='../genome_data/LG04.fasta', save.codons=TRUE)
 	if(exists('g5')) g5 <- set.synnonsyn(g5, ref.chr='../genome_data/LG05.fasta', save.codons=TRUE)
 	if(exists('g6')) g6 <- set.synnonsyn(g6, ref.chr='../genome_data/LG06.fasta', save.codons=TRUE)
+	if(exists('g7')) g7 <- set.synnonsyn(g7, ref.chr='../genome_data/LG07.fasta', save.codons=TRUE)
 	if(exists('g8')) g8 <- set.synnonsyn(g8, ref.chr='../genome_data/LG08.fasta', save.codons=TRUE)
 	if(exists('g9')) g9 <- set.synnonsyn(g9, ref.chr='../genome_data/LG09.fasta', save.codons=TRUE)
 	if(exists('g10')) g10 <- set.synnonsyn(g10, ref.chr='../genome_data/LG10.fasta', save.codons=TRUE)
@@ -121,7 +124,7 @@ outl[,table(CHROM)] # which LGs to load?
 codons <- lapply(g, get.codons, 1)
 
 	dim(codons[['LG05']]) # only 3685 on LG05? because only codons
-	head(codons[['LG05']])
+	head(codons[['LG05']]) # make sure it worked
 	
 	# print codons for the outliers
 	outlcodons <- NULL
@@ -229,7 +232,8 @@ if(!is.null(outlcodons)){
 }
 anno2 <- merge(anno2, outl)
 anno2 <- as.data.frame(apply(anno2, MARGIN=2, function(x){x[is.na(x)] <- ''; return(x)})) # turn NA to ''
-anno2 <- anno2[, c("CHROM", "POS", "region", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "pLof0711", "pLof0714", "pCan", "p.comb0711Can", "p.comb0714Can", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "WithinAnno", "WithinGO", "NearGene", "NearAnno", "NearGO")] # reorder columns
+anno2 <- anno2[, c("CHROM", "POS", "region", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "WithinAnno", "WithinGO", "NearGene", "NearAnno", "NearGO")] # reorder columns (no p-values)
+# anno2 <- anno2[, c("CHROM", "POS", "region", "Freq_07", "Freq_11", "Freq_14", "Freq_Can40", "Freq_CanMod", "pLof0711", "pLof0714", "pCan", "p.comb0711Can", "p.comb0714Can", "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", "Names", "Parent", "WithinAnno", "WithinGO", "NearGene", "NearAnno", "NearGO")] # reorder columns (with p-values)
 anno2$POS <- as.numeric(as.character(anno2$POS)) # convert POS to numeric
 anno2 <- anno2[order(anno2$CHROM, anno2$POS),]
 
