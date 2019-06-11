@@ -305,6 +305,12 @@ dev.off()
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0714], bins[,ld_diff_0714])
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_CAN], bins[,ld_diff_CAN])
 
+		# one-sample version
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0711], bins[,ld_diff_0711])
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0714], bins[,ld_diff_0714])
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_CAN], bins[,ld_diff_CAN])
+
+
 	# abs(LD change)
 	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(mean0711=mean(abs(ld_diff_0711), na.rm=TRUE), se0711=sd(abs(ld_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0711=mean(abs(ld_diff_0714), na.rm=TRUE), se0714=sd(abs(ld_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(abs(ld_diff_CAN), na.rm=TRUE), seCAN=sd(abs(ld_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # in outlier regions
 	bins[, .(mean0711=mean(abs(ld_diff_0711), na.rm=TRUE), se0711=sd(abs(ld_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0711=mean(abs(ld_diff_0714), na.rm=TRUE), se0714=sd(abs(ld_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(abs(ld_diff_CAN), na.rm=TRUE), seCAN=sd(abs(ld_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # genome-wide for comparison
@@ -326,6 +332,7 @@ dev.off()
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_0711)], bins[,abs(ld_diff_0711)])
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_0714)], bins[,abs(ld_diff_0714)])
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_CAN)], bins[,abs(ld_diff_CAN)])
+
 		
 	# Tajima's D change
 	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN, D_diff_0711, D_diff_0714, D_diff_CAN)]
@@ -355,6 +362,11 @@ dev.off()
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0711], bins[,D_diff_0711])
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0714], bins[,D_diff_0714])
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_CAN], bins[,D_diff_CAN])
+
+		# one-sample version
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0711], bins[,D_diff_0711])
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0714], bins[,D_diff_0714])
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_CAN], bins[,D_diff_CAN])
 
 	
 
@@ -395,3 +407,8 @@ dev.off()
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0711], bins[,pi_diff_0711])
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0714], bins[,pi_diff_0714])
 	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_CAN], bins[,pi_diff_CAN])
+
+		# one-sample
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0711], bins[,pi_diff_0711])
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0714], bins[,pi_diff_0714])
+	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_CAN], bins[,pi_diff_CAN])
