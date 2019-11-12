@@ -23,18 +23,20 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 #####################
 
 # 2019-03 data
-dat14 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
-dat11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
-datCAN <- fread('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF_Can')) # for Canada
+# dat14 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
+# dat11 <- fread('data_2019_03_18/Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
+# datCAN <- fread('data_2019_03_18/Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF_Can')) # for Canada
 
 # 2019-06 data: trimmed by individual depth (>=7) and for loci genotyped in >=80% of individuals
 dat14 <- fread('data_2019_06_06/DP7_Frequency_table_Lof07_Lof14.txt', header=TRUE); setnames(dat14, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_0714')) # for 1907 vs. 2014
 dat11 <- fread('data_2019_06_06/DP7_Frequency_table_Lof07_Lof11.txt', header=TRUE); setnames(dat11, 3:7, c('N_CHR_07', 'Freq_07', 'N_CHR_11', 'Freq_11', 'ABS_DIFF_0711')) # for 1907 vs. 2011
+dat1114 <- fread('data_2019_06_06/DP7_Frequency_table_Lof11_Lof14.txt', header=TRUE); setnames(dat1114, 3:7, c('N_CHR_11', 'Freq_11', 'N_CHR_14', 'Freq_14', 'ABS_DIFF_1114')) # for 1911 vs. 2014
 datCAN <- fread('data_2019_06_06/DP7_Frequency_table_CAN_40_TGA.txt', header=TRUE); setnames(datCAN, 3:7, c('N_CHR_Can40', 'Freq_Can40', 'N_CHR_CanMod', 'Freq_CanMod', 'ABS_DIFF_Can')) # for Canada
 
 
 	nrow(dat11)
 	nrow(dat14)
+	nrow(dat1114)
 	nrow(datCAN)
 
 
@@ -54,6 +56,11 @@ dat11 <- dat11[chrmax[,.(CHROM, start)], ]
 dat11[,POSgen:=POS+start]
 dat11[,start:=NULL]
 
+setkey(dat1114, CHROM)
+dat1114 <- dat1114[chrmax[,.(CHROM, start)], ]
+dat1114[,POSgen:=POS+start]
+dat1114[,start:=NULL]
+
 setkey(datCAN, CHROM)
 datCAN <- datCAN[chrmax[,.(CHROM, start)], ]
 datCAN[,POSgen:=POS+start]
@@ -62,10 +69,12 @@ datCAN[,start:=NULL]
 # combine the datasets to look at correlations across them
 setkey(dat11, CHROM, POS)
 setkey(dat14, CHROM, POS)
+setkey(dat1114, CHROM, POS)
 setkey(datCAN, CHROM, POS)
 
 dat <- merge(datCAN, dat14[,.(CHROM, POS, N_CHR_07, N_CHR_14, Freq_07, Freq_14, ABS_DIFF_0714)], all=TRUE)
 dat <- merge(dat, dat11[,.(CHROM, POS, N_CHR_11, Freq_11, ABS_DIFF_0711)], all=TRUE)
+dat <- merge(dat, dat1114[,.(CHROM, POS, ABS_DIFF_1114)], all=TRUE)
 	nrow(dat)
 	dat
 
@@ -74,8 +83,8 @@ dat <- merge(dat, dat11[,.(CHROM, POS, N_CHR_11, Freq_11, ABS_DIFF_0711)], all=T
 # running mean of allele frequency difference 
 # (if saved, can skip this)
 #############################
-# width <- 1e4; stp <- 1e4; windsz='1e4'; minsnp=1
-width <- 3e4; stp <- 3e4; windsz='3e4'; minsnp=2
+width <- 1e4; stp <- 1e4; windsz='1e4'; minsnp=1
+#width <- 3e4; stp <- 3e4; windsz='3e4'; minsnp=2
 
 
 # midpoints of windows
@@ -111,10 +120,10 @@ dat[,range(table(POSmid1))] # 1 to 115 SNPs per window (1e4), 1:273 (3e4)
 		dev.off()
 
 # calculate moving window means
-datmean <- data.table(CHROM=character(), POSmid=numeric(), ABS_DIFF_0711=numeric(), ABS_DIFF_0714=numeric(), ABS_DIFF_Can=numeric(), nSNP=numeric())
+datmean <- data.table(CHROM=character(), POSmid=numeric(), ABS_DIFF_0711=numeric(), ABS_DIFF_0714=numeric(), ABS_DIFF_1114=numeric(), ABS_DIFF_Can=numeric(), nSNP=numeric())
 for(j in 1:length(posnms)){
 	for(i in 1:length(chroms)){
-		temp <- dat[CHROM==chroms[i], .(CHROM=unique(CHROM), ABS_DIFF_0711=mean(ABS_DIFF_0711, na.rm=TRUE), ABS_DIFF_0714=mean(ABS_DIFF_0714, na.rm=TRUE), ABS_DIFF_Can=mean(ABS_DIFF_Can, na.rm=TRUE), nSNP=.N), by=eval(posnms[j])]
+		temp <- dat[CHROM==chroms[i], .(CHROM=unique(CHROM), ABS_DIFF_0711=mean(ABS_DIFF_0711, na.rm=TRUE), ABS_DIFF_0714=mean(ABS_DIFF_0714, na.rm=TRUE), ABS_DIFF_1114=mean(ABS_DIFF_1114, na.rm=TRUE), ABS_DIFF_Can=mean(ABS_DIFF_Can, na.rm=TRUE), nSNP=.N), by=eval(posnms[j])]
 		setnames(temp, eval(posnms[j]), 'POSmid')
 		datmean <- rbind(datmean, temp)
 	}
@@ -152,9 +161,11 @@ datmean <- datmean[nSNP>=minsnp,]
 # calculate percentiles (like Oziolor et al. 2019 Science)
 ecdf0711 <- ecdf(datmean$ABS_DIFF_0711)
 ecdf0714 <- ecdf(datmean$ABS_DIFF_0714)
+ecdf1114 <- ecdf(datmean$ABS_DIFF_1114)
 ecdfCan <- ecdf(datmean$ABS_DIFF_Can)
 datmean[,perc0711 := ecdf0711(ABS_DIFF_0711)]
 datmean[,perc0714 := ecdf0714(ABS_DIFF_0714)]
+datmean[,perc1114 := ecdf1114(ABS_DIFF_1114)]
 datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 
 	# examine
@@ -169,18 +180,22 @@ datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 	setkey(datmean, CHROM, POSmid)
 	datmean[,dist0711 := as.numeric(NA)] # nearest neighbor at an earlier outlier (measure only to left)
 	datmean[,dist0714 := as.numeric(NA)] # nearest neighbor at an earlier outlier (measure only to left)
+	datmean[,dist1114 := as.numeric(NA)] # nearest neighbor at an earlier outlier (measure only to left)
 	datmean[,distCAN := as.numeric(NA)] # nearest neighbor at an earlier outlier (measure only to left)
 	for(i in 1:length(chroms)){
 		temp0711 <- c(NA, datmean[CHROM==chroms[i] & perc0711>0.99, POSmid])
 		temp0714 <- c(NA, datmean[CHROM==chroms[i] & perc0714>0.99, POSmid])
+		temp1114 <- c(NA, datmean[CHROM==chroms[i] & perc1114>0.99, POSmid])
 		tempCAN <- c(NA, datmean[CHROM==chroms[i] & percCAN>0.99, POSmid])
 
 		temp0711 <- temp0711[-length(temp0711)]
 		temp0714 <- temp0714[-length(temp0714)]
+		temp1114 <- temp1114[-length(temp1114)]
 		tempCAN <- tempCAN[-length(tempCAN)]
 
 		datmean[CHROM==chroms[i] & perc0711>0.99, dist0711:= POSmid - temp0711]
 		datmean[CHROM==chroms[i] & perc0714>0.99, dist0714:= POSmid - temp0714]
+		datmean[CHROM==chroms[i] & perc1114>0.99, dist1114:= POSmid - temp1114]
 		datmean[CHROM==chroms[i] & percCAN>0.99, distCAN:= POSmid - tempCAN]
 	} 
 
@@ -206,6 +221,16 @@ datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 	}
 
 	indx <- 1
+	datmean[,cluster1114 := as.numeric(NA)]
+	outls <- which(datmean$perc1114>0.99)
+	for(i in 1:length(outls)){
+		datmean$cluster1114[outls[i]] <- indx
+		if(i < length(outls)){
+			if(datmean$dist1114[outls[i+1]]>=width | is.na(datmean$dist1114[outls[i+1]])) indx <- indx+1
+		}
+	}
+
+	indx <- 1
 	datmean[,clusterCAN := as.numeric(NA)]
 	outls <- which(datmean$percCAN>0.99)
 	for(i in 1:length(outls)){
@@ -218,6 +243,7 @@ datmean[,percCAN := ecdfCan(ABS_DIFF_Can)]
 	# examine
 	datmean[,range(table(cluster0711))] # all clusters only 1 window wide
 	datmean[,range(table(cluster0714))] # all clusters only 1 window wide
+	datmean[,range(table(cluster1114))] # all clusters only 1 window wide
 	datmean[,range(table(clusterCAN))] # all clusters only 1 window wide
 	
 
@@ -228,11 +254,11 @@ saveRDS(datmean, file=filenm)
 
 
 # add region outlier stats to locus-by-locus frequency change file
-dat2 <- merge(dat, datmean[, .(CHROM, POSmid, BIN_START, perc0711, perc0714, percCAN, cluster0711, cluster0714, clusterCAN)], by.x=c('CHROM', 'POSmid1'), by.y=c('CHROM', 'POSmid'))
+dat2 <- merge(dat, datmean[, .(CHROM, POSmid, BIN_START, perc0711, perc0714, perc1114, percCAN, cluster0711, cluster0714, cluster1114, clusterCAN)], by.x=c('CHROM', 'POSmid1'), by.y=c('CHROM', 'POSmid'))
 	dim(dat)
 	dim(dat2)
 	dim(datmean)
-setnames(dat2, c('perc0711', 'perc0714', 'percCAN', 'cluster0711', 'cluster0714', 'clusterCAN'), c('region_perc0711', 'region_perc0714', 'region_percCAN', 'region_cluster0711', 'region_cluster0714', 'region_clusterCAN'))
+setnames(dat2, c('perc0711', 'perc0714', 'perc1114', 'percCAN', 'cluster0711', 'cluster0714', 'cluster1114', 'clusterCAN'), c('region_perc0711', 'region_perc0714', 'region_perc1114', 'region_percCAN', 'region_cluster0711', 'region_cluster0714', 'region_cluster1114', 'region_clusterCAN'))
 
 	# examine outliers
 	dat2[region_perc0711>0.99 & region_perc0714>0.99 & region_percCAN>0.99,]
@@ -373,9 +399,9 @@ datmean[CHROM %in% chrs$CHROM[seq(2, nrow(chrs),by=2)], lgcol := 'grey60']
 
 
 cols = c('grey', 'purple')
-quartz(height=6, width=8)
-# png(height=6, width=8, units='in', res=300, file=paste('figures/abs_diff_vs_pos_NEA_CAN_', width, '.png', sep=''))
-par(mfrow=c(3,1), mai=c(0.3, 0.7, 0.1, 0.5), mgp=c(3.2, 0.6, 0), las=1, tcl=-0.3)
+quartz(height=8, width=8)
+# png(height=8, width=8, units='in', res=300, file=paste('figures/abs_diff_vs_pos_NEA_CAN_', width, '.png', sep=''))
+par(mfrow=c(4,1), mai=c(0.3, 0.7, 0.1, 0.5), mgp=c(3.2, 0.6, 0), las=1, tcl=-0.3)
 datmean[,plot(POSgen, ABS_DIFF_0711, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change Lof0711', ylim=c(0,1), col=lgcol, las=1)]
 datmean[perc0711>0.99 & perc0714>0.99 & percCAN>0.99,points(POSgen, ABS_DIFF_0711, cex=0.5, col=cols[2])]
 
@@ -390,6 +416,11 @@ axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0
 
 datmean[,plot(POSgen, ABS_DIFF_Can, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change CAN', ylim=c(0,1), col=lgcol, las=1)]
 datmean[perc0711>0.99 & perc0714>0.99 & percCAN>0.99,points(POSgen, ABS_DIFF_Can, cex=0.5, col=cols[2])]
+
+axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
+
+datmean[,plot(POSgen, ABS_DIFF_1114, type='p', cex=0.2, lwd=0.3, xaxt='n', xlab='', ylab='Freq change Lof1114', ylim=c(0,1), col=lgcol, las=1)]
+#datmean[perc1114>0.99,points(POSgen, ABS_DIFF_1114, cex=0.5, col=cols[3])]
 
 axis(side=1, at=chrs$pos, labels=gsub('LG','', chrs$CHROM), tcl=-0.3, cex.axis=0.7)
 
