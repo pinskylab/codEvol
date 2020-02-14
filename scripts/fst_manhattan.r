@@ -80,7 +80,7 @@ p1 <- ggplot(dat, aes(posgen, fst, color = chr)) +
   facet_wrap(~pop, ncol = 1) +
   scale_color_manual(values = cols)
 p1
-
+ggsave(plot = p1, device = 'png', filename = 'figures/fst_vs_pos.png', width = 7.5, height = 6, units = 'in', dpi = 300)
 
 
 
