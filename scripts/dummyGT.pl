@@ -37,7 +37,7 @@ while (<$IN>) {
     else{
 	my @line  = split /\t/, $_;
     
-	$line[8] = "GT:GP:GL";
+	$line[8] = "GT:DP:AD:GP:GL";
 
 	print join "\t", @line[0..8];
 
