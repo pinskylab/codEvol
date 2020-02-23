@@ -1,4 +1,4 @@
-## Plot allele frequency change vs. genome position
+## Plot FST vs. genome position
 ## Compare across different data sets
 
 ###########################
