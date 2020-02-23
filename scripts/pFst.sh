@@ -18,8 +18,9 @@
 #SBATCH --cpus-per-task=16
 
 ## Set up job environment:
-set -o errexit  # Exit the script on any error
-set -o nounset  # Treat any unset variables as an error
+# These are standard, but they cause conda activate to fail
+#set -o errexit  # Exit the script on any error
+#set -o nounset  # Treat any unset variables as an error
 
 module --quiet purge  # Reset the modules to the system default
 
@@ -32,7 +33,6 @@ source ${EBROOTANACONDA3}/etc/profile.d/conda.sh # Source the conda environment 
 # to the environment. The full path is listed if you do
 # conda info --envs at the command prompt.
 conda activate /cluster/home/mlpinsky/.conda/envs/testenv
-
 
 
 # run pFst for Can

@@ -7,7 +7,7 @@
 #SBATCH --account=nn9244k
 #
 # Wall time limit: DD-HH:MM:SS
-#SBATCH --time=04-00:00:00
+#SBATCH --time=00-08:00:00
 #
 # Max memory usage:
 #SBATCH --mem-per-cpu=2G
@@ -32,10 +32,11 @@ module load BCFtools/1.9-intel-2018b
 # tabix -p vcf data_31_01_20/Lof_14_freq.vcf.gz
 
 # merge the population-level VCF files into one for Can and one for Lof
-# useful for running pFst later
-bcftools merge --output-type v --force-samples data_31_01_20/Can_14_freq.vcf.gz data_31_01_20/Can_40_freq.vcf.gz >data_31_01_20/Can.vcf
+# also exclude sites with any missing data
+# needed for running pFst later
+bcftools merge --output-type v --force-samples data_31_01_20/Can_14_freq.vcf.gz data_31_01_20/Can_40_freq.vcf.gz | bcftools view --exclude 'GP="."' -o data_31_01_20/Can.vcf
 
-bcftools merge --output-type v --force-samples data_31_01_20/Lof_07_freq.vcf.gz data_31_01_20/Lof_11_freq.vcf.gz data_31_01_20/Lof_14_freq.vcf.gz >data_31_01_20/Lof.vcf
+bcftools merge --output-type v --force-samples data_31_01_20/Lof_07_freq.vcf.gz data_31_01_20/Lof_11_freq.vcf.gz data_31_01_20/Lof_14_freq.vcf.gz | bcftools view --exclude 'GP="."' -o data_31_01_20/Lof.vcf
 
 #add GT columns (needed by pFst)
 scripts/dummyGT.pl data_31_01_20/Can.vcf >data_31_01_20/Can2.vcf
