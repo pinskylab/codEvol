@@ -226,7 +226,7 @@ elof1114 <- eigen(pcalof1114)
 
 # plot PCAs
 # red is early, black is late
-pdf('figures/pcangsd_pca.pdf', width = 6, height = 6, units = "in")
+pdf('figures/pcangsd_pca.pdf', width = 6, height = 6)
 par(mfrow=c(2,2), mai = c(0.6, 0.7, 0.3, 0.1), las = 1, mgp = c(2, 0.7, 0))
 plot(ecan$vectors[, 1:2], col = rep(c('red', 'black'), c(21,24)), xlab = 'PC1', ylab = 'PC2',
      main = 'Canada')
