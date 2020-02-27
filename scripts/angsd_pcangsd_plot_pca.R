@@ -39,3 +39,4 @@ plot(egtei$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col,
 legend('top', pch = 1, col = pops[!duplicated(Pop), col], legend = pops[!duplicated(Pop), Pop])
 
 
+dev.off()
