@@ -1,19 +1,26 @@
-// Keywords: 
-
-// set up a simple neutral simulation
+// set up a soft sweep simulation
+// recapitate later and add neutral mutations
 initialize()
 {
-	// set the overall mutation rate
-	initializeMutationRate(1e-7);
+	// some constants
+	defineConstant("chrSz", 30000000); // chromosome size in bp
+	defineConstant("simID", getSeed()); // save this run's identifier, used to save
+	defineConstant("popSz", 5000); // population size
+	defineConstant("initFreq", 0.1); // initial frequency of the beneficial mutation
+
+	// prep to output tree format for recapitation
+	initializeTreeSeq();
+
+	// set the overall neutral mutation rate
+	initializeMutationRate(0);
 	
 	// mutations
-	initializeMutationType("m1", 0.5, "f", 0.0);	// m1 mutation type: neutral
+	initializeMutationType("m2", 0.5, "f", 0.5);	// m2 mutation type: selected
 	         
 	// g1 genomic element type: uses m1 for all mutations
-	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElementType("g1", m2, 1.0);
 	
 	// uniform chromosome of length 30 mb
-	defineConstant("chrSz", 30000000); // save the mutation ID for the one under selection
 	initializeGenomicElement(g1, 0, chrSz - 1);
 	
 	// uniform recombination along the chromosome
@@ -23,55 +30,27 @@ initialize()
 // create a population
 1
 {
-	// save this run's identifier, used to save and restore
-	defineConstant("simID", getSeed());
-
-	sim.addSubpop("p1", 5000);
+	sim.addSubpop("p1", popSz);
 }
 
-// run to a generation, then start soft sweep
-10000 late()
+// slight WF burnin for 100 generations, then sweep from standing variation
+// do this by introducing a beneficial mutation to some individuals
+100 late()
 {
-	muts = sim.mutations;
-	muts = muts[sim.mutationFrequencies(p1, muts) > 0.1 &
-		muts.position > (chrSz*7/16) & muts.position < (chrSz*9/16)]; // only pick mutations of at least 0.1 frequency near the middle of the chromosome
-
-	if (size(muts)) // if some mutations exist
-	{
-		mut = sample(muts, 1); // pick one from the suitable mutations
-		mut.setSelectionCoeff(0.5); // set selection coefficient
-		print("Position: " + mut.position); // print the position in the genome
-		defineConstant("mutID", mut.id); // save the mutation ID for the one under selection
-	}
-	else
-	{
-		cat("No contender of sufficient frequency found.\n");
-	}
+	//add beneficial mutation
+	sample(p1.genomes, asInteger(round(popSz * initFreq))).addNewDrawnMutation(m2, asInteger(round(chrSz/2)));
 	
-	// output state here
-	print(sim.mutationFrequencies(p1, muts[muts.id == mutID])); // print the frequency
-   sampledIndividuals = sample(p1.individuals, 22);
-	sampledIndividuals.genomes.outputVCF("tmp/slim_sw_" + simID + "_1.vcf"); // to output to file
+	//would be good to double check the allele frequency here
+	
+	// output state now
+	sim.treeSeqOutput("tmp/slim_sw_" + simID + "_1.trees"); // to output trees
 }
 
 
-10010 late() {
-   sampledIndividuals = sample(p1.individuals, 22);
+110 late() {
+	//would be good to double check the allele frequency here
+
+   //sampledIndividuals = sample(p1.individuals, 22);
 	//sampledIndividuals.genomes.outputVCF();
-	sampledIndividuals.genomes.outputVCF("tmp/slim_sw_" + simID + "_11.vcf"); // to output to file
-	muts = sim.mutations;
-	print(sim.mutationFrequencies(p1, muts[muts.id == mutID]));
-}
-
-// Calculate the FST between two subpopulations
-function (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
-{
-	p1_p = sim.mutationFrequencies(subpop1);
-	p2_p = sim.mutationFrequencies(subpop2);
-	mean_p = (p1_p + p2_p) / 2.0;
-	H_t = 2.0 * mean_p * (1.0 - mean_p);
-	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
-	fst = 1.0 - H_s/H_t;
-	fst = fst[!isNAN(fst)];  // exclude muts where mean_p is 0.0 or 1.0
-	return mean(fst);
+	sim.treeSeqOutput("tmp/slim_sw_" + simID + "_11.trees"); // to output trees
 }
