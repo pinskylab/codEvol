@@ -1,0 +1,77 @@
+// Keywords: 
+
+// set up a simple neutral simulation
+initialize()
+{
+	// set the overall mutation rate
+	initializeMutationRate(1e-7);
+	
+	// mutations
+	initializeMutationType("m1", 0.5, "f", 0.0);	// m1 mutation type: neutral
+	         
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 30 mb
+	defineConstant("chrSz", 30000000); // save the mutation ID for the one under selection
+	initializeGenomicElement(g1, 0, chrSz - 1);
+	
+	// uniform recombination along the chromosome
+	initializeRecombinationRate(1e-8);
+}
+
+// create a population
+1
+{
+	// save this run's identifier, used to save and restore
+	defineConstant("simID", getSeed());
+
+	sim.addSubpop("p1", 5000);
+}
+
+// run to a generation, then start soft sweep
+10000 late()
+{
+	muts = sim.mutations;
+	muts = muts[sim.mutationFrequencies(p1, muts) > 0.1 &
+		muts.position > (chrSz*7/16) & muts.position < (chrSz*9/16)]; // only pick mutations of at least 0.1 frequency near the middle of the chromosome
+
+	if (size(muts)) // if some mutations exist
+	{
+		mut = sample(muts, 1); // pick one from the suitable mutations
+		mut.setSelectionCoeff(0.5); // set selection coefficient
+		print("Position: " + mut.position); // print the position in the genome
+		defineConstant("mutID", mut.id); // save the mutation ID for the one under selection
+	}
+	else
+	{
+		cat("No contender of sufficient frequency found.\n");
+	}
+	
+	// output state here
+	print(sim.mutationFrequencies(p1, muts[muts.id == mutID])); // print the frequency
+   sampledIndividuals = sample(p1.individuals, 22);
+	sampledIndividuals.genomes.outputVCF("tmp/slim_sw_" + simID + "_1.vcf"); // to output to file
+}
+
+
+10010 late() {
+   sampledIndividuals = sample(p1.individuals, 22);
+	//sampledIndividuals.genomes.outputVCF();
+	sampledIndividuals.genomes.outputVCF("tmp/slim_sw_" + simID + "_11.vcf"); // to output to file
+	muts = sim.mutations;
+	print(sim.mutationFrequencies(p1, muts[muts.id == mutID]));
+}
+
+// Calculate the FST between two subpopulations
+function (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
+{
+	p1_p = sim.mutationFrequencies(subpop1);
+	p2_p = sim.mutationFrequencies(subpop2);
+	mean_p = (p1_p + p2_p) / 2.0;
+	H_t = 2.0 * mean_p * (1.0 - mean_p);
+	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
+	fst = 1.0 - H_s/H_t;
+	fst = fst[!isNAN(fst)];  // exclude muts where mean_p is 0.0 or 1.0
+	return mean(fst);
+}
