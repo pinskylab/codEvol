@@ -1,4 +1,4 @@
-# Trying popgenome R package to calculate diversity stats
+# Trying a polygenic test for selection
 
 
 	# cod node
