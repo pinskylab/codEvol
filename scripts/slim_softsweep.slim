@@ -1,14 +1,34 @@
 // set up a soft sweep simulation
-// recapitate later and add neutral mutations
+// initialize from a neutral burn-in
 initialize()
 {
-	// some constants
-	defineConstant("chrSz", 30000000); // chromosome size in bp
+	// define constants if we're in the SLiMgui
+	if (exists("slimgui"))
+	{
+		defineConstant("L", 30000000);
+		defineConstant("ne", 50);
+		defineConstant("f", 0.1);
+		defineConstant("n1", 20);
+		defineConstant("n2", 20);
+		defineConstant("s", 0.5);
+		defineConstant("r", 3.11e-8);
+		defineConstant("o", "tmp/test");
+		defineConstant("i", "tmp/test.vcf");
+		defineConstant("g", 11);
+	}
+	
+	// some constants. all should be defined as arguments on the command line
+	defineConstant("chrSz", L); // chromosome size in bp
 	defineConstant("simID", getSeed()); // save this run's identifier, used to save
-	defineConstant("popSz", 50); // population size
-	defineConstant("initFreqmin", 0.1); // minimum initial frequency of the beneficial mutation
-	defineConstant("n1", 22); // initial sample size (# diploid individuals)
-	defineConstant("n2", 22); // second sample size
+	defineConstant("popSz", ne); // population size
+	defineConstant("initFreqmin", f); // minimum initial frequency of the beneficial mutation
+	defineConstant("num1", n1); // initial sample size (# diploid individuals)
+	defineConstant("num2", n2); // second sample size
+	defineConstant("selCoef", asFloat(s)); // selection coefficient, per site
+	defineConstant("recomb", r); // recombination rate, Morgan per bp (1e-8 = 1 cM/Mbp)
+	defineConstant("outfile", o); // base output file name (_1.vcf and _11.vcf will be added)
+	defineConstant("infile", i); // input file name
+	defineConstant("gen", g); // number of generations of the soft sweep to run
 	
 	// prep to output tree format for recapitation
 	initializeTreeSeq();
@@ -16,8 +36,9 @@ initialize()
 	// set the overall neutral mutation rate
 	initializeMutationRate(0);
 	
-	// mutations: name, dominance, ?, selection coefficient
-	initializeMutationType("m1", 0.5, "f", 0);	// m1 mutation type: selected
+	// mutations: name, dominance, fixed vs random fitness effects, selection coefficient
+	initializeMutationType("m1", 0.5, "f", 0);	// m1 mutation type: neutral, except one will get selected to be beneficial in gen 100
+	m1.convertToSubstitution = F; // model all of them so that all are output
 	         
 	// g1 genomic element type: uses m1 for all mutations
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -26,28 +47,29 @@ initialize()
 	initializeGenomicElement(g1, 0, chrSz - 1);
 	
 	// uniform recombination along the chromosome
-	initializeRecombinationRate(1e-8);
+	initializeRecombinationRate(recomb);
 }
 
 // create a population
 1 late()
 {
-	sim.addSubpop("p1", popSz);
-	p1.genomes.readFromVCF("tmp/test.vcf", m1);
+	sim.addSubpop("p1", popSz); // create population
+	p1.genomes.readFromVCF(infile, m1); // read in sites from msprime burn-in
+	sim.rescheduleScriptBlock(s1, start=100+gen, end=100+gen); // determine which generation we'll run the final script block (i.e., how many generations to run the sweep)
 }
 
 // slight WF burnin for 100 generations, then sweep from standing variation
-// pick a mutation to sweep from
 100 late()
 {
+	// pick a mutation to sweep from
 	muts = sim.mutations;
 	muts = muts[sim.mutationFrequencies(p1, muts) > initFreqmin &
 		muts.position > (chrSz*7/16) & muts.position < (chrSz*9/16)]; // only pick mutations of min frequency near the middle of the chromosome
-
 	if (size(muts)) // if some mutations exist
 	{
 		mut = sample(muts, 1); // pick one from the suitable mutations
-		mut.setSelectionCoeff(0.5); // set selection coefficient
+		mut.setSelectionCoeff(selCoef); // set selection coefficient
+		//mut.color = "red"; // make it red in SLiMgui
 		print("Position: " + mut.position); // print the position in the genome
 		defineConstant("mutID", mut.id); // save the mutation ID for the one under selection
 	}
@@ -56,18 +78,19 @@ initialize()
 		cat("No contender of sufficient frequency found.\n");
 	}
 
-	// output state here
+	// output initial state (before sweep)
 	print(sim.mutationFrequencies(p1, muts[muts.id == mutID])); // print the frequency
-   sampledIndividuals = sample(p1.individuals, 22);
-	sampledIndividuals.genomes.outputVCF("tmp/slim_sw_" + simID + "_1.vcf"); // to output to file
+   sampledIndividuals = sample(p1.individuals, num1);
+	sampledIndividuals.genomes.outputVCF(outfile + "_1.vcf"); // to output to file
 }
 
-
-110 late() {
+// note that this script block gets rescheduled in generation 1
+s1 111 late() {
 	//check the selected allele frequency here
 	muts = sim.mutations;
 	print(sim.mutationFrequencies(p1, muts[muts.id == mutID]));
 
-   sampledIndividuals = sample(p1.individuals, 22);
-	sampledIndividuals.genomes.outputVCF("tmp/slim_sw_" + simID + "_11.vcf");
+	// output the final vcf file
+   sampledIndividuals = sample(p1.individuals, num2);
+	sampledIndividuals.genomes.outputVCF(outfile + "_11.vcf");
 }
