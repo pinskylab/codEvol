@@ -45,53 +45,41 @@ for(i in 1:nrow(paramtable)){
 #############
 
 
+#rsync -tz analysis/slim_sim_n*.vcf USER@saga.sigma2.no:~/historic_malin/analysis/ # copy to saga
+# on saga:
+#sbatch scripts/slim_calcfst.sh # calc fst with vcftools
+#rsync -tz USER@saga.sigma2.no:~/historic_malin/analysis/slim_sim_n*.fst analysis/ # copy back from saga
 
 
-
-
-# read in simulation output and merge populations together
-p1 <- fread('tmp/slim_sw_1766427176444_1.vcf') # Ne 5000
-p2 <- fread('tmp/slim_sw_1766427176444_11.vcf')
-
-setnames(p1, 1, 'CHROM') # fix column name
-setnames(p2, 1, 'CHROM')
-setnames(p1, grep('i[[:digit:]]*', names(p1)), paste0('t1_', grep('i[[:digit:]]*', names(p1), value = TRUE))) # append t1 to individual names for time 1
-setnames(p2, grep('i[[:digit:]]*', names(p2)), paste0('t2_', grep('i[[:digit:]]*', names(p2), value = TRUE)))
-
-keep1 <- c(2, grep('i[[:digit:]]*', names(p1)))
-keep2 <- c(2, grep('i[[:digit:]]*', names(p2)))
-p <- merge(p1[, ..keep1], p2[ , ..keep2], by = 'POS')
-dim(p)
-
-# reformat genotypes for hierfstat
-nms <- colnames(p)
-for(i in grep('t[[:digit:]]', nms)){
-  thisnm <- nms[i]
-  p[, (thisnm) := as.numeric(gsub('\\|', '', get(thisnm))) + 11]
-}
-
-# sliding window FST
-slide <- data.table(starts = seq(0, chrsize - wndw, by = step), # base 0. start of sliding windows
-  ends = seq(wndw - 1, chrsize, by = step), fst = NA_real_)
-slide[, mids := rowMeans(cbind(starts, ends))]
-inds <- grep('i[[:digit:]]*', names(p)) # column indices for individuals
-
-length(slide$starts)
-for(i in 1:length(slide$starts)){
-  if(i %% 100 == 0) print(i)
-  
-  # extract loci within this window
-  locs <- t(p[POS >= slide$starts[i] & POS <= slide$ends[i], ..inds])
-  
-  # add population id
-  pop <- rep(1, nrow(locs))
-  pop[grep('t2', rownames(locs))] <- 2
-  
-  # make hierfstat data.frame and calculate Fst
-  locs <- as.data.frame(cbind(pop, locs)) # add pop column on the left
-  slide$fst[i] <- wc(locs)$FST # Weir-Cockerham Fst calculation
-}
-
-
+############
 # plot
-slide[, plot(mids/1e6, fst, cex = 0.6, xlab = 'Position (Mb)')]
+############
+require(ggplot2)
+
+fstfiles <- list.files('analysis/', pattern = 'slim_sim_n[[:alnum:][:punct:]]*.fst') # get the fst file names
+length(fstfiles)
+
+# read in fsts
+for(i in 1:length(fstfiles)){
+  temp <- fread(paste0('analysis/',fstfiles[i]))
+  
+  temp[, ne := as.numeric(gsub('slim_sim_n|_s.*', '', fstfiles[i]))] # get Ne from file name
+  temp[, s := as.numeric(gsub('slim_sim_n[[:digit:]]*_s|_f.*', '', fstfiles[i]))] # get s
+  temp[, f := as.numeric(gsub('slim_sim_n[[:digit:]]*_s[[:digit:].]*_f|_i.*', '', fstfiles[i]))] # get min f
+  temp[, i := as.numeric(gsub('slim_sim_n[[:digit:]]*_s[[:digit:].]*_f0\\.[[:digit:]]*_i|\\.windowed.weir.fst', '', fstfiles[i]))] # get iteration
+  
+  if(i == 1) fst <- temp
+  if(i > 1) fst <- rbind(fst, temp)
+}
+dim(fst)
+
+fst[, mid := rowMeans(cbind(BIN_START, BIN_END))]
+
+
+# quick plot
+p <- ggplot(fst, aes(x=mid, y=WEIGHTED_FST)) +
+  geom_line(alpha = 0.5, size = 0.2) +
+  facet_grid(ne + i ~ s)
+ggsave('figures/slim_fst.png', plot = p, width = 8, height = 16, dpi = 300)
+
+

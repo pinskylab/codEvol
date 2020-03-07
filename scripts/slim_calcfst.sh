@@ -21,15 +21,14 @@
 set -o errexit  # Exit the script on any error
 set -o nounset  # Treat any unset variables as an error
 module --quiet purge  # Reset the modules to the system default
-
 module load BCFtools/1.9-intel-2018b # for merging the vcf files
+module load VCFtools/0.1.16-intel-2018b-Perl-5.28.0 # load vcftools
 
-# note: run this from /cluster/projects/nn9244k/in_progress/historic_malin/
 
 # first have to index the vcf files
 for f in analysis/slim_sim_n*.vcf
 do
-	bgzip $f # have to bgzip to get tabix to work
+	bgzip -f $f # have to bgzip to get tabix to work. -f to overwrite existing files
 	tabix -p vcf $f.gz;
 done
 
@@ -45,10 +44,7 @@ do
 done
 
 
-# get ready to calc fst
-module load VCFtools/0.1.16-intel-2018b-Perl-5.28.0 # load vcftools
-
-# calc fst for a set of output files
+# calc fst for output files
 for f in analysis/slim_sim_n*_comb.bcf.gz
 do
 	# write file with list of individuals in early pop (first 22 for Lof 07)
@@ -61,3 +57,5 @@ do
 	vcftools --bcf $f --weir-fst-pop tmp/early.txt --weir-fst-pop tmp/late.txt --fst-window-size 50000 --fst-window-step 10000 --out ${f%_comb.bcf.gz}
 done
 
+# clean up the combined files
+rm analysis/slim_sim_n*_comb.bcf.gz
