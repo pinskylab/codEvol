@@ -31,7 +31,7 @@ realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -P 1
 realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 >analysis/Lof_07.Lof_14.ml
 realSFS data_31_01_20/Lof_11_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 >analysis/Lof_11.Lof_14.ml
 
-#prepare the fst for easy window analysis etc
+#calculate fst
 realSFS fst index data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Can_14_freq.saf.idx -sfs analysis/Can_40.Can_14.ml -fstout analysis/Can_40.Can_14
 realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -sfs analysis/Lof_07.Lof_11.ml -fstout analysis/Lof_07.Lof_11
 realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Lof_07.Lof_14.ml -fstout analysis/Lof_07.Lof_14
@@ -44,8 +44,14 @@ realSFS fst stats analysis/Lof_07.Lof_14.fst.idx
 realSFS fst stats analysis/Lof_11.Lof_14.fst.idx 
 					
 #to get windowed, see instructions: http://www.popgen.dk/angsd/index.php/Fst
-# -type 2 to start as pos=1
+# -type 2 to start at pos=1
 realSFS fst stats2 analysis/Can_40.Can_14.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_40.Can_14.slide
 realSFS fst stats2 analysis/Lof_07.Lof_11.fst.idx -win 50000 -step 10000 -type 2 >analysis/Lof_07.Lof_11.slide
 realSFS fst stats2 analysis/Lof_07.Lof_14.fst.idx -win 50000 -step 10000 -type 2 >analysis/Lof_07.Lof_14.slide
 realSFS fst stats2 analysis/Lof_11.Lof_14.fst.idx -win 50000 -step 10000 -type 2 >analysis/Lof_11.Lof_14.slide
+
+# output A and B (numerator and denominator) by site for designing a null model
+realSFS fst print analysis/Can_40.Can_14.fst.idx | gzip > analysis/Can_40.Can_14.fst.AB.gz
+realSFS fst print analysis/Lof_07.Lof_11.fst.idx | gzip > analysis/Lof_07.Lof_11.fst.AB.gz
+realSFS fst print analysis/Lof_07.Lof_14.fst.idx | gzip > analysis/Lof_07.Lof_14.fst.AB.gz
+realSFS fst print analysis/Lof_11.Lof_14.fst.idx | gzip > analysis/Lof_11.Lof_14.fst.AB.gz
