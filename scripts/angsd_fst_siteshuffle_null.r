@@ -4,6 +4,7 @@
 # parameters
 winsz <- 50000 # window size
 winstp <- 10000 # window step
+nrep <- 1000 # number of reshuffles
 
 # load functions
 require(data.table)
@@ -27,10 +28,12 @@ lof0711 <- lof0711[!(CHROM %in% 'Unplaced'), ]
 lof0714 <- lof0714[!(CHROM %in% 'Unplaced'), ]
 lof1114 <- lof1114[!(CHROM %in% 'Unplaced'), ]
 
+
 # shuffle and recalc windowed FST
 # CAN
-for(i in 1:1000){
-	cat(i)
+print('Starting Can')
+for(i in 1:nrep){
+	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(can), nrow(can), replace = FALSE)
 	temp <- cbind(can[, .(CHROM, POS)], can[inds, .(A, B)]) # shuffle FSTs across positions
@@ -48,17 +51,23 @@ for(i in 1:1000){
 	}
 
 	# save the max windowed fst
-	if(i == 1) maxfst <- tempfsts[, max(fst)]	
-	if(i > 1) maxfst <- c(maxfst, tempfsts[, max(fst)])
+	# exclude windows with negative midpoints
+	if(i == 1) maxfst <- tempfsts[POS > 0, max(fst, na.rm = TRUE)]	
+	if(i > 1) maxfst <- c(maxfst, tempfsts[POS > 0, max(fst, na.rm = TRUE)])
 }
+
+print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
 write.csv(maxfst, gzfile('analysis/Can_40.Can_14.fst.siteshuffle.csv.gz'), row.names = FALSE)
 
 rm(maxfst)
 
+
+
 # Lof0711
-for(i in 1:1000){
-	cat(i)
+print('Starting Lof0711')
+for(i in 1:nrep){
+	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(lof0711), nrow(lof0711), replace = FALSE)
 	temp <- cbind(lof0711[, .(CHROM, POS)], lof0711[inds, .(A, B)]) # shuffle FSTs across positions
@@ -76,17 +85,21 @@ for(i in 1:1000){
 	}
 
 	# save the max windowed fst
-	if(i == 1) maxfst <- tempfsts[, max(fst)]	
-	if(i > 1) maxfst <- c(maxfst, tempfsts[, max(fst)])
+	if(i == 1) maxfst <- tempfsts[POS > 0, max(fst, na.rm = TRUE)]	
+	if(i > 1) maxfst <- c(maxfst, tempfsts[POS > 0, max(fst, na.rm = TRUE)])
 }
+
+print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
 write.csv(maxfst, gzfile('analysis/Lof_07.Lof_11.fst.siteshuffle.csv.gz'), row.names = FALSE)
 
 rm(maxfst)
 
+
 # Lof0714
-for(i in 1:1000){
-	cat(i)
+print('Starting Lof0714')
+for(i in 1:nrep){
+ 	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(lof0714), nrow(lof0714), replace = FALSE)
 	temp <- cbind(lof0714[, .(CHROM, POS)], lof0714[inds, .(A, B)]) # shuffle FSTs across positions
@@ -104,17 +117,21 @@ for(i in 1:1000){
 	}
 
 	# save the max windowed fst
-	if(i == 1) maxfst <- tempfsts[, max(fst)]	
-	if(i > 1) maxfst <- c(maxfst, tempfsts[, max(fst)])
+	if(i == 1) maxfst <- tempfsts[POS > 0, max(fst, na.rm = TRUE)]	
+	if(i > 1) maxfst <- c(maxfst, tempfsts[POS > 0, max(fst, na.rm = TRUE)])
 }
+
+print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
 write.csv(maxfst, gzfile('analysis/Lof_07.Lof_14.fst.siteshuffle.csv.gz'), row.names = FALSE)
 
 rm(maxfst)
 
+
 # Lof1114
-for(i in 1:1000){
-	cat(i)
+print('Starting Lof1114')
+for(i in 1:nrep){
+ 	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(lof1114), nrow(lof1114), replace = FALSE)
 	temp <- cbind(lof1114[, .(CHROM, POS)], lof1114[inds, .(A, B)]) # shuffle FSTs across positions
@@ -132,8 +149,10 @@ for(i in 1:1000){
 	}
 
 	# save the max windowed fst
-	if(i == 1) maxfst <- tempfsts[, max(fst)]	
-	if(i > 1) maxfst <- c(maxfst, tempfsts[, max(fst)])
+	if(i == 1) maxfst <- tempfsts[POS > 0, max(fst, na.rm = TRUE)]	
+	if(i > 1) maxfst <- c(maxfst, tempfsts[POS > 0, max(fst, na.rm = TRUE)])
 }
+
+print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
 write.csv(maxfst, gzfile('analysis/Lof_11.Lof_14.fst.siteshuffle.csv.gz'), row.names = FALSE)

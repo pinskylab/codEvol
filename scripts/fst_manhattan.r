@@ -67,6 +67,9 @@ dat <- rbind(lof11, lof14, lof1114, can)
 dat[, pop := factor(pop, levels = c('can', 'lof11', 'lof14', 'lof1114'))]
 
 
+##############
+# plots
+##############
 
 # plot fst vs. #snps
 ggplot(dat, aes(Nsites, fst, color = pop)) + 
