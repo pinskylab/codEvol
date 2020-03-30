@@ -13,7 +13,7 @@
 #SBATCH --mem=10G
 #
 # Number of cores:
-#SBATCH --cpus-per-task=40
+#SBATCH --cpus-per-task=20
 
 
 ## Set up job environment:
@@ -33,12 +33,12 @@ zcat data_31_01_20/Lof_14_freq.pos.gz | tail -n +2 | gzip > tmp/lof14.pos.gz
 # calculations
 # Can 40
 ngsLD --geno data_31_01_20/Can_40_freq.beagle.gz \
-	--probs \ # Beagle GP format for input
+	--probs \
 	--n_ind 20 \
 	--n_sites 18535474 \
 	--pos tmp/can40.pos.gz \
-	--max_kb_dist 5 \ # out to 5kb
-	--n_threads 40 \
+	--max_kb_dist 5 \
+	--n_threads 20 \
 	--out analysis/ld.Can_40
 
 # Can 14
@@ -48,7 +48,7 @@ ngsLD --geno data_31_01_20/Can_14_freq.beagle.gz \
 	--n_sites 18932496 \
 	--pos tmp/can14.pos.gz \
 	--max_kb_dist 5 \ 
-	--n_threads 40 \
+	--n_threads 20 \
 	--out analysis/ld.Can_14
 
 # Lof 07
@@ -58,7 +58,7 @@ ngsLD --geno data_31_01_20/Lof_07_freq.beagle.gz \
 	--n_sites 18543439 \
 	--pos tmp/lof07.pos.gz \
 	--max_kb_dist 5 \ 
-	--n_threads 40 \
+	--n_threads 20 \
 	--out analysis/ld.Lof_07
 
 # Lof 11
@@ -68,7 +68,7 @@ ngsLD --geno data_31_01_20/Lof_11_freq.beagle.gz \
 	--n_sites 18954865 \
 	--pos tmp/lof11.pos.gz \
 	--max_kb_dist 5 \ 
-	--n_threads 40 \
+	--n_threads 20 \
 	--out analysis/ld.Lof_11
 
 # Lof 14
@@ -78,7 +78,7 @@ ngsLD --geno data_31_01_20/Lof_14_freq.beagle.gz \
 	--n_sites 18957426 \
 	--pos tmp/lof14.pos.gz \
 	--max_kb_dist 5 \ 
-	--n_threads 40 \
+	--n_threads 20 \
 	--out analysis/ld.Lof_14
 	
 	
