@@ -8,6 +8,7 @@ initialize()
 		defineConstant("L", 30000000);
 		defineConstant("ne", 50);
 		defineConstant("f", 0.1);
+		defineConstant("ftol", 0.05);
 		defineConstant("n1", 20);
 		defineConstant("n2", 20);
 		defineConstant("s", 0.5);
@@ -19,9 +20,9 @@ initialize()
 	
 	// some constants. all should be defined as arguments on the command line
 	defineConstant("chrSz", L); // chromosome size in bp
-	defineConstant("simID", getSeed()); // save this run's identifier, used to save
 	defineConstant("popSz", ne); // population size
-	defineConstant("initFreqmin", f); // minimum initial frequency of the beneficial mutation
+	defineConstant("initFreq", f); // initial frequency of the beneficial mutation
+	defineConstant("initFreqtol", ftol); // initial frequency tolerance (initFreq +/- initFreqtol)
 	defineConstant("num1", n1); // initial sample size (# diploid individuals)
 	defineConstant("num2", n2); // second sample size
 	defineConstant("selCoef", asFloat(s)); // selection coefficient, per site
@@ -29,9 +30,11 @@ initialize()
 	defineConstant("outfile", o); // base output file name (_1.vcf and _11.vcf will be added)
 	defineConstant("infile", i); // input file name
 	defineConstant("gen", g); // number of generations of the soft sweep to run
+
+	defineConstant("simID", getSeed()); // save this run's identifier, used to save files
 	
 	// prep to output tree format for recapitation
-	initializeTreeSeq();
+	//initializeTreeSeq();
 
 	// set the overall neutral mutation rate
 	initializeMutationRate(0);
@@ -62,35 +65,40 @@ initialize()
 100 late()
 {
 	// pick a mutation to sweep from
-	muts = sim.mutations;
-	muts = muts[sim.mutationFrequencies(p1, muts) > initFreqmin &
-		muts.position > (chrSz*7/16) & muts.position < (chrSz*9/16)]; // only pick mutations of min frequency near the middle of the chromosome
+	muts = sim.mutations; // all possible mutations
+	muts = muts[sim.mutationFrequencies(p1, muts) > (initFreq - initFreqtol) &
+		sim.mutationFrequencies(p1, muts) < (initFreq + initFreqtol) &
+		muts.position > (chrSz*7/16) & muts.position < (chrSz*9/16)]; // only pick mutations of appropriate frequency near the middle of the chromosome
+		
 	if (size(muts)) // if some mutations exist
 	{
 		mut = sample(muts, 1); // pick one from the suitable mutations
 		mut.setSelectionCoeff(selCoef); // set selection coefficient
-		//mut.color = "red"; // make it red in SLiMgui
 		print("Position: " + mut.position); // print the position in the genome
 		defineConstant("mutID", mut.id); // save the mutation ID for the one under selection
+
+		// output initial state (before sweep)
+		print("Initial frequency: " + sim.mutationFrequencies(p1, muts[muts.id == mutID])); // print the frequency
+	   sampledIndividuals = sample(p1.individuals, num1);
+		sampledIndividuals.genomes.outputVCF(outfile + "_1.vcf"); // output to vcf
 	}
 	else
 	{
 		cat("No contender of sufficient frequency found.\n");
 	}
 
-	// output initial state (before sweep)
-	print(sim.mutationFrequencies(p1, muts[muts.id == mutID])); // print the frequency
-   sampledIndividuals = sample(p1.individuals, num1);
-	sampledIndividuals.genomes.outputVCF(outfile + "_1.vcf"); // to output to file
 }
 
 // note that this script block gets rescheduled in generation 1
 s1 111 late() {
-	//check the selected allele frequency here
-	muts = sim.mutations;
-	print(sim.mutationFrequencies(p1, muts[muts.id == mutID]));
+	if (exists("mutID"))
+	{
+		//check the selected allele frequency here
+		muts = sim.mutations;
+		print("Final frequency: " + sim.mutationFrequencies(p1, muts[muts.id == mutID]));
 
-	// output the final vcf file
-   sampledIndividuals = sample(p1.individuals, num2);
-	sampledIndividuals.genomes.outputVCF(outfile + "_11.vcf");
+		// output the final vcf file
+		sampledIndividuals = sample(p1.individuals, num2);
+		sampledIndividuals.genomes.outputVCF(outfile + "_11.vcf");
+	}
 }
