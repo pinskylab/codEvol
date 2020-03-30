@@ -17,12 +17,14 @@ require(RColorBrewer)
 # max FST per genome from reshuffling sites
 nullcan <- fread('analysis/Can_40.Can_14.fst.siteshuffle.csv.gz')
 nulllof0711 <- fread('analysis/Lof_07.Lof_11.fst.siteshuffle.csv.gz')
+nulllof0714 <- fread('analysis/Lof_07.Lof_14.fst.siteshuffle.csv.gz')
+nulllof1114 <- fread('analysis/Lof_11.Lof_14.fst.siteshuffle.csv.gz')
 
 # sliding window FSTs from ANGSD
 # header is missing the fst column, so have to skip and make our own
 can <- fread('analysis/Can_40.Can_14.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
-lof11 <- fread('analysis/Lof_07.Lof_11.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
-lof14 <- fread('analysis/Lof_07.Lof_14.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
+lof0711 <- fread('analysis/Lof_07.Lof_11.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
+lof0714 <- fread('analysis/Lof_07.Lof_14.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
 lof1114 <- fread('analysis/Lof_11.Lof_14.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
 
 # make a nucleotide position for the whole genome (start position for each chr)
@@ -31,15 +33,15 @@ chrmax$start=c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
 setkey(chrmax, chr)
 
 # merge nucleotide position into the frequency files
-setkey(lof11, chr)
-lof11 <- lof11[chrmax[, .(chr, start)], ]
-lof11[, posgen := midPos + start]
-lof11[,start := NULL]
+setkey(lof0711, chr)
+lof0711 <- lof0711[chrmax[, .(chr, start)], ]
+lof0711[, posgen := midPos + start]
+lof0711[,start := NULL]
 
-setkey(lof14, chr)
-lof14 <- lof14[chrmax[, .(chr, start)], ]
-lof14[, posgen := midPos + start]
-lof14[,start := NULL]
+setkey(lof0714, chr)
+lof0714 <- lof0714[chrmax[, .(chr, start)], ]
+lof0714[, posgen := midPos + start]
+lof0714[,start := NULL]
 
 setkey(lof1114, chr)
 lof1114 <- lof1114[chrmax[, .(chr, start)], ]
@@ -53,14 +55,14 @@ can[,start := NULL]
 
 
 
-
-
 #######################
 ## null model stats
 #######################
 
-can[, .(max = max(x), u95 = quantile(x, probs = 0.95))]
-lof0711[, .(max = max(x), u95 = quantile(x, probs = 0.95))]
+nullcan[, .(max = max(x), u95 = quantile(x, probs = 0.95))]
+nulllof0711[, .(max = max(x), u95 = quantile(x, probs = 0.95))]
+nulllof0714[, .(max = max(x), u95 = quantile(x, probs = 0.95))]
+nulllof1114[, .(max = max(x), u95 = quantile(x, probs = 0.95))]
 
 
 ###########################
@@ -71,23 +73,23 @@ calcp <- function(fst, null){
 }
 
 can[, p := calcp(fst, nullcan$x), by = .(chr, midPos)]
-lof11[, p := calcp(fst, nulllof0711$x), by = .(chr, midPos)]
-lof14[, p:= NA_real_]
-lof1114[, p:= NA_real_]
+lof0711[, p := calcp(fst, nulllof0711$x), by = .(chr, midPos)]
+lof0714[, p := calcp(fst, nulllof0714$x), by = .(chr, midPos)]
+lof1114[, p := calcp(fst, nulllof1114$x), by = .(chr, midPos)]
 
 ######################
 # combine the datasets
 ######################
-lof11[, pop := 'lof11']
-lof14[, pop := 'lof14']
+lof0711[, pop := 'lof0711']
+lof0714[, pop := 'lof0714']
 lof1114[, pop := 'lof1114']
 can[, pop := 'can']
 
-dat <- rbind(lof11, lof14, lof1114, can)
+dat <- rbind(lof0711, lof0714, lof1114, can)
 nrow(dat)
 dat
 
-dat[, pop := factor(pop, levels = c('can', 'lof11', 'lof14', 'lof1114'))]
+dat[, pop := factor(pop, levels = c('can', 'lof0711', 'lof0714', 'lof1114'))]
 
 
 
