@@ -20,12 +20,19 @@ if(grepl('hpc.uio.no', Sys.info()["nodename"])){
 # read and prep in data
 #####################
 
-# sliding windows from ANGSD
+# sliding windows from ANGSD (all sites)
 # header is missing the fst column, so have to skip and make our own
 can <- fread('analysis/Can_40.Can_14.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
 lof11 <- fread('analysis/Lof_07.Lof_11.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
 lof14 <- fread('analysis/Lof_07.Lof_14.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
 lof1114 <- fread('analysis/Lof_11.Lof_14.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
+
+# sliding windows from ANGSD (GATK sites)
+cangatk <- fread('analysis/Can_40.Can_14.gatk.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
+lof11gatk <- fread('analysis/Lof_07.Lof_11.gatk.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
+lof14gatk <- fread('analysis/Lof_07.Lof_14.gatk.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
+lof1114gatk <- fread('analysis/Lof_11.Lof_14.gatk.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
+
 
 # make a nucleotide position for the whole genome (start position for each chr)
 chrmax <- can[,.(len=max(midPos)), by=chr]
@@ -33,6 +40,11 @@ chrmax$start=c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
 setkey(chrmax, chr)
 
 # merge nucleotide position into the frequency files
+setkey(can, chr)
+can <- can[chrmax[, .(chr, start)], ]
+can[, posgen := midPos + start]
+can[,start := NULL]
+
 setkey(lof11, chr)
 lof11 <- lof11[chrmax[, .(chr, start)], ]
 lof11[, posgen := midPos + start]
@@ -48,23 +60,49 @@ lof1114 <- lof1114[chrmax[, .(chr, start)], ]
 lof1114[, posgen := midPos + start]
 lof1114[,start := NULL]
 
-setkey(can, chr)
-can <- can[chrmax[, .(chr, start)], ]
-can[, posgen := midPos + start]
-can[,start := NULL]
+setkey(cangatk, chr)
+cangatk <- cangatk[chrmax[, .(chr, start)], ]
+cangatk[, posgen := midPos + start]
+cangatk[,start := NULL]
+
+setkey(lof11gatk, chr)
+lof11gatk <- lof11gatk[chrmax[, .(chr, start)], ]
+lof11gatk[, posgen := midPos + start]
+lof11gatk[,start := NULL]
+
+setkey(lof14gatk, chr)
+lof14gatk <- lof14gatk[chrmax[, .(chr, start)], ]
+lof14gatk[, posgen := midPos + start]
+lof14gatk[,start := NULL]
+
+setkey(lof1114gatk, chr)
+lof1114gatk <- lof1114gatk[chrmax[, .(chr, start)], ]
+lof1114gatk[, posgen := midPos + start]
+lof1114gatk[,start := NULL]
 
 
 # combine the datasets to look at correlations across them
+can[, pop := 'can']
 lof11[, pop := 'lof11']
 lof14[, pop := 'lof14']
 lof1114[, pop := 'lof1114']
-can[, pop := 'can']
+
+cangatk[, pop := 'can']
+lof11gatk[, pop := 'lof11']
+lof14gatk[, pop := 'lof14']
+lof1114gatk[, pop := 'lof1114']
 
 dat <- rbind(lof11, lof14, lof1114, can)
-	nrow(dat)
-	dat
-	
+datgatk <- rbind(lof11gatk, lof14gatk, lof1114gatk, cangatk)
+
+nrow(dat)
+nrow(datgatk)
+
+dat
+datgatk
+
 dat[, pop := factor(pop, levels = c('can', 'lof11', 'lof14', 'lof1114'))]
+datgatk[, pop := factor(pop, levels = c('can', 'lof11', 'lof14', 'lof1114'))]
 
 
 ##############
@@ -76,15 +114,28 @@ ggplot(dat, aes(Nsites, fst, color = pop)) +
   geom_point(size = 0.5, alpha = 0.3) +
   scale_x_log10()
 
+ggplot(datgatk, aes(Nsites, fst, color = pop)) + 
+  geom_point(size = 0.5, alpha = 0.3) +
+  scale_x_log10()
+
+
 # plot fst vs. position
 cols <- brewer.pal(4, 'Paired')[rep(1:2,12)]
+
 p1 <- ggplot(dat, aes(posgen, fst, color = chr)) + 
   geom_point(size = 0.5, alpha = 0.3) +
-  facet_wrap(~pop, ncol = 1) +
+  facet_wrap(~pop, ncol = 1, scales = 'free') +
   scale_color_manual(values = cols)
 p1
 ggsave(plot = p1, device = 'png', filename = 'figures/fst_vs_pos.png', width = 7.5, height = 6, units = 'in', dpi = 300)
 
+
+p2 <- ggplot(datgatk, aes(posgen, fst, color = chr)) + 
+  geom_point(size = 0.5, alpha = 0.3) +
+  facet_wrap(~pop, ncol = 1, scales = 'free') +
+  scale_color_manual(values = cols)
+p2
+ggsave(plot = p2, device = 'png', filename = 'figures/fst_vs_pos.gatk.png', width = 7.5, height = 6, units = 'in', dpi = 300)
 
 
 ############
