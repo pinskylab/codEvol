@@ -1,10 +1,32 @@
 # shuffle ANGSD FST A and B values across sites and calculate windowed FST to get a null distribution of max genome-wide FST
 # run last part of angsd_fst.sh first to get the *.fst.AB.gz files
 
+# read command line arguments
+args <- commandArgs(trailingOnly = TRUE)
+print(args)
+
+if (length(args) != 1) stop("Have to specify whether all loci (0) or GATK loci (1)", call.=FALSE)
+
+gatkflag <- as.numeric(args[1])
+
+if(gatkflag == 1){
+	print('Using only GATK loci')
+} else if(gatkflag == 0){
+	print('Using all loci')
+} else {
+	stop(paste(gatkflag, ' is not 0 or 1. Please only specify 0 (all loci) or 1 (gatk loci).'))
+}
+
+
 # parameters
 winsz <- 50000 # window size
 winstp <- 10000 # window step
 nrep <- 1000 # number of reshuffles
+
+outfilecan <- 'analysis/Can_40.Can_14.fst.siteshuffle.csv.gz' # used if all loci are used
+outfilelof0711 <- 'analysis/Lof_07.Lof_11.fst.siteshuffle.csv.gz'
+outfilelof0714 <- 'analysis/Lof_07.Lof_14.fst.siteshuffle.csv.gz'
+outfilelof1114 <- 'analysis/Lof_11.Lof_14.fst.siteshuffle.csv.gz'
 
 # load functions
 require(data.table)
@@ -21,6 +43,24 @@ setnames(lof0714, c('CHROM', 'POS', 'A', 'B'))
 
 lof1114 <- fread('analysis/Lof_11.Lof_14.fst.AB.gz')
 setnames(lof1114, c('CHROM', 'POS', 'A', 'B'))
+
+# trim out gatk loci if requested
+if(gatkflag == 1){
+	# list of loci to use
+	gatk <- fread('data_31_01_20/GATK_filtered_SNP_set.tab')
+
+	# trim
+	can <- can[gatk, on = c('CHROM', 'POS')]
+	lof0711 <- lof0711[gatk, on = c('CHROM', 'POS')]
+	lof0714 <- lof0714[gatk, on = c('CHROM', 'POS')]
+	lof1114 <- lof1114[gatk, on = c('CHROM', 'POS')]
+
+	# set new outfile names
+	outfilecan <- 'analysis/Can_40.Can_14.gatk.fst.siteshuffle.csv.gz'
+	outfilelof0711 <- 'analysis/Lof_07.Lof_11.gatk.fst.siteshuffle.csv.gz'
+	outfilelof0714 <- 'analysis/Lof_07.Lof_14.gatk.fst.siteshuffle.csv.gz'
+	outfilelof1114 <- 'analysis/Lof_11.Lof_14.gatk.fst.siteshuffle.csv.gz'
+}
 
 # remove unplaced
 can <- can[!(CHROM %in% 'Unplaced'), ]
@@ -58,7 +98,7 @@ for(i in 1:nrep){
 
 print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
-write.csv(maxfst, gzfile('analysis/Can_40.Can_14.fst.siteshuffle.csv.gz'), row.names = FALSE)
+write.csv(maxfst, gzfile(outfilecan), row.names = FALSE)
 
 rm(maxfst)
 
@@ -91,7 +131,7 @@ for(i in 1:nrep){
 
 print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
-write.csv(maxfst, gzfile('analysis/Lof_07.Lof_11.fst.siteshuffle.csv.gz'), row.names = FALSE)
+write.csv(maxfst, gzfile(outfilelof0711), row.names = FALSE)
 
 rm(maxfst)
 
@@ -123,7 +163,7 @@ for(i in 1:nrep){
 
 print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
-write.csv(maxfst, gzfile('analysis/Lof_07.Lof_14.fst.siteshuffle.csv.gz'), row.names = FALSE)
+write.csv(maxfst, gzfile(outfilelof0714), row.names = FALSE)
 
 rm(maxfst)
 
@@ -155,4 +195,4 @@ for(i in 1:nrep){
 
 print(paste('Max:', max(maxfst, na.rm = TRUE), '; 95th:', quantile(maxfst, prob = 0.95, na.rm = TRUE)))
 
-write.csv(maxfst, gzfile('analysis/Lof_11.Lof_14.fst.siteshuffle.csv.gz'), row.names = FALSE)
+write.csv(maxfst, gzfile(outfilelof1114), row.names = FALSE)
