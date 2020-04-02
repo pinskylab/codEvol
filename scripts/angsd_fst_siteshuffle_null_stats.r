@@ -177,4 +177,14 @@ p2
 ggsave(plot = p2, device = 'png', filename = 'figures/fst.siteshuffle.p_vs_pos.gatk.png', width = 7.5, height = 6, units = 'in', dpi = 300)
 
 
+# plot p-value vs. Nsites (gatk loci)
+ggplot(datgatk, aes(Nsites, -log10(p), color = pop)) + 
+  geom_point(size = 0.2, alpha = 0.3) +
+  geom_hline(yintercept = -log10(0.05), linetype = 'dashed', color = 'grey')
 
+#################
+# print outliers
+#################
+
+
+datgatk[p < 0.05, ]
