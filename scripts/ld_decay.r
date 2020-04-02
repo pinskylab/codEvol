@@ -1,4 +1,4 @@
-# create an LD decay plot
+# create an LD decay plot from vcftools output
 
 require(data.table)
 # require(data.table, lib.loc="/projects/cees/lib/R_packages/") # on cod node

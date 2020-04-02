@@ -1,4 +1,5 @@
 # average LD within windows and calculate change through time
+# for vcftools output (GATK-called loci)
 
 
 ######################
