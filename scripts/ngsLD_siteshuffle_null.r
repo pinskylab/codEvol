@@ -99,7 +99,7 @@ for(i in 1:nrep){
 	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(can), nrow(can), replace = FALSE)
-	temp <- cbind(can[, .(chr, pos1, pos2)], can[inds, .(r2d)]) # shuffle LDs across position pairs
+	temp <- cbind(can[, .(chr, pos1, pos2)], can[inds, .(r2d)]) # shuffle LD changes across position pairs
 	
 	# create new columns as indices for windows
 	# need multiple columns because overlapping windows
