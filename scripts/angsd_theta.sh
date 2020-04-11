@@ -24,6 +24,13 @@ module load angsd/0.931-GCC-8.2.0-2.31.1
 
 # note: run this from /cluster/projects/nn9244k/in_progress/historic_malin/
 
+# calculate pi and theta_Watterson per site (all loci)
+thetaStat print data_02.04.20/Can_40.thetas.idx | gzip >analysis/thetas.Can_40.pestPG.gz
+thetaStat print data_02.04.20/Can_14.thetas.idx | gzip >analysis/thetas.Can_14.pestPG.gz
+thetaStat print data_02.04.20/Lof_07.thetas.idx | gzip >analysis/thetas.Lof_07.pestPG.gz
+thetaStat print data_02.04.20/Lof_11.thetas.idx | gzip >analysis/thetas.Lof_11.pestPG.gz
+thetaStat print data_02.04.20/Lof_14.thetas.idx | gzip >analysis/thetas.Lof_14.pestPG.gz
+
 # calculate windowed pi and Tajima's D by population (all loci)
 thetaStat do_stat data_02.04.20/Can_40.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Can_40
 thetaStat do_stat data_02.04.20/Can_14.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Can_14
