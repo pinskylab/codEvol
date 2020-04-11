@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#NOTE: 11 April 2020: this script chooses the wrong columns for Lof11 and Lof14. Should be 24 and 22 indivs, respectively
+
 # Job name: Cut angsd Beagle file into populations
 #SBATCH --job-name=cutBeagle
 #
