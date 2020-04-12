@@ -38,5 +38,16 @@ thetaStat do_stat data_02.04.20/Lof_07.thetas.idx -win 50000 -step 10000 -type 2
 thetaStat do_stat data_02.04.20/Lof_11.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Lof_11
 thetaStat do_stat data_02.04.20/Lof_14.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Lof_14
 
+# calculate pi and theta_Watterson per site (gatk loci)
+thetaStat print data_02.04.20/GATK_Can_40.thetas.idx | gzip >analysis/thetas.Can_40.gatk.pestPG.gz
+thetaStat print data_02.04.20/GATK_Can_14.thetas.idx | gzip >analysis/thetas.Can_14.gatk.pestPG.gz
+thetaStat print data_02.04.20/GATK_Lof_07.thetas.idx | gzip >analysis/thetas.Lof_07.gatk.pestPG.gz
+thetaStat print data_02.04.20/GATK_Lof_11.thetas.idx | gzip >analysis/thetas.Lof_11.gatk.pestPG.gz
+thetaStat print data_02.04.20/GATK_Lof_14.thetas.idx | gzip >analysis/thetas.Lof_14.gatk.pestPG.gz
+
 # windowed pi and D for only GATK loci
-# need files from Bastiaan first
+thetaStat do_stat data_02.04.20/GATK_Can_40.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Can_40.gatk
+thetaStat do_stat data_02.04.20/GATK_Can_14.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Can_14.gatk
+thetaStat do_stat data_02.04.20/GATK_Lof_07.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Lof_07.gatk
+thetaStat do_stat data_02.04.20/GATK_Lof_11.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Lof_11.gatk
+thetaStat do_stat data_02.04.20/GATK_Lof_14.thetas.idx -win 50000 -step 10000 -type 2 -outnames analysis/thetas.windowed.Lof_14.gatk
