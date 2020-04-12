@@ -1,12 +1,15 @@
 # shuffle theta values across sites and calculate windowed averages to get a null distribution of max genome-wide thetas
 
+#################################
 # read command line arguments
+#################################
 args <- commandArgs(trailingOnly = TRUE)
 print(args)
 
-if (length(args) != 1) stop("Have to specify whether all loci (0) or GATK loci (1)", call.=FALSE)
+if (length(args) != 2) stop("Have to specify whether all loci (0) or GATK loci (1), and which pop (1=Can, 2=Lof0711, 3=Lof0714, 4=Lof1114)", call.=FALSE)
 
 gatkflag <- as.numeric(args[1])
+popflag <- as.numeric(args[2])
 
 if(gatkflag == 1){
   stop('Using GATK loci, but code not set up for that yet')
@@ -15,23 +18,14 @@ if(gatkflag == 1){
 } else {
 	stop(paste(gatkflag, ' is not 0 or 1. Please only specify 0 (all loci) or 1 (gatk loci).'))
 }
+if(!(popflag %in% 1:4)) stop('Have to specify pop in 1, 2, 3 or 4 (1=Can, 2=Lof0711, 3=Lof0714, 4=Lof1114)')
 
-
+#################################
 # parameters
+#################################
 winsz <- 50000 # window size
 winstp <- 10000 # window step
 nrep <- 1000 # number of reshuffles
-
-nchrCan40 <- 42 # sample size in # chromosomes
-nchrCan14 <- 48
-nchrLof07 <- 44
-nchrLof11 <- 48
-nchrLof14 <- 44
-
-outfilecan <- 'analysis/theta.siteshuffle.Can_40.Can_14.csv.gz' # used if all loci are used
-outfilelof0711 <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.csv.gz'
-outfilelof0714 <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.csv.gz'
-outfilelof1114 <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.csv.gz'
 
 ####################
 # load functions
@@ -122,97 +116,79 @@ shufflestat <- function(dat1, dat2, nchr1, nchr2){
 }
 
 
+######################
+# Load data
+######################
 
 # load all loci theta calcs if requested
 if(gatkflag == 0){
-	# read in data
-	datCan40 <- fread('analysis/thetas.Can_40.pestPG.gz')
-	datCan14 <- fread('analysis/thetas.Can_14.pestPG.gz')
-	dat07 <- fread('analysis/thetas.Lof_07.pestPG.gz')
-	dat11 <- fread('analysis/thetas.Lof_11.pestPG.gz')
-	dat14 <- fread('analysis/thetas.Lof_14.pestPG.gz')
+	if(popflag == 1){
+		print('Starting Can')
+		dat1 <- fread('analysis/thetas.Can_40.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Can_14.pestPG.gz')
+		nchr1 <- 42 # sample size in # chromosomes
+		nchr2 <- 48
+		outfile <- 'analysis/theta.siteshuffle.Can_40.Can_14.csv.gz' # used if all loci are used
+	}
+	if(popflag == 2){
+		print('Starting Lof0711')
+		dat1 <- fread('analysis/thetas.Lof_07.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Lof_11.pestPG.gz')
+		nchr1 <- 44
+		nchr2 <- 48
+		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.csv.gz'
+	}
+	if(popflag == 3){
+		print('Starting Lof0714')
+		dat1 <- fread('analysis/thetas.Lof_07.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Lof_14.pestPG.gz')
+		nchr1 <- 44
+		nchr2 <- 44
+		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.csv.gz'
+	}
+	if(popflag == 4){
+		print('Starting Lof1114')
+		dat1 <- fread('analysis/thetas.Lof_11.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Lof_14.pestPG.gz')
+		nchr1 <- 48
+		nchr2 <- 44
+		outfile <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.csv.gz'
+	}
 }
 
 if(gatkflag == 1){
-  # read in files when available
-
-  # set new outfile names
-	outfilecan <- 'analysis/theta.siteshuffle.Can_40.Can_14.gatk.csv.gz' # used if all loci are used
-	outfilelof0711 <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.gatk.csv.gz'
-	outfilelof0714 <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.gatk.csv.gz'
-	outfilelof1114 <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.gatk.csv.gz'
+	# not yet set up
+	if(popflag == 4){
+		outfile <- 'analysis/theta.siteshuffle.Can_40.Can_14.gatk.csv.gz' # used if all loci are used
+	}
+	if(popflag == 4){
+		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.gatk.csv.gz'
+	}
+	if(popflag == 4){
+		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.gatk.csv.gz'
+	}
+	if(popflag == 4){
+		outfile <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.gatk.csv.gz'
+	}
 }
 
 # fix name
-setnames(datCan40, '#Chromo', 'Chromo')
-setnames(datCan14, '#Chromo', 'Chromo')
-setnames(dat07, '#Chromo', 'Chromo')
-setnames(dat11, '#Chromo', 'Chromo')
-setnames(dat14, '#Chromo', 'Chromo')
+setnames(dat1, '#Chromo', 'Chromo')
+setnames(dat2, '#Chromo', 'Chromo')
 
 # remove unplaced
-datCan40 <- datCan40[grep('Unplaced', Chromo, invert = TRUE), ]
-datCan14 <- datCan14[grep('Unplaced', Chromo, invert = TRUE), ]
-dat07 <- dat07[grep('Unplaced', Chromo, invert = TRUE), ]
-dat11 <- dat11[grep('Unplaced', Chromo, invert = TRUE), ]
-dat14 <- dat14[grep('Unplaced', Chromo, invert = TRUE), ]
+dat1 <- dat1[grep('Unplaced', Chromo, invert = TRUE), ]
+dat2 <- dat2[grep('Unplaced', Chromo, invert = TRUE), ]
 
 
-
-# shuffle and recalc windowed LD
-# CAN
-print('Starting Can')
+# shuffle and recalc windowed thetas
 for(i in 1:nrep){
 	cat(i); cat(' ')
-	tempminmax <- shufflestat(datCan40, datCan14, nchrCan40, nchrCan14)
+	tempminmax <- shufflestat(dat1, dat2, nchr1, nchr2)
 
 	if(i == 1) minmax <- tempminmax
 	if(i > 1) minmax <- rbind(minmax, tempminmax)
 }
 
-write.csv(minmax, gzfile(outfilecan), row.names = FALSE)
-rm(minmax)
-
-
-
-# Lof0711
-print('Starting Lof0711')
-for(i in 1:nrep){
-	cat(i); cat(' ')
-	tempminmax <- shufflestat(datLof07, datLof11, nchrLof07, nchrLof11)
-
-	if(i == 1) minmax <- tempminmax
-	if(i > 1) minmax <- rbind(minmax, tempminmax)
-}
-
-write.csv(minmax, gzfile(outfilelof0711), row.names = FALSE)
-rm(minmax)
-
-
-# Lof0714
-print('Starting Lof0714')
-for(i in 1:nrep){
-	cat(i); cat(' ')
-	tempminmax <- shufflestat(datLof07, datLof14, nchrLof07, nchrLof14)
-
-	if(i == 1) minmax <- tempminmax
-	if(i > 1) minmax <- rbind(minmax, tempminmax)
-}
-
-write.csv(minmax, gzfile(outfilelof0714), row.names = FALSE)
-rm(minmax)
-
-
-
-# Lof1114
-print('Starting Lof1114')
-for(i in 1:nrep){
-	cat(i); cat(' ')
-	tempminmax <- shufflestat(datLof07, datLof14, nchrLof07, nchrLof14)
-
-	if(i == 1) minmax <- tempminmax
-	if(i > 1) minmax <- rbind(minmax, tempminmax)
-}
-
-write.csv(minmax, gzfile(outfilelof1114), row.names = FALSE)
+write.csv(minmax, gzfile(outfile), row.names = FALSE)
 rm(minmax)
