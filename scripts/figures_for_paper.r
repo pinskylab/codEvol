@@ -3,7 +3,6 @@
 #################
 require(data.table)
 require(RColorBrewer)
-require(png)
 
 # takes values 0-1 and turns them into colors. takes ColorBrewer pallete as argument.
 colramp <- function(x, pal='RdBu', alpha=255){
@@ -22,6 +21,41 @@ cols2 <- c('#a6cee3', '#1f78b4') # light blue, blue: for alternating LGs outlier
 #cols3 <- c('#F7941E', '#F2592A', '#BF1E2D', '#FFDE17', '#BEA512') # Lof07, Lof11, Lof14, Can40, CanMod (reds, yellows, from Bastiaan)
 cols3 <- c('#e7d4e8', '#af8dc3', '#762a83', '#d9f0d3', '#1b7837') # Lof07, Lof11, Lof14, Can40, CanMod (PRGn colorbrewer)
 
+##################################
+# Fig. 2 Fishing and phenotypes
+##################################
+
+# read in data
+canfish <- fread('data/phenotypes/Brattey_etal_2018_CSAS_TableA2-5_NorthernCod_fishingmortality.csv')
+loffish <- fread('data/phenotypes/AFWG_2019_3_Northeast Arctic_Cod_Table3.18.csv')
+canmat <- fread('output/age_50percmature_can.csv')
+lofmat <- fread('data/phenotypes/Eikeset_Age_and_length_at_maturation.csv')
+
+# summarize for plotting
+canfishsum <- canfish[, .(Year, F = rowMeans(cbind(Age5, Age6, Age7, Age8, Age9, Age10)))]
+
+# plot params
+adjlet <- -0.2
+cexlet <- 1
+linelet <- 0.5
+
+# plot
+png(height=6, width=6, units='in', res=300, file='figures/figure2.png')
+
+par(mfrow=c(2,2), mai = c(0.6, 0.7, 0.3, 0.1), las = 1, tcl = -0.3, mgp = c(2.5, 0.7, 0), bty = 'l')
+canfishsum[, plot(Year, F, type = 'l', ylab = 'Fishing mortality rate')]
+mtext(side=3, 'A)', adj=adjlet, line=linelet, cex=cexlet)
+
+loffish[, plot(Year, `FBAR 5-10`, type = 'l', ylab = 'Fishing mortality rate')]
+mtext(side=3, 'B)', adj=adjlet, line=linelet, cex=cexlet)
+
+canmat[, plot(Year, age50, type = 'l', ylab = 'Age at 50% maturity')]
+mtext(side=3, 'C)', adj=adjlet, line=linelet, cex=cexlet)
+
+lofmat[, plot(yearData, DataAgeMaturation, type = 'l', xlab = 'Year', ylab = 'Age at 50% maturity')]
+mtext(side=3, 'D)', adj=adjlet, line=linelet, cex=cexlet)
+
+dev.off()
 
 ######################
 ## Fig. 3 Outliers
