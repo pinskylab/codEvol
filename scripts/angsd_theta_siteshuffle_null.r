@@ -12,7 +12,7 @@ gatkflag <- as.numeric(args[1])
 popflag <- as.numeric(args[2])
 
 if(gatkflag == 1){
-  stop('Using GATK loci, but code not set up for that yet')
+  print('Using GATK loci')
 } else if(gatkflag == 0){
   print('Using all loci')
 } else {
@@ -157,17 +157,36 @@ if(gatkflag == 0){
 }
 
 if(gatkflag == 1){
-	# not yet set up
-	if(popflag == 4){
-		outfile <- 'analysis/theta.siteshuffle.Can_40.Can_14.gatk.csv.gz' # used if all loci are used
+	if(popflag == 1){
+		print('Starting Can')
+		dat1 <- fread('analysis/thetas.Can_40.gatk.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Can_14.gatk.pestPG.gz')
+		nchr1 <- 42 # sample size in # chromosomes
+		nchr2 <- 48
+		outfile <- 'analysis/theta.siteshuffle.Can_40.Can_14.gatk.csv.gz'
 	}
-	if(popflag == 4){
+	if(popflag == 2){
+		print('Starting Lof0711')
+		dat1 <- fread('analysis/thetas.Lof_07.gatk.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Lof_11.gatk.pestPG.gz')
+		nchr1 <- 44
+		nchr2 <- 48
 		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.gatk.csv.gz'
 	}
-	if(popflag == 4){
+	if(popflag == 3){
+		print('Starting Lof0714')
+		dat1 <- fread('analysis/thetas.Lof_07.gatk.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Lof_14.gatk.pestPG.gz')
+		nchr1 <- 44
+		nchr2 <- 44
 		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.gatk.csv.gz'
 	}
 	if(popflag == 4){
+		print('Starting Lof1114')
+		dat1 <- fread('analysis/thetas.Lof_11.gatk.pestPG.gz')
+		dat2 <- fread('analysis/thetas.Lof_14.gatk.pestPG.gz')
+		nchr1 <- 48
+		nchr2 <- 44
 		outfile <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.gatk.csv.gz'
 	}
 }
@@ -181,14 +200,18 @@ dat1 <- dat1[grep('Unplaced', Chromo, invert = TRUE), ]
 dat2 <- dat2[grep('Unplaced', Chromo, invert = TRUE), ]
 
 
+################################
+# Run reshuffle calculations
 # shuffle and recalc windowed thetas
+################################
+
 for(i in 1:nrep){
 	cat(i); cat(' ')
 	tempminmax <- shufflestat(dat1, dat2, nchr1, nchr2)
 
-	if(i == 1) minmax <- tempminmax
+	if(i == 1) minmax <- tempminmax # save the results from this iteration
 	if(i > 1) minmax <- rbind(minmax, tempminmax)
 }
 
-write.csv(minmax, gzfile(outfile), row.names = FALSE)
+write.csv(minmax, gzfile(outfile), row.names = FALSE) # write out all iterations
 rm(minmax)
