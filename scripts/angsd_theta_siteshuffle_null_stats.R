@@ -239,4 +239,6 @@ ggsave(plot = p6, device = 'png', filename = 'figures/tajimasD_change.siteshuffl
 #################
 
 
-datgatk[p < 0.05, ]
+datgatk[tWd.p < 0.05 & pop == 'can',]
+datgatk[tWd.p < 0.05 & pop == 'lof0711',]
+datgatk[tWd.p < 0.05 & pop == 'lof0714',]

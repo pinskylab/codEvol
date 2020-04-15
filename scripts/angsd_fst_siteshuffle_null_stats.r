@@ -9,6 +9,7 @@ require(plyr)
 require(ggplot2)
 require(RColorBrewer)
 
+calcp <- function(fst, null) return((sum(null > fst)+1)/(length(null)+1)) # equation from North et al. 2002 Am J Hum Gen
 
 #####################
 # read in and prep data
@@ -42,7 +43,7 @@ lof1114gatk <- fread('analysis/Lof_11.Lof_14.gatk.slide', skip = 1, header = FAL
 
 
 # make a nucleotide position for the whole genome (start position for each chr)
-chrmax <- can[,.(len=max(midPos)), by=chr]
+chrmax <- fread('data/lg_length.csv')
 chrmax$start=c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
 setkey(chrmax, chr)
 
@@ -105,9 +106,6 @@ nulllof1114gatk[, .(max = max(x), u95 = quantile(x, probs = 0.95))]
 ###########################
 # calc p-values per site
 ###########################
-calcp <- function(fst, null){
-  return((sum(null > fst)+1)/(length(null)+1)) # equation from North et al. 2002 Am J Hum Gen
-}
 
 can[, p := calcp(fst, nullcan$x), by = .(chr, midPos)]
 lof0711[, p := calcp(fst, nulllof0711$x), by = .(chr, midPos)]
@@ -147,6 +145,13 @@ nrow(datgatk)
 datgatk
 
 datgatk[, pop := factor(pop, levels = c('can', 'lof0711', 'lof0714', 'lof1114'))]
+
+##############
+# Write out
+##############
+
+write.csv(dat, file = gzfile('output/fst_siteshuffle.angsd.csv.gz'), row.names = FALSE)
+write.csv(datgatk, file = gzfile('output/fst_siteshuffle.angsd.gatk.csv.gz'), row.names = FALSE)
 
 ##############
 # plots
