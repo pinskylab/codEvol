@@ -10,9 +10,17 @@
 # nlocigatk <- max(c(nrow(datCan40gatk), nrow(datCan14gatk), nrow(datLof07gatk), 
 #                nrow(datLof11gatk), nrow(datLof14gatk))) # not sure how many loci got called, so use the max in any pop
 
-nloci <- 1 # to allow after-the fact calculations
+nloci <- 1 # to allow after-the-fact-calculations of per-site values
 nlocigatk <- 1
 
+# number of chromosomes in each sample
+nchrCan40 <- 42 # sample size in # chromosomes
+nchrCan14 <- 48
+nchrLof07 <- 44
+nchrLof11 <- 48
+nchrLof14 <- 44
+
+nboot <- 1000
 
 
 ####################
@@ -21,13 +29,61 @@ require(data.table)
 require(boot) # for bootstrap CIs
 
 
-# calculate pi from specified LGs for block bootstrapping across LGs
-# frin https://stackoverflow.com/questions/11919808/block-bootstrap-from-subject-list
-piblock <- function(lgs, indices, alldata, nloci){
-  mydata <- do.call("rbind", lapply(indices, function(n) subset(alldata, Chromo==lgs[n])))
-  pi <- mydata[, sum(exp(Pairwise), na.rm = TRUE)/nloci]
-  return(pi)
+# For Tajima's D calcs. After https://github.com/ANGSD/angsd/blob/master/misc/stats.cpp
+a1f <- function(nsam) return(sum(1/seq(1, nsam-1)))
+a2f <- function(nsam) return(sum(1/(seq(1, nsam-1)*seq(1, nsam-1))))
+b1f <- function(nsam) return((nsam + 1)/(3*(nsam-1)))
+b2f <- function(nsam) return((2*(nsam*nsam + nsam + 3))/(9*nsam*(nsam - 1)))
+c1f <- function(a1, b1) return(b1 - (1/a1))
+c2f <- function(nsam, a1, a2, b2) return(b2 - ((nsam + 2)/(a1*nsam)) + (a2/(a1 * a1)))
+e1f <- function(a1, c1) return(c1/a1)
+e2f <- function(a1, a2, c2) return(c2/((a1*a1) + a2))
+
+# Tajima's D calculation
+# nsam: sample size
+# thetaW: Watterson's theta (# segregating sites / a1)
+# sumk: theta pi (average number of SNPs in pairwise comparisons)
+# after https://github.com/ANGSD/angsd/blob/master/misc/stats.cpp
+tajd <- function(nsam, thetaW, sumk){
+	a1 <- a1f(nsam)
+	segsites <- thetaW * a1
+	if(segsites == 0) return(0)
+	a2 <- a2f(nsam)
+	b1 <- b1f(nsam)
+  	b2 <- b2f(nsam)
+	c1 <- c1f(a1, b1)
+	c2 <- c2f(nsam, a1, a2, b2)
+	e1 <- e1f(a1, c1)
+	e2 <- e2f(a1, a2, c2)
+	res <- (sumk - (thetaW))/sqrt((e1*segsites) + ((e2*segsites)*(segsites-1)))
+	return(res)
 }
+
+# calc thetas
+calcthetas <- function(dat, nchr, nloci){
+	# calc ave theta
+	thetas <- as.numeric(dat[, .(tW = sum(exp(Watterson)/nloci, na.rm = TRUE), tP = sum(exp(Pairwise)/nloci, na.rm = TRUE))])
+
+	# calculate Tajima's D
+	thetas[3] <- tajd(nchr, thetas[1], thetas[2])
+	
+	#return
+	names(thetas) <- c('tW', 'tP', 'tD')
+	return(thetas)
+}
+
+# calculate stats from specified LGs for block bootstrapping across LGs
+thetablock <- function(lgs, indices, alldata, nchr, nloci){
+	# make bootstrapped dataset
+	mydata <- do.call("rbind", lapply(indices, function(n) subset(alldata, Chromo==lgs[n])))
+	
+	# calc thetas
+	thetas <- calcthetas(mydata, nchr, nloci)
+	
+	# return
+	return(thetas)
+}
+
 
 
 ######################
@@ -79,69 +135,52 @@ datLof14gatk <- datLof14gatk[grep('Unplaced', Chromo, invert = TRUE), ]
 ################################
 
 
-datCan40[, sum(exp(Pairwise), na.rm = TRUE)/nloci]
-datCan14[, sum(exp(Pairwise), na.rm = TRUE)/nloci]
-datLof07[, sum(exp(Pairwise), na.rm = TRUE)/nloci]
-datLof11[, sum(exp(Pairwise), na.rm = TRUE)/nloci]
-datLof14[, sum(exp(Pairwise), na.rm = TRUE)/nloci]
+calcthetas(datCan40, nchrCan40, nloci)
+calcthetas(datCan14, nchrCan14, nloci)
+calcthetas(datLof07, nchrLof07, nloci)
+calcthetas(datLof11, nchrLof11, nloci)
+calcthetas(datLof14, nchrLof14, nloci)
 
-datCan40gatk[, sum(exp(Pairwise), na.rm = TRUE)/nlocigatk]
-datCan14gatk[, sum(exp(Pairwise), na.rm = TRUE)/nlocigatk]
-datLof07gatk[, sum(exp(Pairwise), na.rm = TRUE)/nlocigatk]
-datLof11gatk[, sum(exp(Pairwise), na.rm = TRUE)/nlocigatk]
-datLof14gatk[, sum(exp(Pairwise), na.rm = TRUE)/nlocigatk]
+calcthetas(datCan40gatk, nchrCan40, nlocigatk)
+calcthetas(datCan14gatk, nchrCan14, nlocigatk)
+calcthetas(datLof07gatk, nchrLof07, nlocigatk)
+calcthetas(datLof11gatk, nchrLof11, nlocigatk)
+calcthetas(datLof14gatk, nchrLof14, nlocigatk)
+
 
 
 
 # block bootstrapping across LGs
+# REWRITE TO SAVE THE BOOT OBJECTS(?) OR AT LEAST THE CIS FROM EACH OF THE 3 STATISTICS
 lgs <- datCan40[, sort(unique(Chromo))]
+datlist <- list(datCan40, datCan14, datLof07, datLof11, datLof14, datCan40gatk, datCan14gatk, datLof07gatk, datLof11gatk, datLof14gatk)
+names(datlist) <- c('Can40 all loci', 'Can14 all loci', 'Lof07 all loci', 'Lof11 all loci', 'Lof14 all loci', 'Can40 gatk loci', 'Can14 gatk loci', 'Lof07 gatk loci', 'Lof11 gatk loci', 'Lof14 gatk loci')
+nchrlist <- list(nchrCan40, nchrCan14, nchrLof07, nchrLof11, nchrLof14, nchrCan40, nchrCan14, nchrLof07, nchrLof11, nchrLof14)
+nlocilist <- list(nloci, nloci, nloci, nloci, nloci, nlocigatk, nlocigatk, nlocigatk, nlocigatk, nlocigatk)
 
-print('Can40 all loci')
-bootCan40lg <- boot(lgs, piblock, 1000,  alldata = datCan40, nloci = nloci)
-print(bootCan40lg)
-print(boot.ci(bootCan40lg, type = c('norm', 'basic', 'perc')))
+thetabootout <- data.frame(type = names(datlist), tW = NA, tWl95 = NA, tWu95 = NA, tP = NA, tPl95 = NA, tPu95 = NA, tD = NA, tDl95 = NA, tDu95 = NA)
 
-print('Can14 all loci')
-bootCan14lg <- boot(lgs, piblock, 1000,  alldata = datCan14, nloci = nloci)
-print(bootCan14lg)
-print(boot.ci(bootCan14lg, type = c('norm', 'basic', 'perc')))
+for(i in 1:length(datlist)){
+	print(names(datlist)[i])
+	bootlg <- boot(lgs, thetablock, nboot,  alldata = datlist[[i]], nchr = nchrlist[[i]], nloci = nlocilist[[i]])
+	print(bootlg)
+	ciW <- boot.ci(bootlg, type = c('perc'), index = 1)
+	ciP <- boot.ci(bootlg, type = c('perc'), index = 2)
+	ciD <- boot.ci(bootlg, type = c('perc'), index = 3)
+	
+	thetabootout$tW[i] <- bootlg$t0[1]	
+	thetabootout$tP[i] <- bootlg$t0[2]	
+	thetabootout$tD[i] <- bootlg$t0[3]
 
-print('Lof07 all loci')
-bootLof07lg <- boot(lgs, piblock, 1000,  alldata = datLof07, nloci = nloci)
-print(bootLof07lg)
-print(boot.ci(bootLof07lg, type = c('norm', 'basic', 'perc')))
+	thetabootout$tWl95[i] <- ciW$percent[4]
+	thetabootout$tWu95[i] <- ciW$percent[5]
 
-print('Lof11 all loci')
-bootLof11lg <- boot(lgs, piblock, 1000,  alldata = datLof11, nloci = nloci)
-print(bootLof11lg)
-print(boot.ci(bootLof11lg, type = c('norm', 'basic', 'perc')))
+	thetabootout$tPl95[i] <- ciP$percent[4]
+	thetabootout$tPu95[i] <- ciP$percent[5]
 
-print('Lof14 all loci')
-bootLof14lg <- boot(lgs, piblock, 1000,  alldata = datLof14, nloci = nloci)
-print(bootLof14lg)
-print(boot.ci(bootLof14lg, type = c('norm', 'basic', 'perc')))
+	thetabootout$tDl95[i] <- ciD$percent[4]
+	thetabootout$tDu95[i] <- ciD$percent[5]
+}
 
-print('Can40 gatk loci')
-bootCan40lggatk <- boot(lgs, piblock, 1000,  alldata = datCan40gatk, nloci = nlocigatk)
-print(bootCan40lggatk)
-print(boot.ci(bootCan40lggatk, type = c('norm', 'basic', 'perc')))
-
-print('Can14 gatk loci')
-bootCan14lggatk <- boot(lgs, piblock, 1000,  alldata = datCan14gatk, nloci = nlocigatk)
-print(bootCan14lggatk)
-print(boot.ci(bootCan14lggatk, type = c('norm', 'basic', 'perc')))
-
-print('Lof07 gatk loci')
-bootLof07lggatk <- boot(lgs, piblock, 1000,  alldata = datLof07gatk, nloci = nlocigatk)
-print(bootLof07lggatk)
-print(boot.ci(bootLof07lggatk, type = c('norm', 'basic', 'perc')))
-
-print('Lof11 gatk loci')
-bootLof11lggatk <- boot(lgs, piblock, 1000,  alldata = datLof11gatk, nloci = nlocigatk)
-print(bootLof11lggatk)
-print(boot.ci(bootLof11lggatk, type = c('norm', 'basic', 'perc')))
-
-print('Lof14 gatk loci')
-bootLof14lggatk <- boot(lgs, piblock, 1000,  alldata = datLof14gatk, nloci = nlocigatk)
-print(bootLof14lggatk)
-print(boot.ci(bootLof14lggatk, type = c('norm', 'basic', 'perc')))
+# save
+write.csv(thetabootout, file = 'analysis/thetas.boot.cis.csv')
