@@ -10,7 +10,7 @@ require(data.table)
 
 width <- 5e4; stp <- 1e4; windsz='5e4'; windnm='50kb' # window parameters. first two are numeric, second two for naming
 
-# read in data (gatk loci only)
+# read in data (gatk loci only). files from ngsLD_bypop.sh
 datCan40 <- fread('analysis/ld.Can_40.gatk.gz')
 datCan14 <- fread('analysis/ld.Can_14.gatk.gz')
 dat07 <- fread('analysis/ld.Lof_07.gatk.gz')
