@@ -148,4 +148,4 @@ for(i in 1:length(clusts)){
 
 
 # write out
-write.csv(gatk, gzfile('analysis/ld.blocks.csv.gz'))
+write.csv(gatk, gzfile('analysis/ld.blocks.gatk.csv.gz'))

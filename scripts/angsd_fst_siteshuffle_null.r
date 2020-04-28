@@ -74,7 +74,7 @@ lof1114 <- lof1114[!(CHROM %in% 'Unplaced'), ]
 
 # trim to unlinked loci if GATK loci were requested
 if(gatkflag == 1){
-	ld <- fread('analysis/ld.blocks.csv.gz') # linkage blocks from ngsLD_find_blocks.r
+	ld <- fread('analysis/ld.blocks.gatk.csv.gz') # linkage blocks from ngsLD_find_blocks.r
 	
 	can <- merge(can, ld[, .(CHROM, POS, cluster = cluster_can)], all.x = TRUE)
 	lof0711 <- merge(lof0711, ld[, .(CHROM, POS, cluster = cluster_lof)], all.x = TRUE)
