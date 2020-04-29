@@ -79,6 +79,15 @@ gatk <- fread('data_31_01_20/GATK_filtered_SNP_set.tab') # snps that pass GATK f
 gatk2 <- fread('data_31_01_20/GATK_filtered_SNP_set_no_Dam.tab') # GATK snp set that pass filters include aDNA damage filters
 
 
+# focus on PC2 for Can unlinked
+datcangtul[, V1 := V2]
+datcangtndul[, V1 := V2]
+datcangteiul[, V1 := V2]
+
+datcangtul[, V2 := NULL]
+datcangtndul[, V2 := NULL]
+datcangteiul[, V2 := NULL]
+
 # label and combine files
 datcan[, ':='(pop = 'can', type = 'all')]
 datlof0711[, ':='(pop = 'lof0711', type = 'all')]

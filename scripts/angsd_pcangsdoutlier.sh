@@ -104,14 +104,14 @@ module --quiet purge  # Reset the modules to the system default
 module load PCAngsd/200115-foss-2019a-Python-2.7.15 # 0.982
 
 
-# Canada
+# Canada. Force analysis along 2 PCs (-e 2) for unlinked sites PCAs, since PC1 is odd and only PC2 separates by time.
 #pcangsd.py -beagle tmp/Can_ind.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_can -sites_save # all loci
 pcangsd.py -beagle tmp/Can_ind.GATK.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk -sites_save # gatk loci
 pcangsd.py -beagle tmp/Can_ind.GATK_no_dam.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_no_dam -sites_save # gatk loci w/out aDNA damaged sites
 pcangsd.py -beagle tmp/Can_ind.GATK_ex_inv.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_ex_inv -sites_save # gatk loci w/out inversions
-pcangsd.py -beagle tmp/Can_ind.GATK.unlink.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_unlink -sites_save # unlinked gatk loci
-pcangsd.py -beagle tmp/Can_ind.GATK_no_dam.unlink.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_no_dam_unlink -sites_save # unlinked gatk no dam loci
-pcangsd.py -beagle tmp/Can_ind.GATK_ex_inv.unlink.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_ex_inv_unlink -sites_save # unlinked gatk loci w/out inversions
+pcangsd.py -beagle tmp/Can_ind.GATK.unlink.beagle.gz -selection -e 2 -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_unlink -sites_save # unlinked gatk loci
+pcangsd.py -beagle tmp/Can_ind.GATK_no_dam.unlink.beagle.gz -selection -e 2 -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_no_dam_unlink -sites_save # unlinked gatk no dam loci
+pcangsd.py -beagle tmp/Can_ind.GATK_ex_inv.unlink.beagle.gz -selection -e 2 -minMaf 0.05 -threads 2 -o analysis/pcangsd_can_gatk_ex_inv_unlink -sites_save # unlinked gatk loci w/out inversions
 
 # Lof 07-11
 #pcangsd.py -beagle tmp/Lof0711_ind.beagle.gz -selection -minMaf 0.05 -threads 2 -o analysis/pcangsd_lof0711 -sites_save
