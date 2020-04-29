@@ -25,6 +25,7 @@ if(gatkflag == 1){
 winsz <- 50000 # window size
 winstp <- 10000 # window step
 nrep <- 1000 # number of reshuffles
+minloci <- 2 # minimum number of loci per window to consider
 
 outfilecan <- 'analysis/Can_40.Can_14.fst.siteshuffle.csv.gz' # used if all loci are used
 outfilelof0711 <- 'analysis/Lof_07.Lof_11.fst.siteshuffle.csv.gz'
@@ -34,6 +35,10 @@ outfilelof1114 <- 'analysis/Lof_11.Lof_14.fst.siteshuffle.csv.gz'
 # load functions
 require(data.table)
 
+
+#############
+# Prep data
+#############
 # load fst A/B data
 can <- fread('analysis/Can_40.Can_14.fst.AB.gz')
 setnames(can, c('CHROM', 'POS', 'A', 'B'))
@@ -46,6 +51,7 @@ setnames(lof0714, c('CHROM', 'POS', 'A', 'B'))
 
 lof1114 <- fread('analysis/Lof_11.Lof_14.fst.AB.gz')
 setnames(lof1114, c('CHROM', 'POS', 'A', 'B'))
+
 
 # trim to gatk loci if requested
 if(gatkflag == 1){
@@ -120,35 +126,81 @@ if(gatkflag == 1){
 	lof1114[, ':='(keep = NULL, sumA = NULL, sumB = NULL, clustermid = NULL)] # drop extra columns
 
 	# write out fst trimmed to unlinked blocks
-	write.csv(can, gzfile('analysis/Can_40.Can_14.fst.AB.ldtrim.gz'))
-	write.csv(lof0711, gzfile('analysis/Lof_07.Lof_11.fst.AB.ldtrim.gz'))
-	write.csv(lof0714, gzfile('analysis/Lof_07.Lof_14.fst.AB.ldtrim.gz'))
-	write.csv(lof1114, gzfile('analysis/Lof_11.Lof_14.fst.AB.ldtrim.gz'))
+	write.csv(can, gzfile('analysis/Can_40.Can_14.fst.AB.ldtrim.csv.gz'))
+	write.csv(lof0711, gzfile('analysis/Lof_07.Lof_11.fst.AB.ldtrim.csv.gz'))
+	write.csv(lof0714, gzfile('analysis/Lof_07.Lof_14.fst.AB.ldtrim.csv.gz'))
+	write.csv(lof1114, gzfile('analysis/Lof_11.Lof_14.fst.AB.ldtrim.csv.gz'))
 
 }
 
 
+# create new columns as indices for windows
+for(j in 1:(winsz/winstp)){
+	can[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+	lof0711[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+	lof0714[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+	lof1114[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+}
+
+# mark windows with < minloci for removal
+rem <- rep(0,4) # number of windows removed for each of the 4 comparisons
+for(j in 1:(winsz/winstp)){
+	canwin <- can[, .(nsnps = length(POS)), by = .(win = get(paste0('win', j)))] # calc num snps per window
+	rem[1] <- rem[1] + canwin[, sum(nsnps < minloci)] # record number to be removed
+	canwin[, (paste0('win', j, 'keep')) := 1] # create col to mark which windows to keep
+	canwin[nsnps < minloci, (paste0('win', j, 'keep')) := 0] # mark windows to remove
+	canwin[, nsnps := NULL] # drop column
+	setnames(canwin, "win", paste0('win', j)) # change col name
+	can <- merge(can, canwin, by = paste0('win', j), all.x = TRUE) # merge keeper col back to full dataset
+
+	lof0711win <- lof0711[, .(nsnps = length(POS)), by = .(win = get(paste0('win', j)))]
+	rem[2] <- rem[2] + lof0711win[, sum(nsnps < minloci)]
+	lof0711win[, (paste0('win', j, 'keep')) := 1]
+	lof0711win[nsnps < minloci, (paste0('win', j, 'keep')) := 0]
+	lof0711win[, nsnps := NULL]
+	setnames(lof0711win, "win", paste0('win', j))
+	lof0711 <- merge(lof0711, lof0711win, by = paste0('win', j), all.x = TRUE)
+
+	lof0714win <- lof0714[, .(nsnps = length(POS)), by = .(win = get(paste0('win', j)))]
+	rem[3] <- rem[3] + lof0714win[, sum(nsnps < minloci)]
+	lof0714win[, (paste0('win', j, 'keep')) := 1]
+	lof0714win[nsnps < minloci, (paste0('win', j, 'keep')) := 0]
+	lof0714win[, nsnps := NULL]
+	setnames(lof0714win, "win", paste0('win', j))
+	lof0714 <- merge(lof0714, lof0714win, by = paste0('win', j), all.x = TRUE)
+
+	lof1114win <- lof1114[, .(nsnps = length(POS)), by = .(win = get(paste0('win', j)))]
+	rem[4] <- rem[4] + lof1114win[, sum(nsnps < minloci)]
+	lof1114win[, (paste0('win', j, 'keep')) := 1]
+	lof1114win[nsnps < minloci, (paste0('win', j, 'keep')) := 0]
+	lof1114win[, nsnps := NULL]
+	setnames(lof1114win, "win", paste0('win', j))
+	lof1114 <- merge(lof1114, lof1114win, by = paste0('win', j), all.x = TRUE)
+}
+
+rem # number of windows removed for each comparison
 
 
+
+
+####################################
 # shuffle and recalc windowed FST
+####################################
+colnms <- c('CHROM', 'POS', paste0('win', 1:(winsz/winstp)), paste0('win', 1:(winsz/winstp), 'keep')) # list of column names we want out of the base data.table
+
 # CAN
 print('Starting Can')
 for(i in 1:nrep){
 	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(can), nrow(can), replace = FALSE)
-	temp <- cbind(can[, .(CHROM, POS)], can[inds, .(A, B)]) # shuffle FSTs across positions
-	
-	# create new columns as indices for windows
-	# need multiple columns because overlapping windows
-	for(j in 1:(winsz/winstp - 1)){
-		temp[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
-	}
-	
-	# calc fst for each window
-	for(j in 1:(winsz/winstp - 1)){
-		if(j ==1) tempfsts <- temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
-		if(j > 1) tempfsts <- rbind(tempfsts, temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
+	temp <- cbind(can[, ..colnms], can[inds, .(A, B)]) # shuffle FSTs across positions
+		
+	# calc fst for each window to keep
+	for(j in 1:(winsz/winstp)){
+		temp2 <- temp[get(paste0('win', j, 'keep')) == 1, ] # trim to windows to keep. can't combine with next line for some reason.
+		if(j ==1) tempfsts <- temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
+		if(j > 1) tempfsts <- rbind(tempfsts, temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
 	}
 
 	# save the max windowed fst
@@ -171,18 +223,13 @@ for(i in 1:nrep){
 	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(lof0711), nrow(lof0711), replace = FALSE)
-	temp <- cbind(lof0711[, .(CHROM, POS)], lof0711[inds, .(A, B)]) # shuffle FSTs across positions
-	
-	# create new columns as indices for windows
-	# need multiple columns because overlapping windows
-	for(j in 1:(winsz/winstp - 1)){
-		temp[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
-	}
+	temp <- cbind(lof0711[, ..colnms], lof0711[inds, .(A, B)]) # shuffle FSTs across positions
 	
 	# calc fst for each window
-	for(j in 1:(winsz/winstp - 1)){
-		if(j ==1) tempfsts <- temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
-		if(j > 1) tempfsts <- rbind(tempfsts, temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
+	for(j in 1:(winsz/winstp)){
+		temp2 <- temp[get(paste0('win', j, 'keep')) == 1, ]
+		if(j ==1) tempfsts <- temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
+		if(j > 1) tempfsts <- rbind(tempfsts, temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
 	}
 
 	# save the max windowed fst
@@ -203,18 +250,13 @@ for(i in 1:nrep){
  	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(lof0714), nrow(lof0714), replace = FALSE)
-	temp <- cbind(lof0714[, .(CHROM, POS)], lof0714[inds, .(A, B)]) # shuffle FSTs across positions
-	
-	# create new columns as indices for windows
-	# need multiple columns because overlapping windows
-	for(j in 1:(winsz/winstp - 1)){
-		temp[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
-	}
-	
+	temp <- cbind(lof0714[, ..colnms], lof0714[inds, .(A, B)]) # shuffle FSTs across positions
+		
 	# calc fst for each window
-	for(j in 1:(winsz/winstp - 1)){
-		if(j ==1) tempfsts <- temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
-		if(j > 1) tempfsts <- rbind(tempfsts, temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
+	for(j in 1:(winsz/winstp)){
+		temp2 <- temp[get(paste0('win', j, 'keep')) == 1, ]
+		if(j ==1) tempfsts <- temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
+		if(j > 1) tempfsts <- rbind(tempfsts, temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
 	}
 
 	# save the max windowed fst
@@ -235,18 +277,13 @@ for(i in 1:nrep){
  	cat(i); cat(' ')
 	# create new dataset
 	inds <- sample(1:nrow(lof1114), nrow(lof1114), replace = FALSE)
-	temp <- cbind(lof1114[, .(CHROM, POS)], lof1114[inds, .(A, B)]) # shuffle FSTs across positions
-	
-	# create new columns as indices for windows
-	# need multiple columns because overlapping windows
-	for(j in 1:(winsz/winstp - 1)){
-		temp[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
-	}
-	
+	temp <- cbind(lof1114[, ..colnms], lof1114[inds, .(A, B)]) # shuffle FSTs across positions
+		
 	# calc fst for each window
-	for(j in 1:(winsz/winstp - 1)){
-		if(j ==1) tempfsts <- temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
-		if(j > 1) tempfsts <- rbind(tempfsts, temp[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
+	for(j in 1:(winsz/winstp)){
+		temp2 <- temp[get(paste0('win', j, 'keep')) == 1, ]
+		if(j ==1) tempfsts <- temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))]
+		if(j > 1) tempfsts <- rbind(tempfsts, temp2[, .(fst = sum(A)/sum(B)), by = .(CHROM, POS = get(paste0('win', j)))])
 	}
 
 	# save the max windowed fst
