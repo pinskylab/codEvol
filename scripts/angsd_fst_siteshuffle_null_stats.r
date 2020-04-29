@@ -5,7 +5,7 @@
 # load functions
 ###########################
 require(data.table)
-require(plyr)
+#require(plyr)
 require(ggplot2)
 require(RColorBrewer)
 
@@ -21,7 +21,7 @@ nulllof0711 <- fread('analysis/Lof_07.Lof_11.fst.siteshuffle.csv.gz')
 nulllof0714 <- fread('analysis/Lof_07.Lof_14.fst.siteshuffle.csv.gz')
 nulllof1114 <- fread('analysis/Lof_11.Lof_14.fst.siteshuffle.csv.gz')
 
-# max FST per genome from reshuffling (GATK sites)
+# max FST per genome from reshuffling (GATK sites, combined in linkage blocks)
 nullcangatk <- fread('analysis/Can_40.Can_14.gatk.fst.siteshuffle.csv.gz')
 nulllof0711gatk <- fread('analysis/Lof_07.Lof_11.gatk.fst.siteshuffle.csv.gz')
 nulllof0714gatk <- fread('analysis/Lof_07.Lof_14.gatk.fst.siteshuffle.csv.gz')
@@ -42,7 +42,7 @@ lof0714gatk <- fread('analysis/Lof_07.Lof_14.gatk.slide', skip = 1, header = FAL
 lof1114gatk <- fread('analysis/Lof_11.Lof_14.gatk.slide', skip = 1, header = FALSE, col.names = c('region', 'chr', 'midPos', 'Nsites', 'fst')) 
 
 
-# make a nucleotide position for the whole genome (start position for each chr)
+# nucleotide position for the whole genome (start position for each chr)
 chrmax <- fread('data/lg_length.csv')
 chrmax$start=c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
 setkey(chrmax, chr)
