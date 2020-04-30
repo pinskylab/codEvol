@@ -1,4 +1,5 @@
 # Plot output from PCAngsd selection scan
+# run after angsd_pcangsdoutlier.sh
 
 library(RcppCNPy)
 library(data.table)
@@ -79,14 +80,6 @@ gatk <- fread('data_31_01_20/GATK_filtered_SNP_set.tab') # snps that pass GATK f
 gatk2 <- fread('data_31_01_20/GATK_filtered_SNP_set_no_Dam.tab') # GATK snp set that pass filters include aDNA damage filters
 
 
-# focus on PC2 for Can unlinked
-datcangtul[, V1 := V2]
-datcangtndul[, V1 := V2]
-datcangteiul[, V1 := V2]
-
-datcangtul[, V2 := NULL]
-datcangtndul[, V2 := NULL]
-datcangteiul[, V2 := NULL]
 
 # label and combine files
 datcan[, ':='(pop = 'can', type = 'all')]
@@ -382,6 +375,10 @@ dev.off()
 
 #####################
 ##Look at the PCAs
+#####################
+
+names <- fread('data_31_01_20/List_to_malin.tab')
+
 pcacan <- fread('analysis/pcangsd_can.cov') # pca covariance matrix. cols are individuals, rows are PCs
 pcalof0711 <- fread('analysis/pcangsd_lof0711.cov')
 pcalof0714 <- fread('analysis/pcangsd_lof0714.cov')
@@ -454,6 +451,11 @@ ecangteiul <- eigen(pcacangteiul)
 elof0711gteiul <- eigen(pcalof0711gteiul)
 elof0714gteiul <- eigen(pcalof0714gteiul)
 elof1114gteiul <- eigen(pcalof1114gteiul)
+
+# add names to PC vectors and write out
+rownames(ecangtul$vectors) <- names[Pop %in% c('Historic_Canada', 'Canada_2013') & !(Individual == 'BM_115'), Individual] # see angsd_pcangsdoutlier.sh. BM_115 was dropped.
+
+write.csv(ecangtul$vectors, 'analysis/pcangsd_can_gatk_unlink.vec', quote = FALSE)
 
 # plot PCAs as a multi-page PDF
 # red is early, black is late
