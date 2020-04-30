@@ -234,6 +234,15 @@ dat[, p := pchisq(q = V1, df = 1, lower.tail = FALSE)]
 # FDR correct by pop and type
 dat[, pfdr := p.adjust(p, method = 'fdr'), by = .(pop, type)]
 
+# print outliers
+
+dat[pfdr < 0.05 & type == 'gatk_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
+dat[pfdr < 0.05 & type == 'gatk_nodam_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
+dat[pfdr < 0.05 & type == 'gatk_exinv_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
+
+##################
+# plot outliers
+##################
 
 # add a vector for color by LG
 cols <- c('#a6cee3aa', '#1f78b4aa') # light blue, blue, partially transparent: for alternating LGs
