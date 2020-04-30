@@ -64,27 +64,33 @@ dev.off()
 # read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK sites)
 dat <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # output by angsd_fst_siteshuffle_null_stats.r
 
-# LG mid-points
+# LG mid-points and genome position
 chrmax <- fread('data/lg_length.csv')
 chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
 chrmax[, mid := rowSums(cbind(start, length/2))]
 
-# trim loci
-dat <- dat[!(chr %in% c('Unplaced'))]
+setkey(dat, CHROM)
+dat <- dat[chrmax[, .(CHROM = chr, start)], ]
+dat[, posgen := midPos + start]
+dat[,start := NULL]
+
+# trim out Unplaced or windows with <2 loci
+dat <- dat[!(CHROM %in% c('Unplaced')) & nloci > 1, ]
 	nrow(dat)
 
 # add a vector for color by LG
-lgs <- dat[, sort(unique(chr))]
+lgs <- dat[, sort(unique(CHROM))]
 dat[,lgcol := cols[1]]
-dat[chr %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
 dat[,lgcol2 := cols2[1]]
-dat[chr %in% lgs[seq(2, length(lgs),by=2)], lgcol2 := cols2[2]]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol2 := cols2[2]]
 
 
 ### set up plot
 adjlet <- -0.11 # horizontal adjustment for subplot letter
 cexlet <- 1
 linelet <- -0.5
+cexsc <- 1/5
 
 # quartz(height=8, width=6)
 png(height=5, width=6, units='in', res=300, file='figures/figure3.png')
@@ -93,22 +99,23 @@ par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.1, 0.1))
 ymax <- dat[, max(fst, na.rm=TRUE)]
 xlims <- dat[, range(posgen, na.rm=TRUE)]
 
-dat[pop == 'can', plot(posgen, fst, type='p', cex=0.5, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'can' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
 mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
+legend('topright', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = 'Number of loci', bty = 'n', cex = 0.5)
 
-dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=0.5, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'lof0711' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
 mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
 
-dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=0.5, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'lof0714' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
 mtext(side=3, 'C', adj=adjlet, line=linelet, cex=cexlet)
 
-dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=0.5, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'lof1114' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
 mtext(side=3, 'C', adj=adjlet, line=linelet, cex=cexlet)
