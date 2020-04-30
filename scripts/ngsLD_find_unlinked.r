@@ -12,8 +12,18 @@ findmid <- function(POS){ # function to return a value near the middle of a vect
 }
 
 
-# read in list of linkage blocks
+# read in list of linkage blocks from ngsLD (out to 5k)
 ld <- fread('analysis/ld.blocks.gatk.csv.gz', drop = 1) # linkage blocks from ngsLD_find_blocks.r
+
+# read in inversion coords
+inv <- fread('data/inversions.csv')
+
+# mark the inversions
+for(i in 1:nrow(inv)){
+  ld[CHROM == inv$CHROM[i] & POS >= inv$POSstart[i] & POS <= inv$POSend[i], cluster_can := -i] # mark as cluster -i in CAN
+  ld[CHROM == inv$CHROM[i] & POS >= inv$POSstart[i] & POS <= inv$POSend[i], cluster_lof := -i] # in LOF
+}
+
 
 # find a locus near the middle of each block to keep
 canclust <- ld[!is.na(cluster_can), .(CHROM = unique(CHROM), POS = findmid(POS), nloci = length(POS)), by = .(cluster = cluster_can)] # find the cluster midpoints
