@@ -126,10 +126,10 @@ if(gatkflag == 1){
 	lof1114[, ':='(keep = NULL, sumA = NULL, sumB = NULL, clustermid = NULL)] # drop extra columns
 
 	# write out fst trimmed to unlinked blocks
-	write.csv(can, gzfile('analysis/Can_40.Can_14.fst.AB.ldtrim.csv.gz'))
-	write.csv(lof0711, gzfile('analysis/Lof_07.Lof_11.fst.AB.ldtrim.csv.gz'))
-	write.csv(lof0714, gzfile('analysis/Lof_07.Lof_14.fst.AB.ldtrim.csv.gz'))
-	write.csv(lof1114, gzfile('analysis/Lof_11.Lof_14.fst.AB.ldtrim.csv.gz'))
+	write.csv(can, gzfile('analysis/Can_40.Can_14.gatk.ldtrim.fst.AB.csv.gz'))
+	write.csv(lof0711, gzfile('analysis/Lof_07.Lof_11.gatk.ldtrim.fst.AB.csv.gz'))
+	write.csv(lof0714, gzfile('analysis/Lof_07.Lof_14.gatk.ldtrim.fst.AB.csv.gz'))
+	write.csv(lof1114, gzfile('analysis/Lof_11.Lof_14.gatk.ldtrim.fst.AB.csv.gz'))
 
 }
 
