@@ -1,6 +1,3 @@
-# Plot output from PCAngsd selection scan
-# run after angsd_pcangsdoutlier.sh
-
 library(RcppCNPy)
 library(data.table)
 
@@ -15,10 +12,10 @@ datlof0711gt <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk.selection.n
 datlof0714gt <- as.data.table(npyLoad('analysis/pcangsd_lof0714_gatk.selection.npy'))
 datlof1114gt <- as.data.table(npyLoad('analysis/pcangsd_lof1114_gatk.selection.npy'))
 
-datcangtnd <- as.data.table(npyLoad('analysis/pcangsd_can_gatk_no_dam.selection.npy')) # only gatk loci no aDNA damage
-datlof0711gtnd <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_no_dam.selection.npy'))
-datlof0714gtnd <- as.data.table(npyLoad('analysis/pcangsd_lof0714_gatk_no_dam.selection.npy'))
-datlof1114gtnd <- as.data.table(npyLoad('analysis/pcangsd_lof1114_gatk_no_dam.selection.npy'))
+datcangtnd <- as.data.table(npyLoad('analysis/pcangsd_can_gatk_no_dam2.selection.npy')) # only gatk loci no aDNA dam2age
+datlof0711gtnd <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_no_dam2.selection.npy'))
+datlof0714gtnd <- as.data.table(npyLoad('analysis/pcangsd_lof0714_gatk_no_dam2.selection.npy'))
+datlof1114gtnd <- as.data.table(npyLoad('analysis/pcangsd_lof1114_gatk_no_dam2.selection.npy'))
 
 datcangtei <- as.data.table(npyLoad('analysis/pcangsd_can_gatk_ex_inv.selection.npy')) # only gatk loci w/out inversions
 datlof0711gtei <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_ex_inv.selection.npy'))
@@ -30,10 +27,10 @@ datlof0711gtul <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_unlink.se
 datlof0714gtul <- as.data.table(npyLoad('analysis/pcangsd_lof0714_gatk_unlink.selection.npy'))
 datlof1114gtul <- as.data.table(npyLoad('analysis/pcangsd_lof1114_gatk_unlink.selection.npy'))
 
-datcangtndul <- as.data.table(npyLoad('analysis/pcangsd_can_gatk_no_dam_unlink.selection.npy')) # only gatk loci no aDNA damage (unlinked)
-datlof0711gtndul <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_no_dam_unlink.selection.npy'))
-datlof0714gtndul <- as.data.table(npyLoad('analysis/pcangsd_lof0714_gatk_no_dam_unlink.selection.npy'))
-datlof1114gtndul <- as.data.table(npyLoad('analysis/pcangsd_lof1114_gatk_no_dam_unlink.selection.npy'))
+datcangtndul <- as.data.table(npyLoad('analysis/pcangsd_can_gatk_no_dam2_unlink.selection.npy')) # only gatk loci no aDNA dam2age (unlinked)
+datlof0711gtndul <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_no_dam2_unlink.selection.npy'))
+datlof0714gtndul <- as.data.table(npyLoad('analysis/pcangsd_lof0714_gatk_no_dam2_unlink.selection.npy'))
+datlof1114gtndul <- as.data.table(npyLoad('analysis/pcangsd_lof1114_gatk_no_dam2_unlink.selection.npy'))
 
 datcangteiul <- as.data.table(npyLoad('analysis/pcangsd_can_gatk_ex_inv_unlink.selection.npy')) # only gatk loci w/out inversions (unlinked)
 datlof0711gteiul <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_ex_inv_unlink.selection.npy'))
@@ -51,10 +48,10 @@ siteslof0711gt <- fread('analysis/pcangsd_lof0711_gatk.sites', header = FALSE)
 siteslof0714gt <- fread('analysis/pcangsd_lof0714_gatk.sites', header = FALSE)
 siteslof1114gt <- fread('analysis/pcangsd_lof1114_gatk.sites', header = FALSE)
 
-sitescangtnd <- fread('analysis/pcangsd_can_gatk_no_dam.sites', header = FALSE)
-siteslof0711gtnd <- fread('analysis/pcangsd_lof0711_gatk_no_dam.sites', header = FALSE)
-siteslof0714gtnd <- fread('analysis/pcangsd_lof0714_gatk_no_dam.sites', header = FALSE)
-siteslof1114gtnd <- fread('analysis/pcangsd_lof1114_gatk_no_dam.sites', header = FALSE)
+sitescangtnd <- fread('analysis/pcangsd_can_gatk_no_dam2.sites', header = FALSE)
+siteslof0711gtnd <- fread('analysis/pcangsd_lof0711_gatk_no_dam2.sites', header = FALSE)
+siteslof0714gtnd <- fread('analysis/pcangsd_lof0714_gatk_no_dam2.sites', header = FALSE)
+siteslof1114gtnd <- fread('analysis/pcangsd_lof1114_gatk_no_dam2.sites', header = FALSE)
 
 sitescangtei <- fread('analysis/pcangsd_can_gatk_ex_inv.sites', header = FALSE)
 siteslof0711gtei <- fread('analysis/pcangsd_lof0711_gatk_ex_inv.sites', header = FALSE)
@@ -66,19 +63,15 @@ siteslof0711gtul <- fread('analysis/pcangsd_lof0711_gatk_unlink.sites', header =
 siteslof0714gtul <- fread('analysis/pcangsd_lof0714_gatk_unlink.sites', header = FALSE)
 siteslof1114gtul <- fread('analysis/pcangsd_lof1114_gatk_unlink.sites', header = FALSE)
 
-sitescangtndul <- fread('analysis/pcangsd_can_gatk_no_dam_unlink.sites', header = FALSE)
-siteslof0711gtndul <- fread('analysis/pcangsd_lof0711_gatk_no_dam_unlink.sites', header = FALSE)
-siteslof0714gtndul <- fread('analysis/pcangsd_lof0714_gatk_no_dam_unlink.sites', header = FALSE)
-siteslof1114gtndul <- fread('analysis/pcangsd_lof1114_gatk_no_dam_unlink.sites', header = FALSE)
+sitescangtndul <- fread('analysis/pcangsd_can_gatk_no_dam2_unlink.sites', header = FALSE)
+siteslof0711gtndul <- fread('analysis/pcangsd_lof0711_gatk_no_dam2_unlink.sites', header = FALSE)
+siteslof0714gtndul <- fread('analysis/pcangsd_lof0714_gatk_no_dam2_unlink.sites', header = FALSE)
+siteslof1114gtndul <- fread('analysis/pcangsd_lof1114_gatk_no_dam2_unlink.sites', header = FALSE)
 
 sitescangteiul <- fread('analysis/pcangsd_can_gatk_ex_inv_unlink.sites', header = FALSE)
 siteslof0711gteiul <- fread('analysis/pcangsd_lof0711_gatk_ex_inv_unlink.sites', header = FALSE)
 siteslof0714gteiul <- fread('analysis/pcangsd_lof0714_gatk_ex_inv_unlink.sites', header = FALSE)
 siteslof1114gteiul <- fread('analysis/pcangsd_lof1114_gatk_ex_inv_unlink.sites', header = FALSE)
-
-gatk <- fread('data_31_01_20/GATK_filtered_SNP_set.tab') # snps that pass GATK filters
-gatk2 <- fread('data_31_01_20/GATK_filtered_SNP_set_no_Dam.tab') # GATK snp set that pass filters include aDNA damage filters
-
 
 
 # label and combine files
@@ -92,10 +85,10 @@ datlof0711gt[, ':='(pop = 'lof0711', type = 'gatk')]
 datlof0714gt[, ':='(pop = 'lof0714', type = 'gatk')]
 datlof1114gt[, ':='(pop = 'lof1114', type = 'gatk')]
 
-datcangtnd[, ':='(pop = 'can', type = 'gatk_nodam')]
-datlof0711gtnd[, ':='(pop = 'lof0711', type = 'gatk_nodam')]
-datlof0714gtnd[, ':='(pop = 'lof0714', type = 'gatk_nodam')]
-datlof1114gtnd[, ':='(pop = 'lof1114', type = 'gatk_nodam')]
+datcangtnd[, ':='(pop = 'can', type = 'gatk_nodam2')]
+datlof0711gtnd[, ':='(pop = 'lof0711', type = 'gatk_nodam2')]
+datlof0714gtnd[, ':='(pop = 'lof0714', type = 'gatk_nodam2')]
+datlof1114gtnd[, ':='(pop = 'lof1114', type = 'gatk_nodam2')]
 
 datcangtei[, ':='(pop = 'can', type = 'gatk_exinv')]
 datlof0711gtei[, ':='(pop = 'lof0711', type = 'gatk_exinv')]
@@ -107,10 +100,10 @@ datlof0711gtul[, ':='(pop = 'lof0711', type = 'gatk_unlinked')]
 datlof0714gtul[, ':='(pop = 'lof0714', type = 'gatk_unlinked')]
 datlof1114gtul[, ':='(pop = 'lof1114', type = 'gatk_unlinked')]
 
-datcangtndul[, ':='(pop = 'can', type = 'gatk_nodam_unlinked')]
-datlof0711gtndul[, ':='(pop = 'lof0711', type = 'gatk_nodam_unlinked')]
-datlof0714gtndul[, ':='(pop = 'lof0714', type = 'gatk_nodam_unlinked')]
-datlof1114gtndul[, ':='(pop = 'lof1114', type = 'gatk_nodam_unlinked')]
+datcangtndul[, ':='(pop = 'can', type = 'gatk_nodam2_unlinked')]
+datlof0711gtndul[, ':='(pop = 'lof0711', type = 'gatk_nodam2_unlinked')]
+datlof0714gtndul[, ':='(pop = 'lof0714', type = 'gatk_nodam2_unlinked')]
+datlof1114gtndul[, ':='(pop = 'lof1114', type = 'gatk_nodam2_unlinked')]
 
 datcangteiul[, ':='(pop = 'can', type = 'gatk_exinv_unlinked')]
 datlof0711gteiul[, ':='(pop = 'lof0711', type = 'gatk_exinv_unlinked')]
@@ -128,10 +121,10 @@ siteslof0711gt[, ':='(pop = 'lof0711', type = 'gatk')]
 siteslof0714gt[, ':='(pop = 'lof0714', type = 'gatk')]
 siteslof1114gt[, ':='(pop = 'lof1114', type = 'gatk')]
 
-sitescangtnd[, ':='(pop = 'can', type = 'gatk_nodam')]
-siteslof0711gtnd[, ':='(pop = 'lof0711', type = 'gatk_nodam')]
-siteslof0714gtnd[, ':='(pop = 'lof0714', type = 'gatk_nodam')]
-siteslof1114gtnd[, ':='(pop = 'lof1114', type = 'gatk_nodam')]
+sitescangtnd[, ':='(pop = 'can', type = 'gatk_nodam2')]
+siteslof0711gtnd[, ':='(pop = 'lof0711', type = 'gatk_nodam2')]
+siteslof0714gtnd[, ':='(pop = 'lof0714', type = 'gatk_nodam2')]
+siteslof1114gtnd[, ':='(pop = 'lof1114', type = 'gatk_nodam2')]
 
 sitescangtei[, ':='(pop = 'can', type = 'gatk_exinv')]
 siteslof0711gtei[, ':='(pop = 'lof0711', type = 'gatk_exinv')]
@@ -143,48 +136,50 @@ siteslof0711gtul[, ':='(pop = 'lof0711', type = 'gatk_unlinked')]
 siteslof0714gtul[, ':='(pop = 'lof0714', type = 'gatk_unlinked')]
 siteslof1114gtul[, ':='(pop = 'lof1114', type = 'gatk_unlinked')]
 
-sitescangtndul[, ':='(pop = 'can', type = 'gatk_nodam_unlinked')]
-siteslof0711gtndul[, ':='(pop = 'lof0711', type = 'gatk_nodam_unlinked')]
-siteslof0714gtndul[, ':='(pop = 'lof0714', type = 'gatk_nodam_unlinked')]
-siteslof1114gtndul[, ':='(pop = 'lof1114', type = 'gatk_nodam_unlinked')]
+sitescangtndul[, ':='(pop = 'can', type = 'gatk_nodam2_unlinked')]
+siteslof0711gtndul[, ':='(pop = 'lof0711', type = 'gatk_nodam2_unlinked')]
+siteslof0714gtndul[, ':='(pop = 'lof0714', type = 'gatk_nodam2_unlinked')]
+siteslof1114gtndul[, ':='(pop = 'lof1114', type = 'gatk_nodam2_unlinked')]
 
 sitescangteiul[, ':='(pop = 'can', type = 'gatk_exinv_unlinked')]
 siteslof0711gteiul[, ':='(pop = 'lof0711', type = 'gatk_exinv_unlinked')]
 siteslof0714gteiul[, ':='(pop = 'lof0714', type = 'gatk_exinv_unlinked')]
 siteslof1114gteiul[, ':='(pop = 'lof1114', type = 'gatk_exinv_unlinked')]
 
-
-dat <- rbind(datcan, datlof0711, datlof0714, datlof1114, 
-             datcangt, datlof0711gt, datlof0714gt, datlof1114gt, 
-             datcangtnd, datlof0711gtnd, datlof0714gtnd, datlof1114gtnd, 
+# with all loci included
+dat <- rbind(datcan, datlof0711, datlof0714, datlof1114,
+             datcangt, datlof0711gt, datlof0714gt, datlof1114gt,
+             datcangtnd, datlof0711gtnd, datlof0714gtnd, datlof1114gtnd,
              datcangtei, datlof0711gtei, datlof0714gtei, datlof1114gtei,
-             datcangtul, datlof0711gtul, datlof0714gtul, datlof1114gtul, 
-             datcangtndul, datlof0711gtndul, datlof0714gtndul, datlof1114gtndul, 
+             datcangtul, datlof0711gtul, datlof0714gtul, datlof1114gtul,
+             datcangtndul, datlof0711gtndul, datlof0714gtndul, datlof1114gtndul,
              datcangteiul, datlof0711gteiul, datlof0714gteiul, datlof1114gteiul)
 
-sites <- rbind(sitescan, siteslof0711, siteslof0714, siteslof1114, 
-             sitescangt, siteslof0711gt, siteslof0714gt, siteslof1114gt, 
-             sitescangtnd, siteslof0711gtnd, siteslof0714gtnd, siteslof1114gtnd, 
+sites <- rbind(sitescan, siteslof0711, siteslof0714, siteslof1114,
+             sitescangt, siteslof0711gt, siteslof0714gt, siteslof1114gt,
+             sitescangtnd, siteslof0711gtnd, siteslof0714gtnd, siteslof1114gtnd,
              sitescangtei, siteslof0711gtei, siteslof0714gtei, siteslof1114gtei,
-             sitescangtul, siteslof0711gtul, siteslof0714gtul, siteslof1114gtul, 
-             sitescangtndul, siteslof0711gtndul, siteslof0714gtndul, siteslof1114gtndul, 
+             sitescangtul, siteslof0711gtul, siteslof0714gtul, siteslof1114gtul,
+             sitescangtndul, siteslof0711gtndul, siteslof0714gtndul, siteslof1114gtndul,
              sitescangteiul, siteslof0711gteiul, siteslof0714gteiul, siteslof1114gteiul)
 
-rm(datcan, datlof0711, datlof0714, datlof1114, 
-   datcangt, datlof0711gt, datlof0714gt, datlof1114gt, 
-   datcangtnd, datlof0711gtnd, datlof0714gtnd, datlof1114gtnd, 
+rm(datcan, datlof0711, datlof0714, datlof1114,
+   datcangt, datlof0711gt, datlof0714gt, datlof1114gt,
+   datcangtnd, datlof0711gtnd, datlof0714gtnd, datlof1114gtnd,
    datcangtei, datlof0711gtei, datlof0714gtei, datlof1114gtei,
-   datcangtul, datlof0711gtul, datlof0714gtul, datlof1114gtul, 
-   datcangtndul, datlof0711gtndul, datlof0714gtndul, datlof1114gtndul, 
+   datcangtul, datlof0711gtul, datlof0714gtul, datlof1114gtul,
+   datcangtndul, datlof0711gtndul, datlof0714gtndul, datlof1114gtndul,
    datcangteiul, datlof0711gteiul, datlof0714gteiul, datlof1114gteiul)
 
-rm(sitescan, siteslof0711, siteslof0714, siteslof1114, 
-   sitescangt, siteslof0711gt, siteslof0714gt, siteslof1114gt, 
-   sitescangtnd, siteslof0711gtnd, siteslof0714gtnd, siteslof1114gtnd, 
+rm(sitescan, siteslof0711, siteslof0714, siteslof1114,
+   sitescangt, siteslof0711gt, siteslof0714gt, siteslof1114gt,
+   sitescangtnd, siteslof0711gtnd, siteslof0714gtnd, siteslof1114gtnd,
    sitescangtei, siteslof0711gtei, siteslof0714gtei, siteslof1114gtei,
-   sitescangtul, siteslof0711gtul, siteslof0714gtul, siteslof1114gtul, 
-   sitescangtndul, siteslof0711gtndul, siteslof0714gtndul, siteslof1114gtndul, 
+   sitescangtul, siteslof0711gtul, siteslof0714gtul, siteslof1114gtul,
+   sitescangtndul, siteslof0711gtndul, siteslof0714gtndul, siteslof1114gtndul,
    sitescangteiul, siteslof0711gteiul, siteslof0714gteiul, siteslof1114gteiul)
+
+
 
 # separate CHROM and POS
 sites[, c('CHROM', 'POS') := tstrsplit(V1, '_', fixed = TRUE)]
@@ -197,23 +192,6 @@ dat <- cbind(sites[, .(CHROM, POS)], dat)
 
 rm(sites)
 
-# merge in snp sets
-gatk[, gatk1 := 1] # 1 marks that a locus is in the snp set
-gatk2[, gatk2 := 1]
-
-nrow(dat)
-dat <- merge(dat, gatk, by = c('CHROM', 'POS'), all.x = TRUE)
-dat <- merge(dat, gatk2, by = c('CHROM', 'POS'), all.x = TRUE)
-nrow(dat)
-
-dat[is.na(gatk1), gatk1 := 0] # turn NA to 0
-dat[is.na(gatk2), gatk2 := 0]
-
-nrow(gatk) # 720987
-dat[, sum(gatk1), by = .(pop, type)] # fewer than in snp set
-
-nrow(gatk2) # 265784
-dat[, sum(gatk2), by = .(pop, type)] # slightly fewer
 
 # make a nucleotide position for the whole genome (start position for each chr)
 chrmax <- fread('data/lg_length.csv')
@@ -237,7 +215,7 @@ dat[, pfdr := p.adjust(p, method = 'fdr'), by = .(pop, type)]
 # print outliers
 
 dat[pfdr < 0.05 & type == 'gatk_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
-dat[pfdr < 0.05 & type == 'gatk_nodam_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
+dat[pfdr < 0.05 & type == 'gatk_nodam2_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
 dat[pfdr < 0.05 & type == 'gatk_exinv_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
 
 ##################
@@ -254,7 +232,7 @@ dat[CHROM %in% chrmax$CHROM[seq(2, nrow(chrmax),by=2)], lgcol := cols[2]]
 ylims <- c(0, max(-log10(dat$pfdr)))
 png(filename = paste0('figures/pcangsd_selscan.png'), width = 20, height = 12, units = "in", res = 150)
 par(mfrow = c(4,1))
-dat[pop == 'can' & type == 'all', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)", 
+dat[pop == 'can' & type == 'all', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
               main = 'Canada', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
 dat[pop == 'lof0711' & type == 'all', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
@@ -289,19 +267,19 @@ dev.off()
 
 
 # GATK-filtered loci no aDNA damage
-ylims <- c(0, max(-log10(dat[type == 'gatk_nodam', pfdr])))
+ylims <- c(0, max(-log10(dat[type == 'gatk_nodam2', pfdr])))
 png(filename = paste0('figures/pcangsd_selscan_gatkNoDam.png'), width = 20, height = 12, units = "in", res = 300)
 par(mfrow = c(4,1), mai = c(0.7, 1, 0.2, 0.1))
-dat[pop == 'can' & type == 'gatk_nodam', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)", 
+dat[pop == 'can' & type == 'gatk_nodam2', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)", 
                                         main = 'Canada', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
-dat[pop == 'lof0711' & type == 'gatk_nodam', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
+dat[pop == 'lof0711' & type == 'gatk_nodam2', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
                                             main = 'Lof 07-11', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
-dat[pop == 'lof0714' & type == 'gatk_nodam', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
+dat[pop == 'lof0714' & type == 'gatk_nodam2', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
                                             main = 'Lof 07-14', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
-dat[pop == 'lof1114' & type == 'gatk_nodam', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
+dat[pop == 'lof1114' & type == 'gatk_nodam2', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
                                             main = 'Lof 11-14', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
 dev.off()
@@ -345,19 +323,19 @@ dev.off()
 
 
 # GATK-filtered loci no aDNA damage unlinked
-ylims <- c(0, max(-log10(dat[type == 'gatk_nodam_unlinked', pfdr])))
+ylims <- c(0, max(-log10(dat[type == 'gatk_nodam2_unlinked', pfdr])))
 png(filename = paste0('figures/pcangsd_selscan_gatkNoDam_unlink.png'), width = 20, height = 12, units = "in", res = 300)
 par(mfrow = c(4,1), mai = c(0.7, 1, 0.2, 0.1))
-dat[pop == 'can' & type == 'gatk_nodam_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)", 
+dat[pop == 'can' & type == 'gatk_nodam2_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)", 
                                               main = 'Canada', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
-dat[pop == 'lof0711' & type == 'gatk_nodam_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
+dat[pop == 'lof0711' & type == 'gatk_nodam2_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
                                                   main = 'Lof 07-11', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
-dat[pop == 'lof0714' & type == 'gatk_nodam_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
+dat[pop == 'lof0714' & type == 'gatk_nodam2_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
                                                   main = 'Lof 07-14', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
-dat[pop == 'lof1114' & type == 'gatk_nodam_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
+dat[pop == 'lof1114' & type == 'gatk_nodam2_unlinked', plot(POSgen/1e6, -log10(pfdr), xlab = 'Position (Mb)', ylab = "-log10(PCANGSD p, FDR-adjusted)",
                                                   main = 'Lof 11-14', col = lgcol, cex = 0.5, ylim = ylims)]
 abline(h = -log10(0.05), lty = 2, col = 'grey')
 dev.off()
@@ -398,10 +376,10 @@ pcalof0711gt <- fread('analysis/pcangsd_lof0711_gatk.cov')
 pcalof0714gt <- fread('analysis/pcangsd_lof0714_gatk.cov')
 pcalof1114gt <- fread('analysis/pcangsd_lof1114_gatk.cov')
 
-pcacangtnd <- fread('analysis/pcangsd_can_gatk_no_dam.cov') # only GATK no aDNA damage snps
-pcalof0711gtnd <- fread('analysis/pcangsd_lof0711_gatk_no_dam.cov')
-pcalof0714gtnd <- fread('analysis/pcangsd_lof0714_gatk_no_dam.cov')
-pcalof1114gtnd <- fread('analysis/pcangsd_lof1114_gatk_no_dam.cov')
+pcacangtnd <- fread('analysis/pcangsd_can_gatk_no_dam2.cov') # only GATK no aDNA dam2age snps
+pcalof0711gtnd <- fread('analysis/pcangsd_lof0711_gatk_no_dam2.cov')
+pcalof0714gtnd <- fread('analysis/pcangsd_lof0714_gatk_no_dam2.cov')
+pcalof1114gtnd <- fread('analysis/pcangsd_lof1114_gatk_no_dam2.cov')
 
 pcacangtei <- fread('analysis/pcangsd_can_gatk_ex_inv.cov') # only GATK w/out inversions
 pcalof0711gtei <- fread('analysis/pcangsd_lof0711_gatk_ex_inv.cov')
@@ -413,10 +391,10 @@ pcalof0711gtul <- fread('analysis/pcangsd_lof0711_gatk_unlink.cov')
 pcalof0714gtul <- fread('analysis/pcangsd_lof0714_gatk_unlink.cov')
 pcalof1114gtul <- fread('analysis/pcangsd_lof1114_gatk_unlink.cov')
 
-pcacangtndul <- fread('analysis/pcangsd_can_gatk_no_dam_unlink.cov') # only GATK no aDNA damage snps unlinked
-pcalof0711gtndul <- fread('analysis/pcangsd_lof0711_gatk_no_dam_unlink.cov')
-pcalof0714gtndul <- fread('analysis/pcangsd_lof0714_gatk_no_dam_unlink.cov')
-pcalof1114gtndul <- fread('analysis/pcangsd_lof1114_gatk_no_dam_unlink.cov')
+pcacangtndul <- fread('analysis/pcangsd_can_gatk_no_dam2_unlink.cov') # only GATK no aDNA dam2age snps unlinked
+pcalof0711gtndul <- fread('analysis/pcangsd_lof0711_gatk_no_dam2_unlink.cov')
+pcalof0714gtndul <- fread('analysis/pcangsd_lof0714_gatk_no_dam2_unlink.cov')
+pcalof1114gtndul <- fread('analysis/pcangsd_lof1114_gatk_no_dam2_unlink.cov')
 
 pcacangteiul <- fread('analysis/pcangsd_can_gatk_ex_inv_unlink.cov') # only GATK w/out inversions unlinked
 pcalof0711gteiul <- fread('analysis/pcangsd_lof0711_gatk_ex_inv_unlink.cov')
@@ -503,18 +481,18 @@ plot(elof1114gt$vectors[, 1:2], col = rep(c('red', 'black'), c(23,21)), xlab = '
 
 legend('top', pch = 1, col = c('red', 'black'), legend = c('early', 'late'))
 
-# GATK no damage
+# GATK no dam2age
 plot(ecangtnd$vectors[, 1:2], col = rep(c('red', 'black'), c(21,24)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Canada GATK no dam')
+     main = 'Canada GATK no dam2')
 
 plot(elof0711gtnd$vectors[, 1:2], col = rep(c('red', 'black'), c(22,23)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Lofoten 07-11 GATK no dam')
+     main = 'Lofoten 07-11 GATK no dam2')
 
 plot(elof0714gtnd$vectors[, 1:2], col = rep(c('red', 'black'), c(22,21)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Lofoten 07-14 GATK no dam')
+     main = 'Lofoten 07-14 GATK no dam2')
 
 plot(elof1114gtnd$vectors[, 1:2], col = rep(c('red', 'black'), c(23,21)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Lofoten 11-14 GATK no dam')
+     main = 'Lofoten 11-14 GATK no dam2')
 
 
 # GATK no inv
@@ -547,18 +525,18 @@ plot(elof1114gtul$vectors[, 1:2], col = rep(c('red', 'black'), c(23,21)), xlab =
 
 legend('top', pch = 1, col = c('red', 'black'), legend = c('early', 'late'))
 
-# GATK no damage unlinked
+# GATK no dam2age unlinked
 plot(ecangtndul$vectors[, 1:2], col = rep(c('red', 'black'), c(21,24)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Canada GATK no dam unlinked')
+     main = 'Canada GATK no dam2 unlinked')
 
 plot(elof0711gtndul$vectors[, 1:2], col = rep(c('red', 'black'), c(22,23)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Lofoten 07-11 GATK no dam unlinked')
+     main = 'Lofoten 07-11 GATK no dam2 unlinked')
 
 plot(elof0714gtndul$vectors[, 1:2], col = rep(c('red', 'black'), c(22,21)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Lofoten 07-14 GATK no dam unlinked')
+     main = 'Lofoten 07-14 GATK no dam2 unlinked')
 
 plot(elof1114gtndul$vectors[, 1:2], col = rep(c('red', 'black'), c(23,21)), xlab = 'PC1', ylab = 'PC2',
-     main = 'Lofoten 11-14 GATK no dam unlinked')
+     main = 'Lofoten 11-14 GATK no dam2 unlinked')
 
 
 # GATK no inv unlinked
