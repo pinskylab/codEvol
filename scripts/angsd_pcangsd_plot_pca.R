@@ -1,11 +1,5 @@
 # Plot PCA from PCAngsd
 # input files created on saga with angsd_pcangsd_pca.sh
-# srun --ntasks=1 --mem-per-cpu=100G --time=00-02:00:00 --qos=devel --account=nn9244k --pty bash -i	
-# module load PCAngsd/200115-foss-2019a-Python-2.7.15	
-# pcangsd.py -beagle data_31_01_20/All_ind_beagle.GATK.gz -minMaf 0.05 -threads 16 -o analysis/pcangsd_pca_gatk # gatk loci a little surprised it ran with 16 threads. or maybe it didn't use them
-# pcangsd.py -beagle data_31_01_20/All_ind_beagle.GATK_no_dam.gz -minMaf 0.05 -threads 16 -o analysis/pcangsd_pca_gatk_no_dam # gatk loci no adna damage
-# pcangsd.py -beagle data_31_01_20/All_ind_beagle.GATK_ex_inv.gz -minMaf 0.05 -threads 16 -o analysis/pcangsd_pca_gatk_ex_inv # gatk loci no inversion LGs
-
 
 library(data.table)
 library(RColorBrewer)
