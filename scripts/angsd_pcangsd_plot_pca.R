@@ -10,6 +10,14 @@ pcagtei <- fread('analysis/pcangsd_pca_gatk_ex_inv.cov') # only GATK w/out inver
 pcagtul <- fread('analysis/pcangsd_pca_gatk_unlink.cov') # only GATK snps unlinked
 pcagtndul <- fread('analysis/pcangsd_pca_gatk_no_dam_unlink.cov') # only GATK no aDNA damage snps unlinked
 pcagteiul <- fread('analysis/pcangsd_pca_gatk_ex_inv_unlink.cov') # only GATK w/out inversions unlinked
+
+pcagtnr <- fread('analysis/pcangsd_pca_gatk.norel.cov') # no relatives
+pcagtndnr <- fread('analysis/pcangsd_pca_gatk_no_dam.norel.cov')
+pcagteinr <- fread('analysis/pcangsd_pca_gatk_ex_inv.norel.cov')
+pcagtulnr <- fread('analysis/pcangsd_pca_gatk_unlink.norel.cov')
+pcagtndulnr <- fread('analysis/pcangsd_pca_gatk_no_dam_unlink.norel.cov')
+pcagteiulnr <- fread('analysis/pcangsd_pca_gatk_ex_inv_unlink.norel.cov')
+
 pops <- fread('data_31_01_20/List_to_malin.tab')
 
 # eigenvector decomposition of the covariance matrix
@@ -19,6 +27,13 @@ egtei <- eigen(pcagtei)
 egtul <- eigen(pcagtul)
 egtndul <- eigen(pcagtndul)
 egteiul <- eigen(pcagteiul)
+
+egtnr <- eigen(pcagtnr)
+egtndnr <- eigen(pcagtndnr)
+egteinr <- eigen(pcagteinr)
+egtulnr <- eigen(pcagtulnr)
+egtndulnr <- eigen(pcagtndulnr)
+egteiulnr <- eigen(pcagteiulnr)
 
 # make colors for populations
 cols <- brewer.pal(6, 'RdYlBu')
@@ -54,5 +69,26 @@ plot(egtndul$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col,
 plot(egteiul$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col,
      main = 'GATK ex inv unlinked')
 
+
+inds <- pops$Individual != 'BM_115'
+plot(egtnr$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col[inds],
+     main = 'GATK norel')
+
+plot(egtndnr$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col[inds],
+     main = 'GATK no dam norel')
+
+plot(egteinr$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col[inds],
+     main = 'GATK ex inv norel')
+
+legend('top', pch = 1, col = pops[!duplicated(Pop), col], legend = pops[!duplicated(Pop), Pop], cex = 0.5)
+
+plot(egtulnr$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col[inds],
+     main = 'GATK unlinked norel')
+
+plot(egtndulnr$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col[inds],
+     main = 'GATK no dam unlinked norel')
+
+plot(egteiulnr$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = pops$col[inds],
+     main = 'GATK ex inv unlinked norel')
 
 dev.off()
