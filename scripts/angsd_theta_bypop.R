@@ -3,16 +3,6 @@
 #############
 # Parameters
 #############
-# Total number of loci evaluated (not just SNPs)
-# nloci <- max(c(nrow(datCan40), nrow(datCan14), nrow(datLof07), 
-#                nrow(datLof11), nrow(datLof14))) # not sure how many loci got called, so use the max in any pop
-
-# nlocigatk <- max(c(nrow(datCan40gatk), nrow(datCan14gatk), nrow(datLof07gatk), 
-#                nrow(datLof11gatk), nrow(datLof14gatk))) # not sure how many loci got called, so use the max in any pop
-
-nloci <- 1 # to allow after-the-fact-calculations of per-site values
-nlocigatk <- 1
-
 # number of chromosomes in each sample
 nchrCan40 <- 42 # sample size in # chromosomes
 nchrCan14 <- 48
@@ -73,9 +63,12 @@ calcthetas <- function(dat, nchr, nloci){
 }
 
 # calculate stats from specified LGs for block bootstrapping across LGs
-thetablock <- function(lgs, indices, alldata, nchr, nloci){
+thetablock <- function(lgs, indices, alldata, nchr, regs){
 	# make bootstrapped dataset
 	mydata <- do.call("rbind", lapply(indices, function(n) subset(alldata, Chromo==lgs[n])))
+	
+	# calculate number of callable loci, given the LGs in this bootstrapped sample
+	nloci <- regs[Chromo %in% lgs, .(len = Pos2 - Pos1 + 1), by = .(Chromo, Pos1)][, sum(len)] # sum of bp in the callable region
 	
 	# calc thetas
 	thetas <- calcthetas(mydata, nchr, nloci)
@@ -117,6 +110,15 @@ setnames(datLof07gatk, '#Chromo', 'Chromo')
 setnames(datLof11gatk, '#Chromo', 'Chromo')
 setnames(datLof14gatk, '#Chromo', 'Chromo')
 
+# list of callable regions
+regs <- fread('data_2020.05.07/Callable_bases_gadmor2.bed')
+setnames(regs, c('Chromo', 'Pos1', 'Pos2'))
+
+# list of no damage sites
+nodam <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab')
+setnames(nodam, c('Chromo', 'Pos', 'REF', 'ALT'))
+
+
 # remove unplaced
 datCan40 <- datCan40[grep('Unplaced', Chromo, invert = TRUE), ]
 datCan14 <- datCan14[grep('Unplaced', Chromo, invert = TRUE), ]
@@ -130,49 +132,76 @@ datLof07gatk <- datLof07gatk[grep('Unplaced', Chromo, invert = TRUE), ]
 datLof11gatk <- datLof11gatk[grep('Unplaced', Chromo, invert = TRUE), ]
 datLof14gatk <- datLof14gatk[grep('Unplaced', Chromo, invert = TRUE), ]
 
+regs <- regs[Chromo != 'Unplaced', ]
+nodam <- nodam[Chromo != 'Unplaced', ]
+
+###################################################
+# create table of loci trimmed to no damage sites
+###################################################
+
+datCan40gatknd <- merge(datCan40, nodam[, .(Chromo, Pos)], by = c('Chromo', 'Pos')) # trim
+datCan14gatknd <- merge(datCan14, nodam[, .(Chromo, Pos)], by = c('Chromo', 'Pos')) # trim
+datLof07gatknd <- merge(datLof07, nodam[, .(Chromo, Pos)], by = c('Chromo', 'Pos')) # trim
+datLof11gatknd <- merge(datLof11, nodam[, .(Chromo, Pos)], by = c('Chromo', 'Pos')) # trim
+datLof14gatknd <- merge(datLof14, nodam[, .(Chromo, Pos)], by = c('Chromo', 'Pos')) # trim
+
+
 ################################
 # Run theta calculations
 ################################
+nloci <- regs[, .(len = Pos2 - Pos1 + 1), by = .(Chromo, Pos1)][, sum(len)] # sum of bp in the callable region
 
-
+# all loci
 calcthetas(datCan40, nchrCan40, nloci)
 calcthetas(datCan14, nchrCan14, nloci)
 calcthetas(datLof07, nchrLof07, nloci)
 calcthetas(datLof11, nchrLof11, nloci)
 calcthetas(datLof14, nchrLof14, nloci)
 
-calcthetas(datCan40gatk, nchrCan40, nlocigatk)
-calcthetas(datCan14gatk, nchrCan14, nlocigatk)
-calcthetas(datLof07gatk, nchrLof07, nlocigatk)
-calcthetas(datLof11gatk, nchrLof11, nlocigatk)
-calcthetas(datLof14gatk, nchrLof14, nlocigatk)
+# gatk loci
+calcthetas(datCan40gatk, nchrCan40, nloci)
+calcthetas(datCan14gatk, nchrCan14, nloci)
+calcthetas(datLof07gatk, nchrLof07, nloci)
+calcthetas(datLof11gatk, nchrLof11, nloci)
+calcthetas(datLof14gatk, nchrLof14, nloci)
+
+# gatk no damage loci
+calcthetas(datCan40gatknd, nchrCan40, nloci)
+calcthetas(datCan14gatknd, nchrCan14, nloci)
+calcthetas(datLof07gatknd, nchrLof07, nloci)
+calcthetas(datLof11gatknd, nchrLof11, nloci)
+calcthetas(datLof14gatknd, nchrLof14, nloci)
 
 
 
 
 # block bootstrapping across LGs
-# REWRITE TO SAVE THE BOOT OBJECTS(?) OR AT LEAST THE CIS FROM EACH OF THE 3 STATISTICS
 lgs <- datCan40[, sort(unique(Chromo))]
-datlist <- list(datCan40, datCan14, datLof07, datLof11, datLof14, datCan40gatk, datCan14gatk, datLof07gatk, datLof11gatk, datLof14gatk)
-names(datlist) <- c('Can40 all loci', 'Can14 all loci', 'Lof07 all loci', 'Lof11 all loci', 'Lof14 all loci', 'Can40 gatk loci', 'Can14 gatk loci', 'Lof07 gatk loci', 'Lof11 gatk loci', 'Lof14 gatk loci')
-nchrlist <- list(nchrCan40, nchrCan14, nchrLof07, nchrLof11, nchrLof14, nchrCan40, nchrCan14, nchrLof07, nchrLof11, nchrLof14)
-nlocilist <- list(nloci, nloci, nloci, nloci, nloci, nlocigatk, nlocigatk, nlocigatk, nlocigatk, nlocigatk)
+datlist <- list(datCan40, datCan14, datLof07, datLof11, datLof14, 
+				datCan40gatk, datCan14gatk, datLof07gatk, datLof11gatk, datLof14gatk,
+				datCan40gatknd, datCan14gatknd, datLof07gatknd, datLof11gatknd, datLof14gatknd)
+names(datlist) <- c('Can40 all loci', 'Can14 all loci', 'Lof07 all loci', 'Lof11 all loci', 'Lof14 all loci', 
+					'Can40 gatk loci', 'Can14 gatk loci', 'Lof07 gatk loci', 'Lof11 gatk loci', 'Lof14 gatk loci',
+					'Can40 gatk no dam loci', 'Can14 gatk no dam loci', 'Lof07 gatk no dam loci', 'Lof11 gatk no dam loci', 
+					'Lof14 gatk no dam loci')
+nchrlist <- list(nchrCan40, nchrCan14, nchrLof07, nchrLof11, nchrLof14, nchrCan40, nchrCan14, nchrLof07, nchrLof11, nchrLof14, nchrCan40, nchrCan14, nchrLof07, nchrLof11, nchrLof14)
 
 thetabootout <- data.frame(type = names(datlist), tW = NA, tWl95 = NA, tWu95 = NA, tP = NA, tPl95 = NA, tPu95 = NA, tD = NA, tDl95 = NA, tDu95 = NA)
 
 for(i in 1:length(datlist)){
 	print(names(datlist)[i])
-	bootlg <- boot(lgs, thetablock, nboot,  alldata = datlist[[i]], nchr = nchrlist[[i]], nloci = nlocilist[[i]])
+	bootlg <- boot(lgs, thetablock, nboot,  alldata = datlist[[i]], nchr = nchrlist[[i]], regs = regs)
+	
 	print(bootlg)
 	ciW <- boot.ci(bootlg, type = c('perc'), index = 1)
 	ciP <- boot.ci(bootlg, type = c('perc'), index = 2)
 	ciD <- boot.ci(bootlg, type = c('perc'), index = 3)
 	
-	thetabootout$tW[i] <- bootlg$t0[1]	
+	thetabootout$tW[i] <- bootlg$t0[1] # the point estimates
 	thetabootout$tP[i] <- bootlg$t0[2]	
 	thetabootout$tD[i] <- bootlg$t0[3]
 
-	thetabootout$tWl95[i] <- ciW$percent[4]
+	thetabootout$tWl95[i] <- ciW$percent[4] # the confidence intervals
 	thetabootout$tWu95[i] <- ciW$percent[5]
 
 	thetabootout$tPl95[i] <- ciP$percent[4]
