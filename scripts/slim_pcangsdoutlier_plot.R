@@ -74,25 +74,33 @@ dim(outl)
 # summarize across iterations
 ##############################
 
-
 # stats on the region under selection
 sum1 <- outl[, .(minp = min(p), minpfdr = min(pfdr), npfdrlow = sum(pfdr < 0.05), npos = unique(npos)),  # min p and pfdr
               by = .(ne, s, f, i, comb)]
 
 sum2 <- sum1[, .(prop = sum(minpfdr <= 0.05)/.N, npos = mean(npos)), by = .(ne, s, f, comb)] # proportion of sims that detected at least one SNP under selection
+
+
 ############
 # plot
 ############
 
 # plot of each sim. now too many to visualize well. VERY SLOW (hours)
-p <- ggplot(outl, aes(x=POS, y= -log10(pfdr))) + 
-  geom_point(data = outl[-log10(pfdr) >= -log10(0.05),], size = 0.2, shape = 1, alpha = 0.3, color = 'red') +
-  geom_point(data = outl[-log10(pfdr) < -log10(0.05),], size = 0.2, shape = 1, alpha = 0.3, color = 'black') +
-  facet_grid(ne + i ~ s + f + comb)
-  #geom_hline(yintercept= -log10(0.05), linetype="dashed")
-ggsave('figures/slim_pcangsdoutlier.png', plot = p, width = 16, height = 32, dpi = 300)
+# p <- ggplot(outl, aes(x=POS, y= -log10(pfdr))) + 
+#   geom_point(data = outl[-log10(pfdr) >= -log10(0.05),], size = 0.2, shape = 1, alpha = 0.3, color = 'red') +
+#   geom_point(data = outl[-log10(pfdr) < -log10(0.05),], size = 0.2, shape = 1, alpha = 0.3, color = 'black') +
+#   facet_grid(ne + i ~ s + f + comb)
+#   #geom_hline(yintercept= -log10(0.05), linetype="dashed")
+# ggsave('figures/slim_pcangsdoutlier.png', plot = p, width = 16, height = 32, dpi = 300)
 
-
+# number of SNPs
+ggplot(sum1, aes(x = ne, y = npos, group = as.factor(f), color = as.factor(f))) +
+  geom_line(size = 0.5) +
+  geom_point(size = 0.5) + 
+  facet_grid(~ comb, scales = 'free') +
+  labs(color = 'Initial frequency') +
+  scale_y_log10() +
+  ylab('# NSPs')
 
 # plot min p vs. s and ne and comb (group by f)
 ggplot(sum1, aes(x = s, y = -log10(minp), group = as.factor(f), color = as.factor(f))) +
@@ -102,6 +110,13 @@ ggplot(sum1, aes(x = s, y = -log10(minp), group = as.factor(f), color = as.facto
   labs(color = 'Initial frequency') +
   ylab('Min -log10 p-value')
 ggsave('figures/slim_pcangsdoutlier_minp.png', width = 7, height = 4, dpi = 150)
+
+# plot min p by burn-in file
+ggplot(sum1, aes(x = as.factor(i), y = -log10(minp))) +
+  geom_boxplot() +
+  facet_grid(~ne)
+  labs(color = 'Burn-in file') +
+  ylab('Min -log10 p-value')
 
 # plot min pfdr vs. s and ne and comb (group by f)
 ggplot(sum1, aes(x = s, y = -log10(minpfdr), group = as.factor(f), color = as.factor(f))) +
@@ -115,12 +130,13 @@ ggsave('figures/slim_pcangsdoutlier_minpfdr.png', width = 7, height = 4, dpi = 1
 
 
 # plot number of pfdr<0.05 vs. s and ne (group by f)
-ggplot(sum1, aes(x = s, y = log10(npfdrlow+1), group = as.factor(f), color = as.factor(f))) +
+ggplot(sum1, aes(x = s, y = npfdrlow+1, group = as.factor(f), color = as.factor(f))) +
   geom_point(size = 0.5) +
 #  geom_smooth(method = 'lm', size = 0.5) +
   facet_grid(comb ~ ne) +
   labs(color = 'Initial frequency') +
-  ylab('log10(# of pfdr<0.05 + 1)')
+  scale_y_log10() +
+  ylab('# of pfdr<0.05 + 1')
 ggsave('figures/slim_pcangsdoutlier_npfdrlow.png', width = 7, height = 4, dpi = 150)
 
 # plot proportion of sims that have at least one pfdr<0.05 vs. s and ne (group by f)
@@ -132,3 +148,11 @@ ggplot(sum2, aes(x = s, y = prop, group = f, color = as.factor(f))) +
   labs(color = 'Initial frequency') +
   ylab('Proportion min FDR-corrected p < 0.05')
 ggsave('figures/slim_pcangsdoutlier_propminpfdrlow.png', width = 7, height = 4, dpi = 150)
+
+# plot proportion of sims that have at least one pfdr<0.05 vs. npos (group by f)
+ggplot(sum2, aes(x = npos, y = prop, group = f, color = s)) +
+  geom_point() +
+  #facet_grid(~s) +
+  labs(color = 's') +
+  scale_x_log10() +
+  ylab('Proportion min FDR-corrected p < 0.05')
