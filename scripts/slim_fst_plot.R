@@ -59,7 +59,8 @@ fstsum <- merge(fstsum2[, .(ne, s, f, i, selwidth)],
                 all.y = TRUE, by = c('ne', 's', 'f', 'i'))
 fstsum[is.na(selwidth), selwidth := 0] # set selwidth to 0 where no region existed with fst>max in nonselected region
 
-
+# average fst for s= 0
+fst[s==0, .(fstmean = mean(WEIGHTED_FST)), by = .(ne)]
 
 ############
 # plot
