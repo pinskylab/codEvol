@@ -1,5 +1,5 @@
-# Plots from SLiM soft sweep simulations
-# Plot pcangsd outlier calculations
+# Plots pcangsd outlier calculations from SLiM soft sweep simulations
+# see end of script for plotting PCAs
 
 require(data.table)
 library(RcppCNPy)
@@ -81,9 +81,9 @@ sum1 <- outl[, .(minp = min(p), minpfdr = min(pfdr), npfdrlow = sum(pfdr < 0.05)
 sum2 <- sum1[, .(prop = sum(minpfdr <= 0.05)/.N, npos = mean(npos)), by = .(ne, s, f, comb)] # proportion of sims that detected at least one SNP under selection
 
 
-############
-# plot
-############
+##########################
+# plot outlier detection
+##########################
 
 # plot of each sim. now too many to visualize well. VERY SLOW (hours)
 # p <- ggplot(outl, aes(x=POS, y= -log10(pfdr))) + 
@@ -156,3 +156,24 @@ ggplot(sum2, aes(x = npos, y = prop, group = f, color = s)) +
   labs(color = 's') +
   scale_x_log10() +
   ylab('Proportion min FDR-corrected p < 0.05')
+
+
+#########################
+# Plot PCA from SLiM sims
+#########################
+
+# set up colors. first 22 are 1907, latter 24 are 2011
+cols <- c(rep('#af8dc3', 22), rep('#7fbf7b', 24))
+
+# pick which sim to plot
+ne=100
+s=1.5
+f=0.05
+i=1
+comb='_comb' # or ''
+
+cov <- fread(paste0('analysis/slim_sim/slim_sim_n', ne, '_s', s, '_f', f, '_i', i, comb, '.cov'))
+eig <- eigen(cov)
+
+plot(eig$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = cols,
+     main = paste0('ne=', ne, ' s=', s, ' init freq=', f, ' iter#', i, ifelse(comb=='_comb', ' whole genome', ' one chromosome')))
