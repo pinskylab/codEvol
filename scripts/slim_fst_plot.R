@@ -10,7 +10,7 @@ require(ggplot2)
 # read in data
 ##############
 
-fstfiles <- list.files('analysis/slim_sim/', pattern = 'slim_sim_n[[:alnum:][:punct:]]*.fst') # get the fst file names
+fstfiles <- list.files('analysis/slim_sim/', pattern = 'slim_sim_n[[:alnum:][:punct:]]*.windowed.weir.fst') # get the fst file names
 length(fstfiles)
 
 # read in fsts
@@ -71,6 +71,13 @@ p <- ggplot(fst, aes(x=mid, y=WEIGHTED_FST)) +
   geom_point(size = 0.2, shape = 1, alpha = 0.3) +
   facet_grid(ne + i ~ s + f, scales = 'free')
 ggsave('figures/slim_fst.png', plot = p, width = 8, height = 24, dpi = 300)
+
+# quick plot of an Ne=X sim
+ggplot(fst[ne==10000 & s==1.5 & f==0.05 & i==1,], aes(x=mid, y=WEIGHTED_FST)) +
+  geom_point(size = 0.5, shape = 1, alpha = 0.3)
+
+ggplot(fst[ne==100 & s==1.5 & f==0.05 & i==1,], aes(x=mid, y=WEIGHTED_FST)) +
+  geom_point(size = 0.5, shape = 1, alpha = 0.3)
 
 
 # plot of average pattern

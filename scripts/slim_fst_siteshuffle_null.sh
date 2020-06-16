@@ -10,7 +10,7 @@
 #SBATCH --account=nn9244k
 #
 # Wall time limit: DD-HH:MM:SS
-#SBATCH --time=00-12:00:00
+#SBATCH --time=07-00:00:00
 #
 # Max memory usage:
 #SBATCH --mem-per-cpu=1G
@@ -49,7 +49,6 @@ do
 	
 	# cat together the s0 files after removing headers
 	# also replace the chromosome number with a made-up new one
-	# really only need to do this once for each combination of ne and f, so could streamline
 	rm -f tmp/szero.fst.csv.gz # force remove if it exists
 	
 	chrom=2

@@ -18,9 +18,9 @@ require(RColorBrewer)
 
 calcp <- function(fst, null) return((sum(null > fst)+1)/(length(null)+1)) # equation from North et al. 2002 Am J Hum Gen
 
-#####################
-# read in and prep data
-#####################
+#############################
+# read in and summarize data
+#############################
 
 files <- list.files('analysis/slim_sim/', pattern = 'slim_sim_n[[:alnum:][:punct:]]*.fst.siteshuffle.csv') # get the max fst file names from site shuffling
 length(files)
@@ -34,20 +34,20 @@ for(i in 1:length(files)){
   # sliding window FST A and B components from ANGSD, after collapsing to unlinked loci
   # header is missing the fst column, so have to skip and make our own
   # need to make the all loci AB files
-  fst <- fread(paste0('analysis/slim_sim/', gsub('.siteshuffle', '', files[i]))) # fst components
+  fstAB <- fread(paste0('analysis/slim_sim/', gsub('.siteshuffle|_comb', '', files[i]))) # fst components
 
   # create new columns as indices for windows
   for(j in 1:(winsz/winstp)){
-    fst[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+    fstAB[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
   }
   
   # calc fst and # snps per window
   for(j in 1:(winsz/winstp)){
     if(j ==1){
-      fstwin <- fst[, .(fst = sum(A)/sum(B), nloci = length(POS)), by = .(CHROM, midPos = get(paste0('win', j)))]
+      fstwin <- fstAB[, .(fst = sum(A)/sum(B), nloci = length(POS)), by = .(CHROM, midPos = get(paste0('win', j)))]
     } 
     if(j > 1){
-      fstwin <- rbind(fstwin, fst[, .(fst = sum(A)/sum(B), nloci = length(POS)), by = .(CHROM, midPos = get(paste0('win', j)))])
+      fstwin <- rbind(fstwin, fstAB[, .(fst = sum(A)/sum(B), nloci = length(POS)), by = .(CHROM, midPos = get(paste0('win', j)))])
     } 
   }
   
@@ -72,28 +72,83 @@ for(i in 1:length(files)){
 }
 
 # summarize across iterations
-sum2 <- sum[, .(fpl05 = sum(minp < 0.05)/.N), by = .(ne, s, f, comb)]
+# fpl05: fraction of sims with at least one window p<0.05
+# f2pl05: fraction of sims with at least two windows p<0.05
+sum2 <- sum[, .(fpl05 = sum(minp < 0.05)/.N, 
+                f2pl05 = sum(npl05 > 1)/.N,
+                f3pl05 = sum(npl05 > 2)/.N), 
+            by = .(ne, s, f, comb)]
 
 
-#################
-# plots
-#################
+#########################################
+# plots of FST calculation summaries
+# see next section for a Manhattan plot
+#########################################
 
 # min p
 ggplot(sum, aes(s, -log10(minp), group = f, color = as.factor(f))) +
   geom_point() +
   geom_smooth(method ='lm') +
   facet_grid(comb ~ ne)
+ggsave('figures/slim_fst_siteshuffle_minp.png', width = 7, height = 4, dpi = 150)
 
-# number of loci p<0.05
+# number of windows p<0.05
 ggplot(sum, aes(s, npl05, group = f, color = as.factor(f))) +
   geom_point() +
   geom_smooth(method = 'lm') +
   facet_grid(comb ~ ne)
+ggsave('figures/slim_fst_siteshuffle_npl05.png', width = 7, height = 4, dpi = 150)
 
-# fraction of sims with at least one locus p<0.05
+# fraction of sims with at least one window p<0.05
 ggplot(sum2, aes(s, fpl05, group = f, color = as.factor(f))) +
   geom_point() +
   geom_smooth(method = 'lm') +
   facet_grid(comb ~ ne) +
   coord_cartesian(ylim = c(0,1))
+ggsave('figures/slim_fst_siteshuffle_fpl05.png', width = 7, height = 4, dpi = 150)
+
+# fraction of sims with at least one window p<0.05
+ggplot(sum2, aes(s, f2pl05, group = f, color = as.factor(f))) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_grid(comb ~ ne) +
+  coord_cartesian(ylim = c(0,1))
+
+# fraction of sims with at least two windows p<0.05
+ggplot(sum2, aes(s, f3pl05, group = f, color = as.factor(f))) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_grid(comb ~ ne) +
+  coord_cartesian(ylim = c(0,1))
+
+################
+# Manhattan plot 
+################
+# pick which sim to plot
+ne=3000
+s=1.5
+f=0.05
+i=4
+
+thisfstAB <- fread(paste0('analysis/slim_sim/slim_sim_n', ne, '_s', s, '_f', f, '_i', i, '.fst.csv.gz'))
+
+# create new columns as indices for windows
+for(j in 1:(winsz/winstp)){
+  thisfstAB[, (paste0('win', j)) := floor((POS - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+}
+
+# calc fst and # snps per window
+for(j in 1:(winsz/winstp)){
+  if(j ==1){
+    thisfstwin <- thisfstAB[, .(fst = sum(A)/sum(B), nloci = length(POS)), by = .(CHROM, midPos = get(paste0('win', j)))]
+  } 
+  if(j > 1){
+    thisfstwin <- rbind(thisfstwin, thisfstAB[, .(fst = sum(A)/sum(B), nloci = length(POS)), by = .(CHROM, midPos = get(paste0('win', j)))])
+  } 
+}
+
+thisfstwin[, plot(midPos, fst, xlab = 'POS', ylab = 'FST', main = paste0('ne=', ne, ' s=', s, ' init freq=', f, ' iter#', i))]
+
+
+
+
