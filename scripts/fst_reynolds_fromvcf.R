@@ -31,7 +31,7 @@ outfile <- opts[3]
 # functions
 ###########
 
-# use same format as pcangsd for error rates, see https://github.com/Rosemeis/pcangsd/blob/master/reader.pyx
+# count the number of alternative alleles at each locus
 countalleles <- function(txt){
   if(length(dim(txt))>1){
     len <- nrow(txt)
