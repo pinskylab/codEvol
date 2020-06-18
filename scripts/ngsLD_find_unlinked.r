@@ -1,6 +1,6 @@
 # identify unlinked loci from ngsLD
 # run after nsdLD_find_blocks.sh
-# currently only set up for GATK loci
+# currently only set up for GATK nodam loci
 
 
 # functions
@@ -12,8 +12,8 @@ findmid <- function(POS){ # function to return a value near the middle of a vect
 }
 
 
-# read in list of linkage blocks from ngsLD (out to 5k)
-ld <- fread('analysis/ld.blocks.gatk.csv.gz', drop = 1) # linkage blocks from ngsLD_find_blocks.r
+# read in list of linkage blocks from ngsLD (out to 10k)
+ld <- fread('analysis/ld.blocks.gatk.nodam.csv.gz', drop = 1) # linkage blocks from ngsLD_find_blocks.r
 
 # read in inversion coords
 inv <- fread('data/inversions.csv')
@@ -29,8 +29,9 @@ ld[, cluster := NA_integer_]
 lastclustcan <- NA # to detect when cluster id in can changes. no clusters were labeled 0
 lastclustlof <- NA
 clustid <- 0 # cluster id counter
+print(nrow(ld))
 for(i in 1:nrow(ld)){ # for each row
-  if(i %% 1000 == 0) cat(i)  
+  if(i %% 1000 == 0) cat(paste0(i, ' ')  
   # if this locus is in a cluster (can or lof)
   if(!is.na(ld[i,cluster_can]) | !is.na(ld[i, cluster_lof])){ 
     
@@ -74,6 +75,6 @@ nrow(lofclust)
 nrow(allclust)
 
 # write out loci trimmed to unlinked blocks. no quotes so can process easily on command line
-write.csv(canclust, gzfile('analysis/ld.unlinked.Can.gatk.csv.gz'), quote = FALSE)
-write.csv(lofclust, gzfile('analysis/ld.unlinked.Lof.gatk.csv.gz'), quote = FALSE)
-write.csv(allclust, gzfile('analysis/ld.unlinked.gatk.csv.gz'), quote = FALSE)
+write.csv(canclust, gzfile('analysis/ld.unlinked.Can.gatk.nodam.csv.gz'), quote = FALSE)
+write.csv(lofclust, gzfile('analysis/ld.unlinked.Lof.gatk.nodam.csv.gz'), quote = FALSE)
+write.csv(allclust, gzfile('analysis/ld.unlinked.gatk.csv.nodam.gz'), quote = FALSE)

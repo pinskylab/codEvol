@@ -1,6 +1,6 @@
 # identify clusters of linked loci from ngsLD
 # run after nsdLD_bypop.sh
-# currently only set up for GATK loci
+# currently only set up for GATK no dam loci
 
 #parameters
 minr2 <- 0.5 # consider pairs of loci with r2 > minr2 to be linked
@@ -9,15 +9,15 @@ minr2 <- 0.5 # consider pairs of loci with r2 > minr2 to be linked
 require(data.table)
 
 # read in list of loci
-gatk <- fread('data_31_01_20/GATK_filtered_SNP_set.tab')
-
+gatk <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab')
+setnames(gatk, c('CHROM', 'POS', 'REF', 'ALT'))
 
 # read in LD data (can do this for gatk loci only at this time). files from ngsLD_bypop.sh
-ldCan40 <- fread('analysis/ld.Can_40.gatk.gz')
-ldCan14 <- fread('analysis/ld.Can_14.gatk.gz')
-ld07 <- fread('analysis/ld.Lof_07.gatk.gz')
-ld11 <- fread('analysis/ld.Lof_11.gatk.gz')
-ld14 <- fread('analysis/ld.Lof_14.gatk.gz')
+ldCan40 <- fread('analysis/ld.Can_40.gatk.nodam.gz')
+ldCan14 <- fread('analysis/ld.Can_14.gatk.nodam.gz')
+ld07 <- fread('analysis/ld.Lof_07.gatk.nodam.gz')
+ld11 <- fread('analysis/ld.Lof_11.gatk.nodam.gz')
+ld14 <- fread('analysis/ld.Lof_14.gatk.nodam.gz')
 
 # add column names
 nms <- c('pos1nm', 'pos2nm', 'dist', 'r2', 'D', 'Dprime', 'r2em')
@@ -148,4 +148,4 @@ for(i in 1:length(clusts)){
 
 
 # write out
-write.csv(gatk, gzfile('analysis/ld.blocks.gatk.csv.gz'))
+write.csv(gatk, gzfile('analysis/ld.blocks.gatk.nodam.csv.gz'))
