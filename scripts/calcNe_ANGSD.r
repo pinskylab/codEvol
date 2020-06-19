@@ -74,17 +74,17 @@ nrow(datCan40)
 nrow(datCan14)
 
 # trim out Unplaced
-# dat07 <- dat07[!(chromo == 'Unplaced'),]
-# dat11 <- dat11[!(chromo == 'Unplaced'),]
-# dat14 <- dat14[!(chromo == 'Unplaced'),]
-# datCan40 <- datCan40[!(chromo == 'Unplaced'),]
-# datCan14 <- datCan14[!(chromo == 'Unplaced'),]
-# 
-# nrow(dat07)
-# nrow(dat11)
-# nrow(dat14)
-# nrow(datCan40)
-# nrow(datCan14)
+dat07 <- dat07[!(chromo == 'Unplaced'),]
+dat11 <- dat11[!(chromo == 'Unplaced'),]
+dat14 <- dat14[!(chromo == 'Unplaced'),]
+datCan40 <- datCan40[!(chromo == 'Unplaced'),]
+datCan14 <- datCan14[!(chromo == 'Unplaced'),]
+
+nrow(dat07)
+nrow(dat11)
+nrow(dat14)
+nrow(datCan40)
+nrow(datCan14)
 
 
 ################################
@@ -108,39 +108,6 @@ nrow(datCan) # 93728, 94263
 ######################
 # Run calculations
 ######################
-
-### calculate Fs' (Foll et al. 2015)
-
-# maf1 and maf2 are allele freqs at each time point
-# n1 and n2 are sample sizes
-# gen: number of generations between
-fsprime <- function(maf1, maf2, n1, n2, gen){
-	swtch <- maf1 > 0.5 # which alleles should convert to other allele freq (so < 0.5)
-	maf1[swtch] <- 1-maf1[swtch] # convert from >0.5 to <0.5
-	maf2[swtch] <- 1-maf2[swtch] # also convert maf2
-	z <- (maf1+maf2)/2
-	enye <- 2/(1/n1 + 1/n2) # harmonic mean sample size (enye in Foll et al. 2014, s_l in NeEstimator)
-	Fs <- (maf1-maf2)^2/(z*(1-z)) # for the minor allele
-	return(1/gen * (Fs*(1-1/(2*enye))-2/enye)/((1+Fs/4)*(1-1/n2))) # Fsprime
-}
-
-dat0711[, Fsprime := fsprime(freq1, freq2, nInd1, nInd2, 11)]
-dat0714[, Fsprime := fsprime(freq1, freq2, nInd1, nInd2, 11)]
-datCan[, Fsprime := fsprime(freq1, freq2, nInd1, nInd2, 8)]
-
-
-dat0711[,mean(Fsprime, na.rm=TRUE)]
-dat0714[,mean(Fsprime, na.rm=TRUE)]
-datCan[,mean(Fsprime, na.rm=TRUE)]
-
-dat0711[,1/2/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (diploid individuals)
-dat0714[,1/2/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (diploid individuals)
-datCan[,1/2/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (diploid individuals)
-
-dat0711[,1/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (# chromosomes: for comparison to wfabc_1 output)
-dat0714[,1/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (# chromosomes: for comparison to wfabc_1 output)
-datCan[,1/mean(Fsprime, na.rm=TRUE)] # calculation of Ne (# chromosomes: for comparison to wfabc_1 output)
-
 
 ### Jorde & Ryman/NeEstimator approach
 # Jorde & Ryman 2007
@@ -218,12 +185,12 @@ jrNe2block <- function(lgs, gen, alldata, indices){
 # block bootstrapping across LGs
 lgs <- dat0711[, sort(unique(chromo))]
 
-boot0711lg <- boot(lgs, jrNe2block, 1000, gen = 11, alldata = dat0711)
+boot0711lg <- boot(lgs, jrNe2block, 4000, gen = 11, alldata = dat0711)
 print(boot0711lg)
 median(boot0711lg$t[is.finite(boot0711lg$t)]) # median bootstrap
 boot.ci(boot0711lg, type = c('perc'))
 
-boot0714lg <- boot(lgs, jrNe2block, 1000, gen = 11, alldata = dat0714)
+boot0714lg <- boot(lgs, jrNe2block, 10000, gen = 11, alldata = dat0714)
 print(boot0714lg)
 median(boot0714lg$t[is.finite(boot0714lg$t)]) # median bootstrap
 boot.ci(boot0714lg, type = c('perc'))
