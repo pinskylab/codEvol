@@ -311,6 +311,8 @@ points(P1$He[my_out], P1$FST[my_out], col="blue")
 
 hist(P1$pvaluesRightTail) # p-values
 
+
+
 ####################################################
 # analyze and plot the results from the Slim sims
 ####################################################

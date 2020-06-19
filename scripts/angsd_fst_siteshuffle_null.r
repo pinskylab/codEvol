@@ -1,6 +1,6 @@
 # shuffle ANGSD FST A and B values across sites and calculate windowed FST to get a null distribution of max genome-wide FST
 # run last part of angsd_fst.sh first to get the *.fst.AB.gz files
-# if using GATK loci, groups into linkage blocks based on ngsLD output. Need to run ngsLD_find_blocks.sh/.r first
+# if using GATK nodam2 loci, groups into linkage blocks based on ngsLD output. Need to run ngsLD_find_blocks.sh/.r first
 
 # to run on saga
 
@@ -13,7 +13,7 @@ if (length(args) != 1) stop("Have to specify whether all loci (0) or GATK loci (
 gatkflag <- as.numeric(args[1])
 
 if(gatkflag == 1){
-	print('Using only GATK loci. Will trim to unlinked blocks.')
+	print('Using only GATK nodam2 loci. Will trim to unlinked blocks.')
 } else if(gatkflag == 0){
 	print('Using all loci. Note that this option does not trim to unlinked groups yet.')
 } else {
@@ -56,7 +56,8 @@ setnames(lof1114, c('CHROM', 'POS', 'A', 'B'))
 # trim to gatk loci if requested
 if(gatkflag == 1){
 	# list of loci to use
-	gatk <- fread('data_31_01_20/GATK_filtered_SNP_set.tab')
+	gatk <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab')
+	setnames(gatk, c('CHROM', 'POS', 'REF', 'ALT'))
 
 	# trim
 	can <- can[gatk, on = c('CHROM', 'POS')]
@@ -65,10 +66,10 @@ if(gatkflag == 1){
 	lof1114 <- lof1114[gatk, on = c('CHROM', 'POS')]
 
 	# set new outfile names
-	outfilecan <- 'analysis/Can_40.Can_14.gatk.fst.siteshuffle.csv.gz'
-	outfilelof0711 <- 'analysis/Lof_07.Lof_11.gatk.fst.siteshuffle.csv.gz'
-	outfilelof0714 <- 'analysis/Lof_07.Lof_14.gatk.fst.siteshuffle.csv.gz'
-	outfilelof1114 <- 'analysis/Lof_11.Lof_14.gatk.fst.siteshuffle.csv.gz'
+	outfilecan <- 'analysis/Can_40.Can_14.gatk.nodam.fst.siteshuffle.csv.gz'
+	outfilelof0711 <- 'analysis/Lof_07.Lof_11.gatk.nodam.fst.siteshuffle.csv.gz'
+	outfilelof0714 <- 'analysis/Lof_07.Lof_14.gatk.nodam.fst.siteshuffle.csv.gz'
+	outfilelof1114 <- 'analysis/Lof_11.Lof_14.gatk.nodam.fst.siteshuffle.csv.gz'
 }
 
 # remove unplaced
@@ -80,7 +81,7 @@ lof1114 <- lof1114[!(CHROM %in% 'Unplaced'), ]
 
 # trim to unlinked loci if GATK loci were requested
 if(gatkflag == 1){
-	ld <- fread('analysis/ld.blocks.gatk.csv.gz') # linkage blocks from ngsLD_find_blocks.r
+	ld <- fread('analysis/ld.blocks.gatk.nodam.csv.gz') # linkage blocks from ngsLD_find_blocks.r
 	
 	can <- merge(can, ld[, .(CHROM, POS, cluster = cluster_can)], all.x = TRUE)
 	lof0711 <- merge(lof0711, ld[, .(CHROM, POS, cluster = cluster_lof)], all.x = TRUE)
@@ -126,10 +127,10 @@ if(gatkflag == 1){
 	lof1114[, ':='(keep = NULL, sumA = NULL, sumB = NULL, clustermid = NULL)] # drop extra columns
 
 	# write out fst trimmed to unlinked blocks
-	write.csv(can, gzfile('analysis/Can_40.Can_14.gatk.ldtrim.fst.AB.csv.gz'))
-	write.csv(lof0711, gzfile('analysis/Lof_07.Lof_11.gatk.ldtrim.fst.AB.csv.gz'))
-	write.csv(lof0714, gzfile('analysis/Lof_07.Lof_14.gatk.ldtrim.fst.AB.csv.gz'))
-	write.csv(lof1114, gzfile('analysis/Lof_11.Lof_14.gatk.ldtrim.fst.AB.csv.gz'))
+	write.csv(can, gzfile('analysis/Can_40.Can_14.gatk.nodam.ldtrim.fst.AB.csv.gz'))
+	write.csv(lof0711, gzfile('analysis/Lof_07.Lof_11.gatk.nodam.ldtrim.fst.AB.csv.gz'))
+	write.csv(lof0714, gzfile('analysis/Lof_07.Lof_14.gatk.nodam.ldtrim.fst.AB.csv.gz'))
+	write.csv(lof1114, gzfile('analysis/Lof_11.Lof_14.gatk.nodam.ldtrim.fst.AB.csv.gz'))
 
 }
 

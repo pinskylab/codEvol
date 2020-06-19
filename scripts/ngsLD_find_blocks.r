@@ -12,6 +12,9 @@ require(data.table)
 gatk <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab')
 setnames(gatk, c('CHROM', 'POS', 'REF', 'ALT'))
 
+# read in inversion coords
+inv <- fread('data/inversions.csv')
+
 # read in LD data (can do this for gatk loci only at this time). files from ngsLD_bypop.sh
 ldCan40 <- fread('analysis/ld.Can_40.gatk.nodam.gz')
 ldCan14 <- fread('analysis/ld.Can_14.gatk.nodam.gz')
@@ -144,6 +147,12 @@ for(i in 1:length(clusts)){
   inds <- gatk[, which(CHROM == ldLof[cluster == clusts[i], unique(chr)] & POS %in% ldLof[cluster == clusts[i], c(pos1, pos2)])]
   inds <- min(inds):max(inds) # make sure all loci from min to max position get labeled as part of this cluster
   gatk[inds, cluster_lof := clusts[i]]
+}
+
+# mark the inversions
+for(i in 1:nrow(inv)){
+  gatk[CHROM == inv$CHROM[i] & POS >= inv$POSstart[i] & POS <= inv$POSend[i], cluster_can := -i] # mark as cluster -i in CAN
+  gatk[CHROM == inv$CHROM[i] & POS >= inv$POSstart[i] & POS <= inv$POSend[i], cluster_lof := -i] # in LOF
 }
 
 

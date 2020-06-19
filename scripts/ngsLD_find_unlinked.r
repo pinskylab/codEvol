@@ -15,15 +15,6 @@ findmid <- function(POS){ # function to return a value near the middle of a vect
 # read in list of linkage blocks from ngsLD (out to 10k)
 ld <- fread('analysis/ld.blocks.gatk.nodam.csv.gz', drop = 1) # linkage blocks from ngsLD_find_blocks.r
 
-# read in inversion coords
-inv <- fread('data/inversions.csv')
-
-# mark the inversions
-for(i in 1:nrow(inv)){
-  ld[CHROM == inv$CHROM[i] & POS >= inv$POSstart[i] & POS <= inv$POSend[i], cluster_can := -i] # mark as cluster -i in CAN
-  ld[CHROM == inv$CHROM[i] & POS >= inv$POSstart[i] & POS <= inv$POSend[i], cluster_lof := -i] # in LOF
-}
-
 # make a cluster id across both populations. brute force
 ld[, cluster := NA_integer_]
 lastclustcan <- NA # to detect when cluster id in can changes. no clusters were labeled 0
@@ -31,7 +22,7 @@ lastclustlof <- NA
 clustid <- 0 # cluster id counter
 print(nrow(ld))
 for(i in 1:nrow(ld)){ # for each row
-  if(i %% 1000 == 0) cat(paste0(i, ' ')  
+  if(i %% 1000 == 0) cat(paste0(i, ' ')) 
   # if this locus is in a cluster (can or lof)
   if(!is.na(ld[i,cluster_can]) | !is.na(ld[i, cluster_lof])){ 
     
