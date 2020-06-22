@@ -158,3 +158,75 @@ write.csv(Pcan, file = gzfile('analysis/angsd_outflank.Can.csv.gz'))
 write.csv(Plof0711, file = gzfile('analysis/angsd_outflank.Lof0711.csv.gz'))
 write.csv(Plof0714, file = gzfile('analysis/angsd_outflank.Lof0714.csv.gz'))
 write.csv(Plof1114, file = gzfile('analysis/angsd_outflank.Lof1114.csv.gz'))
+
+
+#####################
+# plot
+#####################
+library(data.table)
+
+# read in results
+Pcan <- fread('analysis/angsd_outflank.Can.csv.gz')
+Plof0711 <- fread('analysis/angsd_outflank.Lof0711.csv.gz')
+Plof0714 <- fread('analysis/angsd_outflank.Lof0714.csv.gz')
+Plof1114 <- fread('analysis/angsd_outflank.Lof1114.csv.gz')
+
+# add POS and genome pos
+Pcan[, c('chr', 'pos') := tstrsplit(LocusName, "_")]
+Plof0711[, c('chr', 'pos') := tstrsplit(LocusName, "_")]
+Plof0714[, c('chr', 'pos') := tstrsplit(LocusName, "_")]
+Plof1114[, c('chr', 'pos') := tstrsplit(LocusName, "_")]
+
+chrmax <- fread('data/lg_length.csv')
+chrmax$start=c(0, cumsum(chrmax$len)[1:(nrow(chrmax) - 1)])
+
+Pcan <- merge(Pcan, chrmax[,.(chr, start)], by='chr')
+Pcan[,POSgen := as.numeric(pos) + start]
+Pcan[,start := NULL]
+
+Plof0711 <- merge(Plof0711, chrmax[,.(chr, start)], by='chr')
+Plof0711[,POSgen := as.numeric(pos) + start]
+Plof0711[,start := NULL]
+
+Plof0714 <- merge(Plof0714, chrmax[,.(chr, start)], by='chr')
+Plof0714[,POSgen := as.numeric(pos) + start]
+Plof0714[,start := NULL]
+
+Plof1114 <- merge(Plof1114, chrmax[,.(chr, start)], by='chr')
+Plof1114[,POSgen := as.numeric(pos) + start]
+Plof1114[,start := NULL]
+
+# add a vector for color by LG
+cols <- c('#a6cee3aa', '#1f78b4aa') # light blue, blue, partially transparent: for alternating LGs
+Pcan[, lgcol := cols[1]]
+Pcan[chr %in% chrmax$chr[seq(2, nrow(chrmax),by=2)], lgcol := cols[2]]
+
+Plof0711[, lgcol := cols[1]]
+Plof0711[chr %in% chrmax$chr[seq(2, nrow(chrmax),by=2)], lgcol := cols[2]]
+
+Plof0714[, lgcol := cols[1]]
+Plof0714[chr %in% chrmax$chr[seq(2, nrow(chrmax),by=2)], lgcol := cols[2]]
+
+Plof1114[, lgcol := cols[1]]
+Plof1114[chr %in% chrmax$chr[seq(2, nrow(chrmax),by=2)], lgcol := cols[2]]
+
+# plot
+png(filename = paste0('figures/angsd_OutFLANK_gatkNoDam.png'), width = 20, height = 12, units = "in", res = 300)
+par(mfrow = c(4,1), mai = c(0.7, 1, 0.2, 0.1))
+Pcan[, plot(POSgen/1e6, -log10(qvalues), xlab = 'Position (Mb)', ylab = "-log10(FDR-adjusted p)", 
+            main = 'Canada', col = lgcol, cex = 0.5)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+Plof0711[, plot(POSgen/1e6, -log10(qvalues), xlab = 'Position (Mb)', ylab = "-log10(FDR-adjusted p)",
+                main = 'Lof 07-11', col = lgcol, cex = 0.5)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+Plof0714[, plot(POSgen/1e6, -log10(qvalues), xlab = 'Position (Mb)', ylab = "-log10(FDR-adjusted p)",
+                main = 'Lof 07-14', col = lgcol, cex = 0.5)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+Plof1114[, plot(POSgen/1e6, -log10(qvalues), xlab = 'Position (Mb)', ylab = "-log10(FDR-adjusted p)",
+                main = 'Lof 11-14', col = lgcol, cex = 0.5)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+dev.off()
