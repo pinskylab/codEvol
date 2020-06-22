@@ -17,51 +17,52 @@ colramp <- function(x, pal='RdBu', alpha=255){
 
 cols <- c('#a6cee333', '#1f78b433') # light blue, blue, partially transparent: for alternating LGs
 cols2 <- c('#a6cee3', '#1f78b4') # light blue, blue: for alternating LGs outliers
-colout <- '#33a02c' # green, part of Paired colorbrewer, for outlier loci
+colout <- '#b2182b' # red, part of RdGy colorbrewer, for outlier loci
 #cols3 <- c('#F7941E', '#F2592A', '#BF1E2D', '#FFDE17', '#BEA512') # Lof07, Lof11, Lof14, Can40, CanMod (reds, yellows, from Bastiaan)
 cols3 <- c('#e7d4e8', '#af8dc3', '#762a83', '#d9f0d3', '#1b7837') # Lof07, Lof11, Lof14, Can40, CanMod (PRGn colorbrewer)
 
-##################################
-# Fig. 2 Fishing and phenotypes
-##################################
+# takes p-values and returns a color
+# uses colout for p<thresh, otherwise a colorbrewer palette
+# alternates color by chromosome
+lgcolsramp <- function(x, lg = 1, thresh = 0.05){
+  if(lg == 1) rmp <- colorRamp(brewer.pal(11, 'BrBG')[5:1])
+  if(lg == 2) rmp <- colorRamp(brewer.pal(11, 'BrBG')[7:11])
+  if(!(lg %in% c(1,2))) error('lg must be 1 or 2') 
+  out <- rep(colout, length(x))
+  out[x <= thresh] <- colout
+  rgbs <- rmp(-log10(x[x > thresh])/-log10(thresh))
+  out[x > thresh] <- rgb(rgbs[,1], rgbs[,2], rgbs[,3], maxColorValue = 256)
+  return(out)
+}
 
-# read in data
-canfish <- fread('data/phenotypes/Brattey_etal_2018_CSAS_TableA2-5_NorthernCod_fishingmortality.csv')
-loffish <- fread('data/phenotypes/AFWG_2019_3_Northeast Arctic_Cod_Table3.18.csv')
-canmat <- fread('output/age_50percmature_can.csv')
-lofmat <- fread('data/phenotypes/Eikeset_Age_and_length_at_maturation.csv')
-
-# summarize for plotting
-canfishsum <- canfish[, .(Year, F = rowMeans(cbind(Age5, Age6, Age7, Age8, Age9, Age10)))]
-
-# plot params
-adjlet <- -0.2
-cexlet <- 1
-linelet <- 0.5
-
-# plot
-png(height=6, width=6, units='in', res=300, file='figures/figure2.png')
-
-par(mfrow=c(2,2), mai = c(0.6, 0.7, 0.3, 0.1), las = 1, tcl = -0.3, mgp = c(2.5, 0.7, 0), bty = 'l')
-canfishsum[, plot(Year, F, type = 'l', ylab = 'Fishing mortality rate')]
-mtext(side=3, 'A)', adj=adjlet, line=linelet, cex=cexlet)
-
-loffish[, plot(Year, `FBAR 5-10`, type = 'l', ylab = 'Fishing mortality rate')]
-mtext(side=3, 'B)', adj=adjlet, line=linelet, cex=cexlet)
-
-canmat[, plot(Year, age50, type = 'l', ylab = 'Age at 50% maturity')]
-mtext(side=3, 'C)', adj=adjlet, line=linelet, cex=cexlet)
-
-lofmat[, plot(yearData, DataAgeMaturation, type = 'l', xlab = 'Year', ylab = 'Age at 50% maturity')]
-mtext(side=3, 'D)', adj=adjlet, line=linelet, cex=cexlet)
-
-dev.off()
+# draw a vertical colorbar at xposmin to xposmax, from yposmin to yposmax
+# cols in hex, x are values to go with each col
+color.bar <- function(cols, x, axis = TRUE, cex = 1, nticks=11, 
+                      xposmin, xposmax, yposmin, yposmax, title = '', titley = yposmax) {
+  scale = (length(cols)-1)/(yposmax - yposmin)
+  
+  for (i in 1:(length(cols)-1)) {
+    y = (i-1)/scale + yposmin
+    rect(xposmin,y,xposmax,y+1/scale, col=cols[i], border=NA)
+  }
+  
+  if(axis){
+    line(c(xposmax, xposmax), c(yposmin, yposmax))
+    line(c(xposmax, xposmax + (xposmax-xposmin)/2), c(yposmin, yposmin))
+    line(c(xposmax, xposmax + (xposmax-xposmin)/2), c(yposmax, yposmax))
+    at = seq(yposmin, yposmax, length.out = nticks)
+    labs <- signif(x[round(seq(1, length(x), length.out = nticks))], 2)
+    text(rep(xposmax + (xposmax-xposmin)/2, nticks), y = at, labels = labs, adj = 0, cex = cex)
+  }
+  
+ text(xposmin, titley, title, adj = 0.5, cex = cex)
+}
 
 ###############################
-## Fig. 3 Manhattan plot FSTs
+## Fig. 2 Manhattan plot FSTs
 ###############################
 
-# read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK sites)
+# read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK nodam2 sites)
 dat <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # output by angsd_fst_siteshuffle_null_stats.r
 
 # LG mid-points and genome position
@@ -78,13 +79,22 @@ dat[,start := NULL]
 dat <- dat[!(CHROM %in% c('Unplaced')) & nloci > 1, ]
 	nrow(dat)
 
+# report stats
+dat[pop == 'can', min(p)]
+dat[pop == 'lof0711', min(p)]
+dat[pop == 'lof0714', min(p)]
+dat[pop == 'lof1114', min(p)]
+
 # add a vector for color by LG
 lgs <- dat[, sort(unique(CHROM))]
-dat[,lgcol := cols[1]]
-dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
-dat[,lgcol2 := cols2[1]]
-dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol2 := cols2[2]]
+dat[,lgcol := lgcolsramp(p, lg = 1, thresh = 0.1)]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(p, lg = 2, thresh = 0.1)]
 
+# and for plotting a colorbar
+cbar <- data.frame(logx = seq(0, 1.30103, length.out=50))
+cbar$x <- 10^(-cbar$logx)
+cbar$col1 <- lgcolsramp(cbar$x, lg = 1, thresh = 0.1)
+cbar$col2 <- lgcolsramp(cbar$x, lg = 2, thresh = 0.1)
 
 ### set up plot
 adjlet <- -0.11 # horizontal adjustment for subplot letter
@@ -93,17 +103,21 @@ linelet <- -0.5
 cexsc <- 1/5
 
 # quartz(height=8, width=6)
-png(height=5, width=6, units='in', res=300, file='figures/figure3.png')
+png(height=5, width=6, units='in', res=300, file='figures/figure2.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.1, 0.1))
 
 ymax <- dat[, max(fst, na.rm=TRUE)]
 xlims <- dat[, range(posgen, na.rm=TRUE)]
 
 dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-dat[pop == 'can' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
 mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
-legend('topright', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = 'Number of loci', bty = 'n', cex = 0.5)
+
+legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.5)
+color.bar(cbar$col1, cbar$x, axis = FALSE, nticks = 5, xposmin =52e6, xposmax = 56e6, yposmin = 0.2, yposmax = 0.35)
+color.bar(cbar$col2, cbar$x, cex = 0.5, axis = TRUE, nticks = 5, 
+          xposmin =56e6, xposmax = 60e6, yposmin = 0.2, yposmax = 0.35, title = 'p-value', titley = 0.375)
+
 
 dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'lof0711' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
