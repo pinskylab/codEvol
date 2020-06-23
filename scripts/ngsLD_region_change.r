@@ -6,9 +6,18 @@
 # calculate LD change
 # run on saga
 ######################
+#srun --ntasks=1 --mem-per-cpu=30G --time=00-02:00:00 --qos=devel --account=nn9244k --pty bash -i # need more memory
+#module load R/3.6.2-foss-2019b
+#R
+
 require(data.table)
 
 width <- 5e4; stp <- 1e4; windsz='5e4'; windnm='50kb' # window parameters. first two are numeric, second two for naming
+
+# read in nodam2 list of loci
+nodam2 <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab') # list of loci that pass nodam2 filter
+setnames(nodam2, c('CHROM', 'POS', 'REF', 'ALT'))
+nodam2[, posnm := paste0(CHROM, ':', POS), by = 1:nrow(nodam2)]
 
 # read in data (gatk loci only). files from ngsLD_bypop.sh
 datCan40 <- fread('analysis/ld.Can_40.gatk.gz')
@@ -24,6 +33,27 @@ setnames(datCan40, nms)
 setnames(dat14, nms)
 setnames(dat11, nms)
 setnames(dat07, nms)
+
+# trim to nodam2
+nrow(datCan40)
+datCan40 <- datCan40[pos1nm %in% nodam2$posnm & pos2nm %in% nodam2$posnm, ]
+nrow(datCan40)
+
+nrow(datCan14)
+datCan14 <- datCan14[pos1nm %in% nodam2$posnm & pos2nm %in% nodam2$posnm, ]
+nrow(datCan14)
+
+nrow(dat07)
+dat07 <- dat07[pos1nm %in% nodam2$posnm & pos2nm %in% nodam2$posnm, ]
+nrow(dat07)
+
+nrow(dat11)
+dat11 <- dat11[pos1nm %in% nodam2$posnm & pos2nm %in% nodam2$posnm, ]
+nrow(dat11)
+
+nrow(dat14)
+dat14 <- dat14[pos1nm %in% nodam2$posnm & pos2nm %in% nodam2$posnm, ]
+nrow(dat14)
 
 # make a chromosome column
 datCan40[, chr := vapply(strsplit(pos1nm, ":", fixed = TRUE), "[", "", 1)]
@@ -43,6 +73,8 @@ dat11[, pos1 := as.numeric(vapply(strsplit(pos1nm, ":", fixed = TRUE), "[", "", 
 dat11[, pos2 := as.numeric(vapply(strsplit(pos2nm, ":", fixed = TRUE), "[", "", 2))]
 dat14[, pos1 := as.numeric(vapply(strsplit(pos1nm, ":", fixed = TRUE), "[", "", 2))]
 dat14[, pos2 := as.numeric(vapply(strsplit(pos2nm, ":", fixed = TRUE), "[", "", 2))]
+
+
 
 # round pos1 and pos2 to nearest window midpoint, once for each step in width
 chroms <- datCan40[, sort(unique(chr))]
@@ -95,21 +127,12 @@ bins[, ld_diff_Lof0714 := r2ave_14 - r2ave_07]
 bins[, ld_diff_Lof1114 := r2ave_14 - r2ave_11]
 bins[, ld_diff_Can := r2ave_Can14 - r2ave_Can40]
 
-# make a nucleotide position for the whole genome (start position for each chr)
-chrmax <- datCan40[, .(len = max(pos2)), by = chr]
-chrmax$start = c(0, cumsum(chrmax$len)[1:(nrow(chrmax)-1)])
-setkey(chrmax, chr)
-setkey(bins, chr)
-bins <- merge(bins, chrmax[,.(chr, start)], by = 'chr')
-bins[, POSgen := pos1mid1 + start]
-bins[, start := NULL]
-
 
 
 # save region means data
 filenm <- paste('analysis/ld_change_region_', windsz, '_ngsLD.gatk.csv.gz', sep='')
 filenm
-write.csv(bins, file = gzfile(filenm))
+write.csv(bins, file = gzfile(filenm), row.names = FALSE)
 
 
 
@@ -124,7 +147,13 @@ require(RColorBrewer)
 require(ggplot2)
 
 # read in
-bins <- fread('analysis/ld_change_region_5e4_ngsLD.gatk.csv.gz', drop = 1); width='5e4'
+bins <- fread('analysis/ld_change_region_5e4_ngsLD.gatk.csv.gz'); width='5e4'
+
+# add genome position
+chrmax <- fread('data/lg_length.csv')
+chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
+bins <- merge(bins, chrmax[, .(chr, start)], by = 'chr')
+bins[, POSgen := BIN_START + start + as.numeric(width)/2]
 
 # long format for plotting
 binsl <- melt(bins[, .(chr, POSgen, ld_diff_Can, ld_diff_Lof0711, ld_diff_Lof0714, ld_diff_Lof1114)], id.vars = c('chr', 'POSgen'), variable.name = 'pop', value.name = 'ldchange')
