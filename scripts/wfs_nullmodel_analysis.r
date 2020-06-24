@@ -1,5 +1,5 @@
 # Examine the probabilities of null model producing results as extreme as our observations
-# run after wfs_nullmodel_function.r and wfs_nullmodel_combine.r
+# run after wfs_nullmodel_function.r and wfs_nullmodel_combine.r/wfs_nullmodel_lowp_rerun.r
 # Script looks at the output
 require(data.table)
 require(ggplot2)
