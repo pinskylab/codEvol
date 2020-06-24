@@ -1,3 +1,5 @@
+# NOTE: THIS HAS BEEN REPLACED BY angsd_theta_siteshuffle_null.r and angsd_theta_siteshuffle_null_stats.r
+
 # calculate change in pi and Tajima's D through time
 # for ANGSD-called loci
 # run after angsd_theta.sh

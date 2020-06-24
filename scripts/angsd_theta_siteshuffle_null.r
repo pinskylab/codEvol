@@ -6,13 +6,13 @@
 args <- commandArgs(trailingOnly = TRUE)
 print(args)
 
-if (length(args) != 2) stop("Have to specify whether all loci (0) or GATK loci (1), and which pop (1=Can, 2=Lof0711, 3=Lof0714, 4=Lof1114)", call.=FALSE)
+if (length(args) != 2) stop("Have to specify whether all loci (0) or GATK nodam2 unlinked loci (1), and which pop (1=Can, 2=Lof0711, 3=Lof0714, 4=Lof1114)", call.=FALSE)
 
 gatkflag <- as.numeric(args[1])
 popflag <- as.numeric(args[2])
 
 if(gatkflag == 1){
-  print('Using GATK loci')
+  print('Using GATK nodam2 unlinked loci')
 } else if(gatkflag == 0){
   print('Using all loci')
 } else {
@@ -61,58 +61,65 @@ tajd <- function(nsam, thetaW, sumk){
 	return(res)
 }
 
-# calculate stats from reshuffled data
-shufflestat <- function(dat1, dat2, nchr1, nchr2){
+# calculate thetas in windows from data
+calcstat <- function(temp1, temp2, nchr1, nchr2){
+  # create new columns as indices for windows
+  # need multiple columns because overlapping windows
+  for(j in 1:(winsz/winstp)){
+    temp1[, (paste0('win_', j)) := floor((Pos - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+    temp2[, (paste0('win_', j)) := floor((Pos - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
+  }
+  
+  # calc ave theta for each window
+  for(j in 1:(winsz/winstp)){
+    nm1 <- paste0('win_', j)
+    if(j ==1){
+      bins1 <- temp1[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW1 = sum(exp(Watterson), na.rm = TRUE),
+                                                                                 tP1 = sum(exp(Pairwise), na.rm = TRUE)), 
+                                                                             by = .(Chromo, WinCenter)]
+      bins2 <- temp2[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW2 = sum(exp(Watterson), na.rm = TRUE),
+                                                                                 tP2 = sum(exp(Pairwise), na.rm = TRUE)), 
+                                                                             by = .(Chromo, WinCenter)]
+    }
+    if(j > 1){
+      bins1 <- rbind(bins1, temp1[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW1 = sum(exp(Watterson), na.rm = TRUE),
+                                                                                              tP1 = sum(exp(Pairwise), na.rm = TRUE)), 
+                                                                                          by = .(Chromo, WinCenter)])
+      bins2 <- rbind(bins2, temp2[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW2 = sum(exp(Watterson), na.rm = TRUE),
+                                                                                              tP2 = sum(exp(Pairwise), na.rm = TRUE)), 
+                                                                                          by = .(Chromo, WinCenter)])
+    }
+  }
+  
+  # calculate Tajima's D
+  bins1[, tD1 := tajd(nchr1, tW1, tP1), by = 1:nrow(bins1)]
+  bins2[, tD2 := tajd(nchr2, tW2, tP2), by = 1:nrow(bins2)]
+  
+  # merge by window and calculate change
+  bins <- merge(bins1, bins2, by = c("Chromo", "WinCenter"))
+  bins[, ':='(tWd = tW2 - tW1, tPd = tP2 - tP1, tDd = tD2 - tD1)]
+  
+  return(bins)
+}
 
+# calculate min and max change from reshuffled data
+shufflestat <- function(dat1, dat2, nchr1, nchr2){
 	inds1 <- sample(1:nrow(dat1), nrow(dat1), replace = FALSE)
 	temp1 <- cbind(dat1[, .(Chromo, Pos)], dat1[inds1, .(Watterson, Pairwise)]) # shuffle theta across position pairs
 	inds2 <- sample(1:nrow(dat2), nrow(dat2), replace = FALSE)
 	temp2 <- cbind(dat2[, .(Chromo, Pos)], dat2[inds2, .(Watterson, Pairwise)]) # second time-point
 
-	# create new columns as indices for windows
-	# need multiple columns because overlapping windows
-	for(j in 1:(winsz/winstp)){
-		temp1[, (paste0('win_', j)) := floor((Pos - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
-		temp2[, (paste0('win_', j)) := floor((Pos - (j-1)*winstp)/winsz)*winsz + winsz/2 + (j-1)*winstp]
-	}
-	
-	# calc ave theta for each window
-	for(j in 1:(winsz/winstp)){
-		nm1 <- paste0('win_', j)
-		if(j ==1){
-		  bins1 <- temp1[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW1 = sum(exp(Watterson), na.rm = TRUE),
-		                                                                       tP1 = sum(exp(Pairwise), na.rm = TRUE)), 
-		                                                                   by = .(Chromo, WinCenter)]
-		  bins2 <- temp2[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW2 = sum(exp(Watterson), na.rm = TRUE),
-		                                                                             tP2 = sum(exp(Pairwise), na.rm = TRUE)), 
-		                                                                         by = .(Chromo, WinCenter)]
-		}
-		if(j > 1){
-		  bins1 <- rbind(bins1, temp1[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW1 = sum(exp(Watterson), na.rm = TRUE),
-		                                                                             tP1 = sum(exp(Pairwise), na.rm = TRUE)), 
-		                                                                         by = .(Chromo, WinCenter)])
-		  bins2 <- rbind(bins2, temp2[, .(Chromo, Watterson, Pairwise, WinCenter = get(nm1))][, .(tW2 = sum(exp(Watterson), na.rm = TRUE),
-		                                                                             tP2 = sum(exp(Pairwise), na.rm = TRUE)), 
-		                                                                         by = .(Chromo, WinCenter)])
-		}
-	}
-
-	# calculate Tajima's D
-	bins1[, tD1 := tajd(nchr1, tW1, tP1), by = 1:nrow(bins1)]
-	bins2[, tD2 := tajd(nchr2, tW2, tP2), by = 1:nrow(bins2)]
-
-	# merge by window and calculate change
-	bins <- merge(bins1, bins2, by = c("Chromo", "WinCenter"))
-	bins[, ':='(tWd = tW2 - tW1, tPd = tP2 - tP1, tDd = tD2 - tD1)]
+	bins <- calcstat(temp1, temp2, nchr1, nchr2)
 
 	# return the max and min windowed change
 	# exclude windows with negative midpoints
 	return(bins[WinCenter >= winsz/2, .(mintWd = min(tWd, na.rm = TRUE), 
-								maxtWd = max(tWd, na.rm = TRUE),
-								mintPd = min(tPd, na.rm = TRUE), 
-								maxtPd = max(tPd, na.rm = TRUE),
-								mintDd = min(tDd, na.rm = TRUE), 
-								maxtDd = max(tDd, na.rm = TRUE))])
+	                                    maxtWd = max(tWd, na.rm = TRUE),
+	                                    mintPd = min(tPd, na.rm = TRUE), 
+	                                    maxtPd = max(tPd, na.rm = TRUE),
+	                                    mintDd = min(tDd, na.rm = TRUE), 
+	                                    maxtDd = max(tDd, na.rm = TRUE))])
+	
 }
 
 
@@ -128,7 +135,8 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Can_14.pestPG.gz')
 		nchr1 <- 42 # sample size in # chromosomes
 		nchr2 <- 48
-		outfile <- 'analysis/theta.siteshuffle.Can_40.Can_14.csv.gz' # used if all loci are used
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Can_40.Can_14.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Can_40.Can_14.csv.gz' 
 	}
 	if(popflag == 2){
 		print('Starting Lof0711')
@@ -136,7 +144,8 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Lof_11.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 48
-		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.csv.gz'
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_11.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.csv.gz'
 	}
 	if(popflag == 3){
 		print('Starting Lof0714')
@@ -144,7 +153,8 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Lof_14.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 44
-		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.csv.gz'
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_14.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.csv.gz'
 	}
 	if(popflag == 4){
 		print('Starting Lof1114')
@@ -152,7 +162,8 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Lof_14.pestPG.gz')
 		nchr1 <- 48
 		nchr2 <- 44
-		outfile <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.csv.gz'
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_11.Lof_14.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.csv.gz'
 	}
 }
 
@@ -163,7 +174,8 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Can_14.gatk.pestPG.gz')
 		nchr1 <- 42 # sample size in # chromosomes
 		nchr2 <- 48
-		outfile <- 'analysis/theta.siteshuffle.Can_40.Can_14.gatk.csv.gz'
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Can_40.Can_14.gatk.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Can_40.Can_14.gatk.csv.gz'
 	}
 	if(popflag == 2){
 		print('Starting Lof0711')
@@ -171,7 +183,8 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Lof_11.gatk.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 48
-		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.gatk.csv.gz'
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_11.gatk.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.gatk.csv.gz'
 	}
 	if(popflag == 3){
 		print('Starting Lof0714')
@@ -179,7 +192,8 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Lof_14.gatk.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 44
-		outfile <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.gatk.csv.gz'
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_14.gatk.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.gatk.csv.gz'
 	}
 	if(popflag == 4){
 		print('Starting Lof1114')
@@ -187,7 +201,8 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Lof_14.gatk.pestPG.gz')
 		nchr1 <- 48
 		nchr2 <- 44
-		outfile <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.gatk.csv.gz'
+		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_11.Lof_14.gatk.csv.gz')
+		outfile2 <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.gatk.csv.gz'
 	}
 }
 
@@ -199,6 +214,32 @@ setnames(dat2, '#Chromo', 'Chromo')
 dat1 <- dat1[grep('Unplaced', Chromo, invert = TRUE), ]
 dat2 <- dat2[grep('Unplaced', Chromo, invert = TRUE), ]
 
+# trim to nodam2 loci if gatk
+if(gatkflag == 1){
+  print('Trimming to nodam2 loci')
+  nodam2 <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab') # list of loci that pass nodam2 filter
+	setnames(nodam2, c('Chromo', 'Pos', 'REF', 'ALT'))
+	dat1 <- merge(dat1, nodam2[, .(Chromo, Pos)])
+	dat2 <- merge(dat2, nodam2[, .(Chromo, Pos)])
+}
+
+# trim to unlinked loci if gatk
+if(gatkflag == 1){
+  print('Trimming to unlinked loci')
+	if(popflag == 1) unl <- fread('analysis/ld.unlinked.Can.gatk.nodam.csv.gz') # list of unlinked loci for Canada
+	if(popflag %in% 2:4) unl <- fread('analysis/ld.unlinked.Lof.gatk.nodam.csv.gz') # for Lofoten
+	dat1 <- merge(dat1, unl[, .(Chromo = CHROM, Pos = POS)])
+	dat2 <- merge(dat2, unl[, .(Chromo = CHROM, Pos = POS)])
+}
+
+
+#######################################
+# Calculate change on unshuffled data
+#######################################
+
+out <- calcstat(dat1, dat2, nchr1, nchr2)
+
+write.csv(out, file = gzfile(outfile1))
 
 ################################
 # Run reshuffle calculations
@@ -213,5 +254,5 @@ for(i in 1:nrep){
 	if(i > 1) minmax <- rbind(minmax, tempminmax)
 }
 
-write.csv(minmax, gzfile(outfile), row.names = FALSE) # write out all iterations
+write.csv(minmax, gzfile(outfile2), row.names = FALSE) # write out all iterations
 rm(minmax)
