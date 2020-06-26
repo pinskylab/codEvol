@@ -68,4 +68,4 @@ nrow(allclust)
 # write out loci trimmed to unlinked blocks. no quotes so can process easily on command line
 write.csv(canclust, gzfile('analysis/ld.unlinked.Can.gatk.nodam.csv.gz'), quote = FALSE, row.names = FALSE)
 write.csv(lofclust, gzfile('analysis/ld.unlinked.Lof.gatk.nodam.csv.gz'), quote = FALSE, row.names = FALSE)
-write.csv(allclust, gzfile('analysis/ld.unlinked.gatk.csv.nodam.gz'), quote = FALSE, row.names = FALSE)
+write.csv(allclust, gzfile('analysis/ld.unlinked.gatk.nodam.csv.gz'), quote = FALSE, row.names = FALSE)
