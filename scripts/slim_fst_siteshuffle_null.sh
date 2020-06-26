@@ -2,6 +2,7 @@
 
 # note: run this from /cluster/projects/nn9244k/in_progress/historic_malin/
 # this assumes there are 20 replicates of the s0 simulations
+# this assumes that analysis/slim_sim/slim_sim_n*.fst.csv.gz files exist from running slim_calcfst_reynolds.sh
 
 # Job name: Calculate FST siteshuffle windowed outlier test using slim output
 #SBATCH --job-name=fstslim
@@ -22,17 +23,6 @@
 set -o errexit  # Exit the script on any error
 set -o nounset  # Treat any unset variables as an error
 
-# gzip any raw vcf files
-module --quiet purge  # Reset the modules to the system default
-module load BCFtools/1.9-intel-2018b # for merging the vcf files
-
-shopt -s nullglob # so that a pattern that matches nothing "disappears", rather than treated as a literal string. good if there are no .vcf files left in the directory
-for f in analysis/slim_sim/slim_sim_n*.vcf # for all vcf files
-do
-	bgzip -f $f # -f to overwrite existing files
-done
-
-shopt -u nullglob # unset this option
 
 
 #merge each sim with 20 other chromosomes with s=0
