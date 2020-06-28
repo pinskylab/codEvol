@@ -74,6 +74,13 @@ realSFS fst stats2 analysis/Can_14.Lof_11.fst.idx -win 50000 -step 10000 -type 2
 realSFS fst stats2 analysis/Can_14.Lof_14.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_14.Lof_14.slide
 
 
+# output A and B (numerator and denominator) by site for designing a site-shuffle null model
+realSFS fst print analysis/Can_40.Can_14.fst.idx | gzip > analysis/Can_40.Can_14.fst.AB.gz
+realSFS fst print analysis/Lof_07.Lof_11.fst.idx | gzip > analysis/Lof_07.Lof_11.fst.AB.gz
+realSFS fst print analysis/Lof_07.Lof_14.fst.idx | gzip > analysis/Lof_07.Lof_14.fst.AB.gz
+realSFS fst print analysis/Lof_11.Lof_14.fst.idx | gzip > analysis/Lof_11.Lof_14.fst.AB.gz
+
+
 #############################################
 #calculate fst for GATK nodam2 unlinked sites
 #############################################
@@ -132,13 +139,7 @@ realSFS fst stats2 analysis/Can_14.Lof_11.gatk.fst.idx -win 50000 -step 10000 -t
 realSFS fst stats2 analysis/Can_14.Lof_14.gatk.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_14.Lof_14.gatk.slide
 
 
-# output A and B (numerator and denominator) by site for designing a site-shuffle null model
-realSFS fst print analysis/Can_40.Can_14.fst.idx | gzip > analysis/Can_40.Can_14.fst.AB.gz
-realSFS fst print analysis/Lof_07.Lof_11.fst.idx | gzip > analysis/Lof_07.Lof_11.fst.AB.gz
-realSFS fst print analysis/Lof_07.Lof_14.fst.idx | gzip > analysis/Lof_07.Lof_14.fst.AB.gz
-realSFS fst print analysis/Lof_11.Lof_14.fst.idx | gzip > analysis/Lof_11.Lof_14.fst.AB.gz
-
 ###############
 # clean up
 ###############
-tmp/ld.unlinked.*
+rm tmp/ld.unlinked.*

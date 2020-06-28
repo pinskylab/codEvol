@@ -62,7 +62,7 @@ color.bar <- function(cols, x, axis = TRUE, cex = 1, nticks=11,
 ## Fig. 2 Manhattan plot FSTs
 ###############################
 
-# read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK nodam2 sites)
+# read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK nodam2 unlinked sites)
 dat <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # output by angsd_fst_siteshuffle_null_stats.r
 
 # LG mid-points and genome position
@@ -120,19 +120,140 @@ color.bar(cbar$col2, cbar$x, cex = 0.5, axis = TRUE, nticks = 5,
 
 
 dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-dat[pop == 'lof0711' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
 mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
 
 dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-dat[pop == 'lof0714' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
 mtext(side=3, 'C', adj=adjlet, line=linelet, cex=cexlet)
 
 dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-dat[pop == 'lof1114' & p < 0.05, points(posgen, fst, type='p', cex=1, pch = 16, col=colout)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
+mtext(side=3, 'D', adj=adjlet, line=linelet, cex=cexlet)
+
+
+dev.off()
+
+
+####################################################
+## Fig. S5 Manhattan plot FST site-shuffle p-value
+####################################################
+
+# read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK nodam2 unlinked sites)
+dat <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # output by angsd_fst_siteshuffle_null_stats.r
+
+# LG mid-points and genome position
+chrmax <- fread('data/lg_length.csv')
+chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
+chrmax[, mid := rowSums(cbind(start, length/2))]
+
+setkey(dat, CHROM)
+dat <- dat[chrmax[, .(CHROM = chr, start)], ]
+dat[, posgen := midPos + start]
+dat[,start := NULL]
+
+# trim out Unplaced or windows with <2 loci
+dat <- dat[!(CHROM %in% c('Unplaced')) & nloci > 1, ]
+nrow(dat)
+
+# add a vector for color by LG
+lgs <- dat[, sort(unique(CHROM))]
+dat[,lgcol := lgcolsramp(0.2, lg = 1, thresh = 0.1)]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(0.2, lg = 2, thresh = 0.1)]
+
+### set up plot
+adjlet <- -0.11 # horizontal adjustment for subplot letter
+cexlet <- 1
+linelet <- -0.5
+cexsc <- 1/5
+
+png(height=5, width=6, units='in', res=300, file='figures/figureS5.png')
+par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.1, 0.1))
+
+ymax <- max(c(dat[, max(-log10(p), na.rm=TRUE)], -log10(0.05)))
+xlims <- dat[, range(posgen, na.rm=TRUE)]
+
+dat[pop == 'can', plot(posgen, -log10(p), type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', 
+                       ylim = c(0,ymax), ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8) # plot x-axis
+mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
+
+legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.5)
+
+
+dat[pop == 'lof0711', plot(posgen, -log10(p), type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = c(0,ymax), ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8) # plot x-axis
+mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
+
+dat[pop == 'lof0714', plot(posgen, -log10(p), type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = c(0,ymax), ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8) # plot x-axis
 mtext(side=3, 'C', adj=adjlet, line=linelet, cex=cexlet)
+
+dat[pop == 'lof1114', plot(posgen, -log10(p), type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = c(0,ymax), ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8) # plot x-axis
+mtext(side=3, 'D', adj=adjlet, line=linelet, cex=cexlet)
+
+
+dev.off()
+
+
+####################################################
+## Fig. S6 Manhattan plot change in pi by region
+####################################################
+winsz = 5e4 # for scaling the windowed pi and thetaW values
+
+# read in data: sliding window pi from ANGSD (GATK nodam2 unlinked sites)
+dat <- fread('analysis/theta_siteshuffle.angsd.gatk.csv.gz') # output by angsd_theta_siteshuffle_null_stats.r
+
+# LG mid-points
+chrmax <- fread('data/lg_length.csv')
+chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
+chrmax[, mid := rowSums(cbind(start, length/2))]
+
+# add a vector for color by LG
+lgs <- dat[, sort(unique(Chromo))]
+dat[,lgcol := lgcolsramp(0.2, lg = 1, thresh = 0.1)]
+dat[Chromo %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(0.2, lg = 2, thresh = 0.1)]
+
+### set up plot
+adjlet <- -0.11 # horizontal adjustment for subplot letter
+cexlet <- 1
+linelet <- -0.5
+cexsc <- 1/5
+
+png(height=5, width=6, units='in', res=300, file='figures/figureS6.png')
+par(mfrow = c(4,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1), mgp = c(4, 1, 0))
+
+ylims <- dat[, range(tPd/winsz, na.rm=TRUE)]
+xlims <- dat[, range(POSgen, na.rm=TRUE)]
+
+dat[pop == 'can', plot(POSgen, tPd/winsz, type='p', col=lgcol, xlim = xlims, xlab = '', 
+                       ylim = ylims, ylab = expression("Change in" ~ pi), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
+
+
+dat[pop == 'lof0711', plot(POSgen, tPd/winsz, type='p', col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = ylims, ylab = expression("Change in" ~ pi), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
+
+dat[pop == 'lof0714', plot(POSgen, tPd/winsz, type='p', col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = ylims, ylab = expression("Change in" ~ pi), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'C', adj=adjlet, line=linelet, cex=cexlet)
+
+dat[pop == 'lof1114', plot(POSgen, tPd/winsz, type='p', col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = ylims, ylab = expression("Change in" ~ pi), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'D', adj=adjlet, line=linelet, cex=cexlet)
 
 
 dev.off()
