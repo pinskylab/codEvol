@@ -8,60 +8,33 @@ library(RcppCNPy) # for reading pcangsd output
 # Read in per-locus or per-region results from the various tests
 ###################################################
 
-nodam2 <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab') # list of loci that pass nodam2 filter
-setnames(nodam2, c('CHROM', 'POS', 'REF', 'ALT'))
-
 # read in pcangsd results
-pcangsdcan <- as.data.table(npyLoad('analysis/pcangsd_can_gatk_no_dam2_unlink.selection.npy')) # from angsd_pcangsdoutlier.sh
-pcangsdlof0711 <- as.data.table(npyLoad('analysis/pcangsd_lof0711_gatk_no_dam2_unlink.selection.npy'))
-pcangsdlof0714 <- as.data.table(npyLoad('analysis/pcangsd_lof0714_gatk_no_dam2_unlink.selection.npy'))
-pcangsdcan_sites <- fread('analysis/pcangsd_can_gatk_no_dam2_unlink.sites', header = FALSE)
-pcangsdlof0711_sites <- fread('analysis/pcangsd_lof0711_gatk_no_dam2_unlink.sites', header = FALSE)
-pcangsdlof0714_sites <- fread('analysis/pcangsd_lof0714_gatk_no_dam2_unlink.sites', header = FALSE)
+pcangsd <- fread('analysis/pcangsd_outlier.gatk.nodam.unlinked.csv.gz') # output by angsd_pcangsd_plot_selection.r
 
-pcangsdcan_sites[, c('CHROM', 'POS') := tstrsplit(V1, '_', fixed = TRUE)]
-pcangsdcan_sites[, POS := as.integer(POS)]
-pcangsdlof0711_sites[, c('CHROM', 'POS') := tstrsplit(V1, '_', fixed = TRUE)]
-pcangsdlof0711_sites[, POS := as.integer(POS)]
-pcangsdlof0714_sites[, c('CHROM', 'POS') := tstrsplit(V1, '_', fixed = TRUE)]
-pcangsdlof0714_sites[, POS := as.integer(POS)]
-
-pcangsdcan <- cbind(pcangsdcan_sites[, .(CHROM, POS)], pcangsdcan)
-pcangsdlof0711 <- cbind(pcangsdlof0711_sites[, .(CHROM, POS)], pcangsdlof0711)
-pcangsdlof0714 <- cbind(pcangsdlof0714_sites[, .(CHROM, POS)], pcangsdlof0714)
-
-pcangsdcan[, comp := 'Canada']
-pcangsdlof0711[, comp := 'Norway 1907-2011']
-pcangsdlof0714[, comp := 'Norway 1907-2014']
-
-pcangsd <- rbind(pcangsdcan, pcangsdlof0711, pcangsdlof0714)
-
-pcangsd[, p := pchisq(q = V1, df = 1, lower.tail = FALSE), by = comp]
-pcangsd[, testval := p.adjust(p, method = 'fdr'), by = comp]
+setnames(pcangsd, c('pop', 'pfdr'), c('comp', 'testval'))
 pcangsd[, testvaltype := 'FDR-corrected p-value']
 pcangsd[, region := 0] # a SNP, not a region
 pcangsd[, test := 'pcangsd']
 pcangsd[, midPos := POS]
 pcangsd[, POS := as.character(POS)]
 
-pcangsd[, c('V1', 'p') := NULL]
+pcangsd[, p := NULL]
 
 
 # wfs null model
-wfsLof <- readRDS(file=paste('analysis/wfs_nullmodel_pos&pvals_07-11-14.rds', sep='')) # from wfs_nullmodel_combine.r/wfs_nullmodel_lowp_rerun.r
-wfsCan <- readRDS(file=paste('analysis/wfs_nullmodel_pos&pvals_Can.rds', sep=''))
+wfs <- fread('analysis/wfs_nullmodel_padj.csv.gz')
 
-wfsLof[, comp := 'Norway 1907-2011-2014']
-wfsCan[, comp := 'Canada']
-wfs <- rbind(wfsLof[, .(CHROM, POS, p, comp)], wfsCan[, .(CHROM, POS, p, comp)])
-wfs <- merge(wfs, nodam2[, .(CHROM, POS)], by = c('CHROM', 'POS')) # trim to focal loci
-wfs[, testval := p.adjust(p), by = comp]
+wfs[pop == 'Lof', comp := 'Norway 1907-2011-2014']
+wfs[pop == 'Can', comp := 'Canada']
+wfs[, testval := p.adj]
 wfs[, p := NULL]
 wfs[, testvaltype := 'FDR-corrected p-value']
 wfs[, region := 0] # a SNP, not a region
 wfs[, test := 'Wright-Fisher null model']
 wfs[, midPos := POS]
 wfs[, POS := as.character(POS)]
+
+wfs[, c('pop', 'p.adj') := NULL]
 
 
 #site-shuffle fst (region)
@@ -98,7 +71,7 @@ Dshuff <- thetashuff[, .(CHROM = Chromo, POS, comp, midPos = WinCenter, testval 
 ##############################################
 # Combine the results and choose the outliers
 ##############################################
-outl <- rbind(pcangsd[testval < 0.05, ], wfs[testval < 0.65, ], fstshuff[testval < 0.1, ], pishuff[testval < 0.05,], Dshuff[testval < 0.05,])
+outl <- rbind(pcangsd[testval < 0.05, ], wfs[testval < 0.21, ], fstshuff[testval < 0.1, ], pishuff[testval < 0.05,], Dshuff[testval < 0.05,])
 
 
 ###################
@@ -169,7 +142,7 @@ codons <- lapply(g, get.codons, 1)
 # print codons for the outliers
 outlcodons <- NULL
 for(chr in outl[,sort(unique(CHROM))]){
-	this <- merge(codons[[chr]], outl[CHROM==chr & region == 0,. (CHROM, midPos)], by.x='Position', by.y='midPos') # trim to outlier
+	this <- merge(codons[[chr]], outl[CHROM==chr & region == 0,. (CHROM, midPos)], by.x='Position', by.y='midPos') # trim to outlier SNPs with codons
 	
 	reglns <- outl[CHROM == chr & region == 1, ] # any outlier regions on this chromsomes
 	if(nrow(reglns)>0){
@@ -180,7 +153,8 @@ for(chr in outl[,sort(unique(CHROM))]){
 	  }
 	}
 	
-	this <- rbind(this, thisreg)
+	if(nrow(this) > 0 & nrow(reglns) > 0) this <- rbind(this, thisreg)
+	if(nrow(this) == 0 & nrow(reglns) > 0) this <- thisreg
 	
 	if(nrow(this)>0){
 		if(is.null(outlcodons)){

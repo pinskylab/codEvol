@@ -36,7 +36,7 @@ dim(fst)
 fst[B>0, .(fst = sum(A)/sum(B)), by = .(ne, s, f, i)][, .(fstmean = mean(fst)), by = .(ne)]
 
 # stats
-fstsum1 <- fst[B>0, .(fstmax = max(A/B), fstmean = sum(A)/sum(B)),  # min and max fst by simulation
+fstsum1 <- fst[, .(fstmax = max(A/B, na.rm = TRUE), fstmean = sum(A)/sum(B)),  # min and max fst by simulation
               by = .(ne, s, f, i)]
 fst0s <- fst[s==0 & B>0, .(fstmaxs0 = max(A/B)), by = .(ne, f)] # max FST for s=0 sims
 fst2 <- merge(fst, fst0s) # add max fst from s=0 to the simulated fsts
@@ -53,6 +53,22 @@ fst[s==0, .(fstmean = mean(WEIGHTED_FST)), by = .(ne)]
 ############
 # plot
 ############
+
+# plot FST Manhattan for two simulations
+ggplot(fst[ne == 3000 & f == 0.05 & s %in% c(0, 1.5) & B>0, ], aes(x = POS, y = A/B)) +
+  geom_point(size = 0.2) +
+  geom_smooth() +
+  facet_grid(s ~ .)
+ggsave('tmp/slim_fst_persite_examples.png', width = 7, height = 4, dpi = 300)
+
+
+# plot max fst vs. s, n, f
+ggplot(fstsum1, aes(x = s, y = fstmax, group = as.factor(f), color = as.factor(f))) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = 'lm', size = 0.5) +
+  facet_grid(~ ne) +
+  labs(color = 'Initial frequency') +
+  ylab('Max Fst')
 
 
 # plot selected width vs. s and n

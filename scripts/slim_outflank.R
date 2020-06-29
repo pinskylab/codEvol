@@ -250,7 +250,7 @@ popNames <- ifelse(grepl('_11', rownames(snpmat)), '11', '1')
 
 if(comb == 'genome'){
   # prep full genome (add 20 s=0 chromosomes)
-  s0name <- gsub('analysis/slim_sim', 'tmp', infile)
+  s0name <- gsub('analysis/slim_sim', 'tmp', infile1)
   s0name <- gsub('_i[[:alnum:]]*_1*.vcf', '_comb.rds', s0name)
   s0name <- gsub('_s[[:digit:][:punct:]]*_', '_s0_', s0name)
   s0sims <- readRDS(s0name)

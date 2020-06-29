@@ -81,6 +81,9 @@ sum1 <- outl[, .(minp = min(p), minpfdr = min(pfdr), npfdrlow = sum(pfdr < 0.05)
 sum2 <- sum1[, .(prop = sum(minpfdr <= 0.05)/.N, npos = mean(npos)), by = .(ne, s, f, comb)] # proportion of sims that detected at least one SNP under selection
 
 
+# write out
+write.csv(sum2, file = gzfile('analysis/slim_pcangsd.summary.csv.gz'), row.names = FALSE)
+
 ##########################
 # plot outlier detection
 ##########################

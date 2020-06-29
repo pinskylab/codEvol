@@ -79,6 +79,8 @@ sum2 <- sum[, .(fpl05 = sum(minp < 0.05)/.N,
                 f3pl05 = sum(npl05 > 2)/.N), 
             by = .(ne, s, f, comb)]
 
+# write out
+write.csv(sum2[, .(ne, s, f, comb, fpl05)], file = gzfile('analysis/slim_fst_siteshuffle.summary.csv.gz'), row.names = FALSE)
 
 #########################################
 # plots of FST calculation summaries

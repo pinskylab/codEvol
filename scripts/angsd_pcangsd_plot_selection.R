@@ -1,7 +1,18 @@
+# Read in pcangsd selection test output, analyze, and plot
+# Needs output from angsd_pcangsdoutlier.sh
+
+##################
+# Functions
+##################
+
 library(RcppCNPy)
 library(data.table)
 
-# read in files
+
+##############################
+# read in files and process
+##############################
+
 datcan <- as.data.table(npyLoad('analysis/pcangsd_can.selection.npy')) # selection statistics along a tested PC and they are χ²-distributed with 1 degree of freedom
 datlof0711 <- as.data.table(npyLoad('analysis/pcangsd_lof0711.selection.npy'))
 datlof0714 <- as.data.table(npyLoad('analysis/pcangsd_lof0714.selection.npy'))
@@ -209,10 +220,20 @@ dat[,start := NULL]
 # calculate p-value
 dat[, p := pchisq(q = V1, df = 1, lower.tail = FALSE)]
 
+# remove unplaced
+dat <- dat[CHROM != 'Unplaced', ]
+
 # FDR correct by pop and type
 dat[, pfdr := p.adjust(p, method = 'fdr'), by = .(pop, type)]
 
+
+# write out useful subsets
+write.csv(dat[type == 'gatk_nodam2_unlinked', .(CHROM, POS, pop, p, pfdr)], file = gzfile('analysis/pcangsd_outlier.gatk.nodam.unlinked.csv.gz'), row.names = FALSE)
+
+
+#####################
 # print outliers
+#####################
 
 dat[pfdr < 0.05 & type == 'gatk_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
 dat[pfdr < 0.05 & type == 'gatk_nodam2_unlinked', .(CHROM, POS, pop, type, p, pfdr)]
@@ -227,7 +248,6 @@ cols <- c('#a6cee3aa', '#1f78b4aa') # light blue, blue, partially transparent: f
 dat[, lgcol := cols[1]]
 dat[CHROM %in% chrmax$CHROM[seq(2, nrow(chrmax),by=2)], lgcol := cols[2]]
 
-# plot and save out
 # all loci
 ylims <- c(0, max(-log10(dat$pfdr)))
 png(filename = paste0('figures/pcangsd_selscan.png'), width = 20, height = 12, units = "in", res = 150)
