@@ -128,9 +128,10 @@ p4 <- ggplot(datLof1114, aes(freq1, freq2)) +
         panel.background = element_blank(), axis.line = element_line(colour = "grey"),
         legend.position = 'none')
 
-p5 <- grid.arrange(p1, p2, p3, p4, ncol = 2)
+p5 <- grid.arrange(p1, p2, p3, p4, ncol = 4)
 
 ggsave(p5, filename = 'figures/figure1.png')
+ggsave(p5, filename = 'figures/figure1.pdf')
 
 ########################################
 ## Fig. 2 Manhattan plot FSTs by region
