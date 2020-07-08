@@ -24,8 +24,8 @@ gatk <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab')
 setnames(gatk, c('chromo', 'position', 'ref', 'alt'))
 
 # unlinked loci
-unlnkCan <- fread('analysis/ld.unlinked.Can.gatk.nodam.csv.gz', drop=1)
-unlnkLof <- fread('analysis/ld.unlinked.Lof.gatk.nodam.csv.gz', drop=1)
+unlnkCan <- fread('analysis/ld.unlinked.Can.gatk.nodam.csv.gz')
+unlnkLof <- fread('analysis/ld.unlinked.Lof.gatk.nodam.csv.gz')
 setnames(unlnkCan, c('chromo', 'position', 'cluster', 'nloci'))
 setnames(unlnkLof, c('chromo', 'position', 'cluster', 'nloci'))
 
