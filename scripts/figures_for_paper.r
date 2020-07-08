@@ -774,9 +774,18 @@ fstLof1 <- fread('analysis/Lof_07.Lof_11.fst.AB.gz', col.names = c('CHROM', 'POS
 fstLof2 <- fread('analysis/Lof_07.Lof_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
 fstCan <- fread('analysis/Can_40.Can_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
 
+# trim fsts to nodam2 loci
+gatk <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab', col.names = c('CHROM', 'POS', 'REF', 'ALT'))
+fstLof1 <- merge(fstLof1, gatk[, .(CHROM, POS)])
+fstLof2 <- merge(fstLof2, gatk[, .(CHROM, POS)])
+fstCan <- merge(fstCan, gatk[, .(CHROM, POS)])
+
+# merge fsts
 fstLof <- merge(fstLof1[, .(CHROM, POS, fst1 = A/B)], fstLof2[, .(CHROM, POS, fst2 = A/B)])
 fstLof[, fst := rowMeans(cbind(fst1, fst2))]
 fstCan[, fst := A/B]
+
+
 
 # read in and merge sample size data
 datCan40 <- fread('data_31_01_20/Can_40_freq.mafs.gz')
@@ -802,7 +811,7 @@ fstLof <- merge(fstLof, datLof[, .(CHROM, POS, n, n.sc)], by = c('CHROM', 'POS')
 # make plot
 nrow = ceiling(nrow(dat)/ncol)
 
-png(height= nrow * rowinch, width=6.5, units='in', res=300, file='figures/figureS15.png')
+png(height= 8, width=6.5, units='in', res=300, file='figures/figureS15.png')
 par(mfrow = c(nrow, ncol), mai = c(0.3, 0.3, 0.4, 0.1), omi = c(0.3, 0.3, 0, 0))
 for(i in 1:nrow(dat)){
   if(dat$comp[i] %in% c('can', 'Canada')){
