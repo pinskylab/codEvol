@@ -102,7 +102,8 @@ p1 <- ggplot(datCan, aes(freq1, freq2)) +
   geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "grey"),
-        legend.position = 'none')
+        legend.position = 'none') +
+  coord_cartesian(xlim =c(0, 1), ylim = c(0, 1))
 p2 <- ggplot(datLof0711, aes(freq1, freq2)) +
   geom_hex() +
   scale_fill_gradient(low="grey", high=colLof, trans = 'log', breaks = bks, labels = bks) +
@@ -110,7 +111,8 @@ p2 <- ggplot(datLof0711, aes(freq1, freq2)) +
   geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "grey"),
-        legend.position = 'none')
+        legend.position = 'none') +
+  coord_cartesian(xlim =c(0, 1), ylim = c(0, 1))
 p3 <- ggplot(datLof0714, aes(freq1, freq2)) +
   geom_hex() +
   scale_fill_gradient(low="grey", high=colLof, trans = 'log', breaks = bks, labels = bks) +
@@ -118,7 +120,8 @@ p3 <- ggplot(datLof0714, aes(freq1, freq2)) +
   geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "grey"),
-        legend.position = 'none')
+        legend.position = 'none') +
+  coord_cartesian(xlim =c(0, 1), ylim = c(0, 1))
 p4 <- ggplot(datLof1114, aes(freq1, freq2)) +
   geom_hex() +
   scale_fill_gradient(low="grey", high=colLof, trans = 'log', breaks = bks, labels = bks) +
@@ -126,12 +129,13 @@ p4 <- ggplot(datLof1114, aes(freq1, freq2)) +
   geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "grey"),
-        legend.position = 'none')
+        legend.position = 'none') +
+  coord_cartesian(xlim =c(0, 1), ylim = c(0, 1))
 
 p5 <- grid.arrange(p1, p2, p3, p4, ncol = 4)
 
-ggsave(p5, filename = 'figures/figure1.png')
-ggsave(p5, filename = 'figures/figure1.pdf')
+ggsave(p5, filename = 'figures/figure1.png', width = 7.5, height = 2)
+ggsave(p5, filename = 'figures/figure1.pdf', width = 7.5, height = 2)
 
 ########################################
 ## Fig. 2 Manhattan plot FSTs by region
