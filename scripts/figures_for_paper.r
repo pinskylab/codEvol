@@ -3,6 +3,8 @@
 #################
 require(data.table)
 require(RColorBrewer)
+require(ggplot2) # for Fig. 1 hexplots. also requires package hexbin
+require(gridExtra) # for Fig. 1
 
 # takes values 0-1 and turns them into colors. takes ColorBrewer pallete as argument.
 colramp <- function(x, pal='RdBu', alpha=255){
@@ -57,6 +59,78 @@ color.bar <- function(cols, x, axis = TRUE, cex = 1, nticks=11,
   
  text(xposmin, titley, title, adj = 0.5, cex = cex)
 }
+
+#####################################################
+# Part of Fig. 1: allele frequency change heatmap
+#####################################################
+colLof <- '#F26523' # matching Bastiaan
+colCan <- '#BEA512'
+
+# read in and merge data
+datCan40 <- fread('data_31_01_20/Can_40_freq.mafs.gz')
+datCan14 <- fread('data_31_01_20/Can_14_freq.mafs.gz')
+datLof07 <- fread('data_31_01_20/Lof_07_freq.mafs.gz')
+datLof11 <- fread('data_31_01_20/Lof_11_freq.mafs.gz')
+datLof14 <- fread('data_31_01_20/Lof_14_freq.mafs.gz')
+
+datCan <- merge(datCan40[, .(chromo, position, freq1 = knownEM)], datCan14[, .(chromo, position, freq2 = knownEM)])
+datLof0711 <- merge(datLof07[, .(chromo, position, freq1 = knownEM)], datLof11[, .(chromo, position, freq2 = knownEM)])
+datLof0714 <- merge(datLof07[, .(chromo, position, freq1 = knownEM)], datLof14[, .(chromo, position, freq2 = knownEM)])
+datLof1114 <- merge(datLof11[, .(chromo, position, freq1 = knownEM)], datLof14[, .(chromo, position, freq2 = knownEM)])
+
+# trim to unlinked loci
+ulnkCan <- fread('analysis/ld.unlinked.Can.gatk.nodam.csv.gz')
+ulnkLof <- fread('analysis/ld.unlinked.Lof.gatk.nodam.csv.gz')
+
+datCan <- merge(datCan, ulnkCan[, .(chromo = CHROM, position = POS)])
+datLof0711 <- merge(datLof0711, ulnkLof[, .(chromo = CHROM, position = POS)])
+datLof0714 <- merge(datLof0714, ulnkLof[, .(chromo = CHROM, position = POS)])
+datLof1114 <- merge(datLof1114, ulnkLof[, .(chromo = CHROM, position = POS)])
+
+# r2 values
+datCan[, cor(freq1, freq2)]^2
+datLof0711[, cor(freq1, freq2)]^2
+datLof0714[, cor(freq1, freq2)]^2
+datLof1114[, cor(freq1, freq2)]^2
+
+# plots
+bks <- c(0, 1, 10, 100, 1000, 10000)
+p1 <- ggplot(datCan, aes(freq1, freq2)) +
+  geom_hex() +
+  scale_fill_gradient(low="grey", high=colCan, trans = 'log', breaks = bks, labels = bks) +
+  labs(title = 'Canada', x = 'Historical', y = 'Modern') +
+  geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "grey"),
+        legend.position = 'none')
+p2 <- ggplot(datLof0711, aes(freq1, freq2)) +
+  geom_hex() +
+  scale_fill_gradient(low="grey", high=colLof, trans = 'log', breaks = bks, labels = bks) +
+  labs(title = 'Norway 07-11', x = 'Historical', y = 'Modern') +
+  geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "grey"),
+        legend.position = 'none')
+p3 <- ggplot(datLof0714, aes(freq1, freq2)) +
+  geom_hex() +
+  scale_fill_gradient(low="grey", high=colLof, trans = 'log', breaks = bks, labels = bks) +
+  labs(title = 'Norway 07-14', x = 'Historical', y = 'Modern') +
+  geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "grey"),
+        legend.position = 'none')
+p4 <- ggplot(datLof1114, aes(freq1, freq2)) +
+  geom_hex() +
+  scale_fill_gradient(low="grey", high=colLof, trans = 'log', breaks = bks, labels = bks) +
+  labs(title = 'Norway 11-14', x = 'Historical', y = 'Modern') +
+  geom_abline(slope = 1, intercept = 0, linetype = 'dashed') + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "grey"),
+        legend.position = 'none')
+
+p5 <- grid.arrange(p1, p2, p3, p4, ncol = 2)
+
+ggsave(p5, filename = 'figures/figure1.png')
 
 ########################################
 ## Fig. 2 Manhattan plot FSTs by region
