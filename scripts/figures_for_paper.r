@@ -137,6 +137,8 @@ p5 <- grid.arrange(p1, p2, p3, p4, ncol = 4)
 ggsave(p5, filename = 'figures/figure1.png', width = 7.5, height = 2)
 ggsave(p5, filename = 'figures/figure1.pdf', width = 7.5, height = 2)
 
+
+
 ########################################
 ## Fig. 2 Manhattan plot FSTs by region
 ########################################
@@ -574,12 +576,12 @@ dev.off()
 # WFS results, from wfs_nullmodel_analysis.r
 wfs <- fread('analysis/wfs_nullmodel_padj.csv.gz')
 
-# 1907-2011-2014
-fst <- fread('analysis/gatk.lof07-11-14.weir.fst', header=TRUE)
+# 1907-2011-2014 fsts
+fst <- fread('analysis/gatk.lof07-11-14.weir.fst', header=TRUE) # from vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --weir-fst-pop data_2020.05.07/popLof07.txt --weir-fst-pop data_2020.05.07/popLof11.txt --weir-fst-pop data_2020.05.07/popLof14.txt --out analysis/gatk.lof07-11-14
 datLof <- merge(fst, wfs[pop == 'Lof', .(CHROM, POS, pop, p.adj)], by = c('CHROM', 'POS'))
 
-# Canada
-fstCan <- fread('analysis/gatk.can.weir.fst', header=TRUE)
+# Canada fsts
+fstCan <- fread('analysis/gatk.can.weir.fst', header=TRUE) # from vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --weir-fst-pop data_2020.05.07/popCan40.txt --weir-fst-pop data_2020.05.07/popCan13.txt --out analysis/gatk.can
 datCan <- merge(fstCan, wfs[pop == 'Can', .(CHROM, POS, pop, p.adj)], by = c('CHROM', 'POS'))
 nrow(datCan)
 
@@ -756,6 +758,73 @@ fs14 <- ggplot(dat[comb == 1, ], aes(s, prop, group = f, color = as.factor(f))) 
 ggsave(plot = fs14, filename = 'figures/figureS14.png', width = 7, height = 2, dpi = 300)
 
 
+#########################################
+# Fig. S15 Fst around putative outliers
+#########################################
+library(data.table)
+ncol = 3 # number of columns in graph
+rowinch <- 2 # inches per row in graph
+rng <- 100000 # how many bp to go in either direction from SNP
+
+# read in outliers
+dat <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
+
+# read in Fsts
+fstLof1 <- fread('analysis/Lof_07.Lof_11.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B')) # from angsd_fst.sh
+fstLof2 <- fread('analysis/Lof_07.Lof_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
+fstCan <- fread('analysis/Can_40.Can_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
+
+fstLof <- merge(fstLof1[, .(CHROM, POS, fst1 = A/B)], fstLof2[, .(CHROM, POS, fst2 = A/B)])
+fstLof[, fst := rowMeans(cbind(fst1, fst2))]
+fstCan[, fst := A/B]
+
+# read in and merge sample size data
+datCan40 <- fread('data_31_01_20/Can_40_freq.mafs.gz')
+datCan14 <- fread('data_31_01_20/Can_14_freq.mafs.gz')
+datLof07 <- fread('data_31_01_20/Lof_07_freq.mafs.gz')
+datLof11 <- fread('data_31_01_20/Lof_11_freq.mafs.gz')
+datLof14 <- fread('data_31_01_20/Lof_14_freq.mafs.gz')
+
+datCan <- merge(datCan40[, .(CHROM = chromo, POS = position, n1 = nInd)], datCan14[, .(CHROM = chromo, POS = position, n2 = nInd)])
+datLof <- merge(datLof07[, .(CHROM = chromo, POS = position, n1 = nInd)], datLof11[, .(CHROM = chromo, POS = position, n2 = nInd)])
+datLof <- merge(datLof, datLof14[, .(CHROM = chromo, POS = position, n3 = nInd)])
+
+# harmonic mean sample size
+datCan[, n := 2/(1/n1 + 1/n2)]
+datLof[, n := 3/(1/n1 + 1/n2 + 1/n3)]
+
+datCan[, n.sc := (n - min(n))/(max(n) - min(n))] # scale 0-1
+datLof[, n.sc := (n - min(n))/(max(n) - min(n))] # scale 0-1
+
+fstCan <- merge(fstCan, datCan[, .(CHROM, POS, n, n.sc)], by = c('CHROM', 'POS'))
+fstLof <- merge(fstLof, datLof[, .(CHROM, POS, n, n.sc)], by = c('CHROM', 'POS'))
+
+# make plot
+nrow = ceiling(nrow(dat)/ncol)
+
+png(height= nrow * rowinch, width=6.5, units='in', res=300, file='figures/figureS15.png')
+par(mfrow = c(nrow, ncol), mai = c(0.3, 0.3, 0.4, 0.1), omi = c(0.3, 0.3, 0, 0))
+for(i in 1:nrow(dat)){
+  if(dat$comp[i] %in% c('can', 'Canada')){
+    thisdat <- fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, ]
+    outl <- fstCan[CHROM == dat$CHROM[i] & POS == dat$POS[i], ]
+    pop <- 'Canada'
+  }
+  if(dat$comp[i] == 'Norway 1907-2011-2014'){
+    thisdat <- fstLof[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, ]
+    outl <- fstLof[CHROM == dat$CHROM[i] & POS == dat$POS[i], ]
+    pop <- 'Norway'
+  }
+  
+  thisdat[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
+                 main = paste0(pop, ' ', dat$CHROM[i], '\n', dat$test[i]))]
+  outl[, points(POS/1e6, fst, col = 'red')]
+}
+
+mtext('Position (Mb)', side = 1, outer = TRUE)
+mtext('Fst', side = 2, outer = TRUE)
+
+dev.off()
 
 ######################
 ## Table S5 Outliers
@@ -763,8 +832,8 @@ ggsave(plot = fs14, filename = 'figures/figureS14.png', width = 7, height = 2, d
 library(data.table)
 
 # read in data
-dat <- fread('tables/outlier_annotation.csv') # from annotate_outliers.r
-freqCan40 <- fread('data_31_01_20/Can_40_freq.mafs.gz')
+dat <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
+freqCan40 <- fread('data_31_01_20/Can_40_freq.mafs.gz') # allele frequencies
 freqCan14 <- fread('data_31_01_20/Can_14_freq.mafs.gz')
 freqLof07 <- fread('data_31_01_20/Lof_07_freq.mafs.gz')
 freqLof11 <- fread('data_31_01_20/Lof_11_freq.mafs.gz')
