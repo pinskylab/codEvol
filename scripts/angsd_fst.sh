@@ -7,7 +7,7 @@
 #SBATCH --account=nn9244k
 #
 # Wall time limit: DD-HH:MM:SS
-#SBATCH --time=00-12:00:00
+#SBATCH --time=01-00:00:00
 #
 # Max memory usage:
 #SBATCH --mem-per-cpu=2G
@@ -81,40 +81,36 @@ realSFS fst print analysis/Lof_07.Lof_14.fst.idx | gzip > analysis/Lof_07.Lof_14
 realSFS fst print analysis/Lof_11.Lof_14.fst.idx | gzip > analysis/Lof_11.Lof_14.fst.AB.gz
 
 
-#############################################
-#calculate fst for GATK nodam2 unlinked sites
-#############################################
-# prep list of unlinked nodam2 sites
+###################################################
+#calculate fst for GATK nodam2 sites (inc. linked)
+###################################################
+# prep list of nodam2 sites
 # needs to be tab-separated, no header. use only chr and pos, since otherwise angsd interprets cols 3 and 4 as ref and alt
-zcat analysis/ld.unlinked.Can.gatk.nodam.csv.gz | tail -n +2 | sed 's/\,/\t/g' | cut -f 1-2 > tmp/ld.unlinked.Can.gatk.nodam.tab
-zcat analysis/ld.unlinked.Lof.gatk.nodam.csv.gz | tail -n +2 | sed 's/\,/\t/g' | cut -f 1-2 > tmp/ld.unlinked.Lof.gatk.nodam.tab
-zcat analysis/ld.unlinked.gatk.nodam.csv.gz | tail -n +2 | sed 's/\,/\t/g' | cut -f 1-2 > tmp/ld.unlinked.gatk.nodam.tab
+cat data_2020.05.07/GATK_filtered_SNP_no_dam2.tab > tmp/gatk.tab # trim off the header from the list of good sites so that ANGSD can index it
 
 # index so that we can trim by site
-angsd sites index tmp/ld.unlinked.Can.gatk.nodam.tab
-angsd sites index tmp/ld.unlinked.Lof.gatk.nodam.tab
-angsd sites index tmp/ld.unlinked.gatk.nodam.tab
+angsd sites index tmp/gatk.tab
 
 # calculate the 2D SFS prior
-realSFS data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Can_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Can.gatk.nodam.tab  >analysis/Can_40.Can_14.gatk.ml
-realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Lof.gatk.nodam.tab >analysis/Lof_07.Lof_11.gatk.ml
-realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Lof.gatk.nodam.tab >analysis/Lof_07.Lof_14.gatk.ml
-realSFS data_31_01_20/Lof_11_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Lof.gatk.nodam.tab >analysis/Lof_11.Lof_14.gatk.ml
+realSFS data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Can_14_freq.saf.idx -P 16 -sites tmp/gatk.tab  >analysis/Can_40.Can_14.gatk.ml
+realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -P 16 -sites tmp/gatk.tab >analysis/Lof_07.Lof_11.gatk.ml
+realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/gatk.tab >analysis/Lof_07.Lof_14.gatk.ml
+realSFS data_31_01_20/Lof_11_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/gatk.tab >analysis/Lof_11.Lof_14.gatk.ml
 
-realSFS data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Lof_07_freq.saf.idx -P 16 -sites tmp/ld.unlinked.gatk.nodam.tab >analysis/Can_40.Lof_07.gatk.ml
-realSFS data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -P 16 -sites tmp/ld.unlinked.gatk.nodam.tab >analysis/Can_14.Lof_11.gatk.ml
-realSFS data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.gatk.nodam.tab >analysis/Can_14.Lof_14.gatk.ml
+realSFS data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Lof_07_freq.saf.idx -P 16 -sites tmp/gatk.tab >analysis/Can_40.Lof_07.gatk.ml
+realSFS data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -P 16 -sites tmp/gatk.tab >analysis/Can_14.Lof_11.gatk.ml
+realSFS data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/gatk.tab >analysis/Can_14.Lof_14.gatk.ml
 
 
 #calculate fst by site
-realSFS fst index data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Can_14_freq.saf.idx -sfs analysis/Can_40.Can_14.gatk.ml -fstout analysis/Can_40.Can_14.gatk -sites tmp/ld.unlinked.Can.gatk.nodam.tab
-realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -sfs analysis/Lof_07.Lof_11.gatk.ml -fstout analysis/Lof_07.Lof_11.gatk -sites tmp/ld.unlinked.Lof.gatk.nodam.tab
-realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Lof_07.Lof_14.gatk.ml -fstout analysis/Lof_07.Lof_14.gatk -sites tmp/ld.unlinked.Lof.gatk.nodam.tab
-realSFS fst index data_31_01_20/Lof_11_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Lof_11.Lof_14.gatk.ml -fstout analysis/Lof_11.Lof_14.gatk -sites tmp/ld.unlinked.Lof.gatk.nodam.tab
+realSFS fst index data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Can_14_freq.saf.idx -sfs analysis/Can_40.Can_14.gatk.ml -fstout analysis/Can_40.Can_14.gatk -sites tmp/gatk.tab
+realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -sfs analysis/Lof_07.Lof_11.gatk.ml -fstout analysis/Lof_07.Lof_11.gatk -sites tmp/gatk.tab
+realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Lof_07.Lof_14.gatk.ml -fstout analysis/Lof_07.Lof_14.gatk -sites tmp/gatk.tab
+realSFS fst index data_31_01_20/Lof_11_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Lof_11.Lof_14.gatk.ml -fstout analysis/Lof_11.Lof_14.gatk -sites tmp/gatk.tab
 
-realSFS fst index data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Lof_07_freq.saf.idx -sfs analysis/Can_40.Lof_07.gatk.ml -fstout analysis/Can_40.Lof_07.gatk -sites tmp/ld.unlinked.gatk.nodam.tab
-realSFS fst index data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -sfs analysis/Can_14.Lof_11.gatk.ml -fstout analysis/Can_14.Lof_11.gatk -sites tmp/ld.unlinked.gatk.nodam.tab
-realSFS fst index data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Can_14.Lof_14.gatk.ml -fstout analysis/Can_14.Lof_14.gatk -sites tmp/ld.unlinked.gatk.nodam.tab
+realSFS fst index data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Lof_07_freq.saf.idx -sfs analysis/Can_40.Lof_07.gatk.ml -fstout analysis/Can_40.Lof_07.gatk -sites tmp/gatk.tab
+realSFS fst index data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -sfs analysis/Can_14.Lof_11.gatk.ml -fstout analysis/Can_14.Lof_11.gatk -sites tmp/gatk.tab
+realSFS fst index data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Can_14.Lof_14.gatk.ml -fstout analysis/Can_14.Lof_14.gatk -sites tmp/gatk.tab
 
 
 #get the global estimate
@@ -139,7 +135,67 @@ realSFS fst stats2 analysis/Can_14.Lof_11.gatk.fst.idx -win 50000 -step 10000 -t
 realSFS fst stats2 analysis/Can_14.Lof_14.gatk.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_14.Lof_14.gatk.slide
 
 
+
+#############################################
+#calculate fst for GATK nodam2 unlinked sites
+#############################################
+# prep list of unlinked nodam2 sites
+# needs to be tab-separated, no header. use only chr and pos, since otherwise angsd interprets cols 3 and 4 as ref and alt
+zcat analysis/ld.unlinked.Can.gatk.nodam.csv.gz | tail -n +2 | sed 's/\,/\t/g' | cut -f 1-2 > tmp/ld.unlinked.Can.gatk.nodam.tab
+zcat analysis/ld.unlinked.Lof.gatk.nodam.csv.gz | tail -n +2 | sed 's/\,/\t/g' | cut -f 1-2 > tmp/ld.unlinked.Lof.gatk.nodam.tab
+zcat analysis/ld.unlinked.gatk.nodam.csv.gz | tail -n +2 | sed 's/\,/\t/g' | cut -f 1-2 > tmp/ld.unlinked.gatk.nodam.tab
+
+# index so that we can trim by site
+angsd sites index tmp/ld.unlinked.Can.gatk.nodam.tab
+angsd sites index tmp/ld.unlinked.Lof.gatk.nodam.tab
+angsd sites index tmp/ld.unlinked.gatk.nodam.tab
+
+# calculate the 2D SFS prior
+realSFS data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Can_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Can.gatk.nodam.tab  >analysis/Can_40.Can_14.gatk.unlinked.ml
+realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Lof.gatk.nodam.tab >analysis/Lof_07.Lof_11.gatk.unlinked.ml
+realSFS data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Lof.gatk.nodam.tab >analysis/Lof_07.Lof_14.gatk.unlinked.ml
+realSFS data_31_01_20/Lof_11_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.Lof.gatk.nodam.tab >analysis/Lof_11.Lof_14.gatk.unlinked.ml
+
+realSFS data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Lof_07_freq.saf.idx -P 16 -sites tmp/ld.unlinked.gatk.nodam.tab >analysis/Can_40.Lof_07.gatk.unlinked.ml
+realSFS data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -P 16 -sites tmp/ld.unlinked.gatk.nodam.tab >analysis/Can_14.Lof_11.gatk.unlinked.ml
+realSFS data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -P 16 -sites tmp/ld.unlinked.gatk.nodam.tab >analysis/Can_14.Lof_14.gatk.unlinked.ml
+
+
+#calculate fst by site
+realSFS fst index data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Can_14_freq.saf.idx -sfs analysis/Can_40.Can_14.gatk.unlinked.ml -fstout analysis/Can_40.Can_14.gatk.unlinked -sites tmp/ld.unlinked.Can.gatk.nodam.tab
+realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -sfs analysis/Lof_07.Lof_11.gatk.unlinked.ml -fstout analysis/Lof_07.Lof_11.gatk.unlinked -sites tmp/ld.unlinked.Lof.gatk.nodam.tab
+realSFS fst index data_31_01_20/Lof_07_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Lof_07.Lof_14.gatk.unlinked.ml -fstout analysis/Lof_07.Lof_14.gatk.unlinked -sites tmp/ld.unlinked.Lof.gatk.nodam.tab
+realSFS fst index data_31_01_20/Lof_11_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Lof_11.Lof_14.gatk.unlinked.ml -fstout analysis/Lof_11.Lof_14.gatk.unlinked -sites tmp/ld.unlinked.Lof.gatk.nodam.tab
+
+realSFS fst index data_31_01_20/Can_40_freq.saf.idx data_31_01_20/Lof_07_freq.saf.idx -sfs analysis/Can_40.Lof_07.gatk.unlinked.ml -fstout analysis/Can_40.Lof_07.gatk.unlinked -sites tmp/ld.unlinked.gatk.unlinked.tab
+realSFS fst index data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_11_freq.saf.idx -sfs analysis/Can_14.Lof_11.gatk.unlinked.ml -fstout analysis/Can_14.Lof_11.gatk.unlinked -sites tmp/ld.unlinked.gatk.unlinked.tab
+realSFS fst index data_31_01_20/Can_14_freq.saf.idx data_31_01_20/Lof_14_freq.saf.idx -sfs analysis/Can_14.Lof_14.gatk.unlinked.ml -fstout analysis/Can_14.Lof_14.gatk.unlinked -sites tmp/ld.unlinked.gatk.unlinked.tab
+
+
+#get the global estimate
+realSFS fst stats analysis/Can_40.Can_14.gatk.unlinked.fst.idx 
+realSFS fst stats analysis/Lof_07.Lof_11.gatk.unlinked.fst.idx 
+realSFS fst stats analysis/Lof_07.Lof_14.gatk.unlinked.fst.idx 
+realSFS fst stats analysis/Lof_11.Lof_14.gatk.unlinked.fst.idx 
+
+realSFS fst stats analysis/Can_40.Lof_07.gatk.unlinked.fst.idx 
+realSFS fst stats analysis/Can_14.Lof_11.gatk.unlinked.fst.idx 
+realSFS fst stats analysis/Can_14.Lof_14.gatk.unlinked.fst.idx 
+
+
+#windowed fst
+realSFS fst stats2 analysis/Can_40.Can_14.gatk.unlinked.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_40.Can_14.gatk.unlinked.slide
+realSFS fst stats2 analysis/Lof_07.Lof_11.gatk.unlinked.fst.idx -win 50000 -step 10000 -type 2 >analysis/Lof_07.Lof_11.gatk.unlinked.slide
+realSFS fst stats2 analysis/Lof_07.Lof_14.gatk.unlinked.fst.idx -win 50000 -step 10000 -type 2 >analysis/Lof_07.Lof_14.gatk.unlinked.slide
+realSFS fst stats2 analysis/Lof_11.Lof_14.gatk.unlinked.fst.idx -win 50000 -step 10000 -type 2 >analysis/Lof_11.Lof_14.gatk.unlinked.slide
+
+realSFS fst stats2 analysis/Can_40.Lof_07.gatk.unlinked.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_40.Lof_07.gatk.unlinked.slide
+realSFS fst stats2 analysis/Can_14.Lof_11.gatk.unlinked.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_14.Lof_11.gatk.unlinked.slide
+realSFS fst stats2 analysis/Can_14.Lof_14.gatk.unlinked.fst.idx -win 50000 -step 10000 -type 2 >analysis/Can_14.Lof_14.gatk.unlinked.slide
+
+
 ###############
 # clean up
 ###############
+rm tmp/gatk.*
 rm tmp/ld.unlinked.*
