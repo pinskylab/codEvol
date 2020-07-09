@@ -135,8 +135,7 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Can_14.pestPG.gz')
 		nchr1 <- 42 # sample size in # chromosomes
 		nchr2 <- 48
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Can_40.Can_14.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Can_40.Can_14.csv.gz' 
+		outfilesuff <- 'Can_40.Can_14'
 	}
 	if(popflag == 2){
 		print('Starting Lof0711')
@@ -144,8 +143,7 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Lof_11.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 48
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_11.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.csv.gz'
+		outfilesuff <- 'Lof_07.Lof_11'
 	}
 	if(popflag == 3){
 		print('Starting Lof0714')
@@ -153,8 +151,7 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Lof_14.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 44
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_14.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.csv.gz'
+		outfilesuff <- 'Lof_07.Lof_14'
 	}
 	if(popflag == 4){
 		print('Starting Lof1114')
@@ -162,8 +159,7 @@ if(gatkflag == 0){
 		dat2 <- fread('analysis/thetas.Lof_14.pestPG.gz')
 		nchr1 <- 48
 		nchr2 <- 44
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_11.Lof_14.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.csv.gz'
+		outfilesuff <- 'Lof_11.Lof_14'
 	}
 }
 
@@ -174,8 +170,7 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Can_14.gatk.pestPG.gz')
 		nchr1 <- 42 # sample size in # chromosomes
 		nchr2 <- 48
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Can_40.Can_14.gatk.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Can_40.Can_14.gatk.csv.gz'
+		outfilesuff <- 'Can_40.Can_14.gatk'
 	}
 	if(popflag == 2){
 		print('Starting Lof0711')
@@ -183,8 +178,7 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Lof_11.gatk.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 48
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_11.gatk.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_11.gatk.csv.gz'
+		outfilesuff <- 'Lof_07.Lof_11.gatk'
 	}
 	if(popflag == 3){
 		print('Starting Lof0714')
@@ -192,8 +186,7 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Lof_14.gatk.pestPG.gz')
 		nchr1 <- 44
 		nchr2 <- 44
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_07.Lof_14.gatk.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Lof_07.Lof_14.gatk.csv.gz'
+		outfilesuff <- 'Lof_07.Lof_14.gatk'
 	}
 	if(popflag == 4){
 		print('Starting Lof1114')
@@ -201,8 +194,7 @@ if(gatkflag == 1){
 		dat2 <- fread('analysis/thetas.Lof_14.gatk.pestPG.gz')
 		nchr1 <- 48
 		nchr2 <- 44
-		outfile1 <- paste0('analysis/theta_change_region_', winsz, '.Lof_11.Lof_14.gatk.csv.gz')
-		outfile2 <- 'analysis/theta.siteshuffle.Lof_11.Lof_14.gatk.csv.gz'
+		outfilesuff <- 'Lof_11.Lof_14.gatk'
 	}
 }
 
@@ -223,13 +215,15 @@ if(gatkflag == 1){
 	dat2 <- merge(dat2, nodam2[, .(Chromo, Pos)])
 }
 
-# trim to unlinked loci if gatk
+# mark unlinked loci if gatk
 if(gatkflag == 1){
   print('Trimming to unlinked loci')
 	if(popflag == 1) unl <- fread('analysis/ld.unlinked.Can.gatk.nodam.csv.gz') # list of unlinked loci for Canada
 	if(popflag %in% 2:4) unl <- fread('analysis/ld.unlinked.Lof.gatk.nodam.csv.gz') # for Lofoten
-	dat1 <- merge(dat1, unl[, .(Chromo = CHROM, Pos = POS)])
-	dat2 <- merge(dat2, unl[, .(Chromo = CHROM, Pos = POS)])
+	dat1 <- merge(dat1, unl[, .(Chromo = CHROM, Pos = POS, keep = 1)], all.x = TRUE)
+	dat2 <- merge(dat2, unl[, .(Chromo = CHROM, Pos = POS, keep = 1)], all.x = TRUE)
+	dat1[is.na(keep), keep := 0]
+	dat2[is.na(keep), keep := 0]
 }
 
 
@@ -237,9 +231,29 @@ if(gatkflag == 1){
 # Calculate change on unshuffled data
 #######################################
 
+# full dataset
 out <- calcstat(dat1, dat2, nchr1, nchr2)
-
+outfile1 <- paste0('analysis/theta_change_region_', winsz, '.', outfilesuff, '.csv.gz')
 write.csv(out, file = gzfile(outfile1))
+print(paste0('Wrote ', outfile1))
+
+# unlinked (if GATK)
+if(gatkflag == 1){
+  out2 <- calcstat(dat1[keep == 1, ], dat2[keep == 1, ], nchr1, nchr2)
+  outfile2 <- paste0('analysis/theta_change_region_', winsz, '.', outfilesuff, '.unlinked.csv.gz')
+  write.csv(out2, file = gzfile(outfile2))
+  print(paste0('Wrote ', outfile2))
+}
+
+
+#################################
+# Trim to unlinked sites if GATK
+#################################
+
+if(gatkflag == 1){
+  dat1 <- dat1[keep == 1, ]
+  dat2 <- dat2[keep == 1, ]
+}
 
 ################################
 # Run reshuffle calculations
@@ -254,5 +268,6 @@ for(i in 1:nrep){
 	if(i > 1) minmax <- rbind(minmax, tempminmax)
 }
 
-write.csv(minmax, gzfile(outfile2), row.names = FALSE) # write out all iterations
+write.csv(minmax, gzfile(paste0('analysis/theta.siteshuffle.', outfilesuff, '.csv.gz')), row.names = FALSE) # write out all iterations
+
 rm(minmax)
