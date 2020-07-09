@@ -143,8 +143,19 @@ ggsave(p5, filename = 'figures/figure1.pdf', width = 7.5, height = 2)
 ## Fig. 2 Manhattan plot FSTs by region
 ########################################
 
-# read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK nodam2 unlinked sites)
-dat <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # output by angsd_fst_siteshuffle_null_stats.r
+# read in data: sliding window fst from ANGSD (GATK nodam2 sites)
+#dat <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # output by angsd_fst_siteshuffle_null_stats.r
+dat1 <- fread('analysis/Can_40.Can_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1) # output by angsd_fst.sh. skip headers.
+dat2 <- fread('analysis/Lof_07.Lof_11.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+dat3 <- fread('analysis/Lof_07.Lof_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+dat4 <- fread('analysis/Lof_11.Lof_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+
+dat1[, pop := 'can']
+dat2[, pop := 'lof0711']
+dat3[, pop := 'lof0714']
+dat4[, pop := 'lof1114']
+
+dat <- rbind(dat1, dat2, dat3, dat4)
 
 # LG mid-points and genome position
 chrmax <- fread('data/lg_length.csv')
@@ -160,22 +171,12 @@ dat[,start := NULL]
 dat <- dat[!(CHROM %in% c('Unplaced')) & nloci > 1, ]
 	nrow(dat)
 
-# report stats
-dat[pop == 'can', min(p)]
-dat[pop == 'lof0711', min(p)]
-dat[pop == 'lof0714', min(p)]
-dat[pop == 'lof1114', min(p)]
 
 # add a vector for color by LG
 lgs <- dat[, sort(unique(CHROM))]
-dat[,lgcol := lgcolsramp(p, lg = 1, thresh = 0.1)]
-dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(p, lg = 2, thresh = 0.1)]
+dat[,lgcol := cols[1]]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
 
-# and for plotting a colorbar
-cbar <- data.frame(logx = seq(0, 1.30103, length.out=50))
-cbar$x <- 10^(-cbar$logx)
-cbar$col1 <- lgcolsramp(cbar$x, lg = 1, thresh = 0.1)
-cbar$col2 <- lgcolsramp(cbar$x, lg = 2, thresh = 0.1)
 
 ### set up plot
 adjlet <- -0.11 # horizontal adjustment for subplot letter
@@ -190,26 +191,23 @@ par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.1, 0.1))
 ymax <- dat[, max(fst, na.rm=TRUE)]
 xlims <- dat[, range(posgen, na.rm=TRUE)]
 
-dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
+dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0)) # plot x-axis
 mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
 
 legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.5)
-color.bar(cbar$col1, cbar$x, axis = FALSE, nticks = 5, xposmin =52e6, xposmax = 56e6, yposmin = 0.2, yposmax = 0.35)
-color.bar(cbar$col2, cbar$x, cex = 0.5, axis = TRUE, nticks = 5, 
-          xposmin =56e6, xposmax = 60e6, yposmin = 0.2, yposmax = 0.35, title = 'p-value', titley = 0.375)
 
 
-dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
+dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
 mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
 
-dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
+dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
 mtext(side=3, 'C', adj=adjlet, line=linelet, cex=cexlet)
 
-dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE) # plot x-axis
+dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
 mtext(side=3, 'D', adj=adjlet, line=linelet, cex=cexlet)
 
 
@@ -291,17 +289,31 @@ dev.off()
 winsz = 5e4 # for scaling the windowed pi and thetaW values
 
 # read in data: sliding window pi from ANGSD (GATK nodam2 unlinked sites)
-dat <- fread('analysis/theta_siteshuffle.angsd.gatk.csv.gz') # output by angsd_theta_siteshuffle_null_stats.r
+dat1 <- fread('analysis/theta_change_region_50000.Can_40.Can_14.gatk.csv.gz', drop = 1) # from angsd_theta_siteshuffle_null.r
+dat2 <- fread('analysis/theta_change_region_50000.Lof_07.Lof_11.gatk.csv.gz', drop = 1)
+dat3 <- fread('analysis/theta_change_region_50000.Lof_07.Lof_14.gatk.csv.gz', drop = 1)
+dat4 <- fread('analysis/theta_change_region_50000.Lof_11.Lof_14.gatk.csv.gz', drop = 1)
 
-# LG mid-points
+dat1[, pop := 'can']
+dat2[, pop := 'lof0711']
+dat3[, pop := 'lof0714']
+dat4[, pop := 'lof1114']
+
+dat <- rbind(dat1, dat2, dat3, dat4)
+
+# LG mid-points and genome position
 chrmax <- fread('data/lg_length.csv')
 chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
 chrmax[, mid := rowSums(cbind(start, length/2))]
 
+dat <- merge(dat[, .(pop, CHROM = Chromo, midPos = WinCenter, tPd)], chrmax[, .(CHROM = chr, start)])
+dat[, POSgen := midPos + start]
+dat[, start := NULL]
+
 # add a vector for color by LG
-lgs <- dat[, sort(unique(Chromo))]
-dat[,lgcol := lgcolsramp(0.2, lg = 1, thresh = 0.1)]
-dat[Chromo %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(0.2, lg = 2, thresh = 0.1)]
+lgs <- dat[, sort(unique(CHROM))]
+dat[,lgcol := cols[1]]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
 
 ### set up plot
 adjlet <- -0.11 # horizontal adjustment for subplot letter
@@ -345,17 +357,31 @@ dev.off()
 ####################################################
 
 # read in data: sliding window D from ANGSD (GATK nodam2 unlinked sites)
-dat <- fread('analysis/theta_siteshuffle.angsd.gatk.csv.gz') # output by angsd_theta_siteshuffle_null_stats.r
+dat1 <- fread('analysis/theta_change_region_50000.Can_40.Can_14.gatk.csv.gz', drop = 1) # from angsd_theta_siteshuffle_null.r
+dat2 <- fread('analysis/theta_change_region_50000.Lof_07.Lof_11.gatk.csv.gz', drop = 1)
+dat3 <- fread('analysis/theta_change_region_50000.Lof_07.Lof_14.gatk.csv.gz', drop = 1)
+dat4 <- fread('analysis/theta_change_region_50000.Lof_11.Lof_14.gatk.csv.gz', drop = 1)
 
-# LG mid-points
+dat1[, pop := 'can']
+dat2[, pop := 'lof0711']
+dat3[, pop := 'lof0714']
+dat4[, pop := 'lof1114']
+
+dat <- rbind(dat1, dat2, dat3, dat4)
+
+# LG mid-points and genome position
 chrmax <- fread('data/lg_length.csv')
 chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
 chrmax[, mid := rowSums(cbind(start, length/2))]
 
+dat <- merge(dat[, .(pop, CHROM = Chromo, midPos = WinCenter, tDd)], chrmax[, .(CHROM = chr, start)])
+dat[, POSgen := midPos + start]
+dat[, start := NULL]
+
 # add a vector for color by LG
-lgs <- dat[, sort(unique(Chromo))]
-dat[,lgcol := lgcolsramp(0.2, lg = 1, thresh = 0.1)]
-dat[Chromo %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(0.2, lg = 2, thresh = 0.1)]
+lgs <- dat[, sort(unique(CHROM))]
+dat[,lgcol := cols[1]]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
 
 ### set up plot
 adjlet <- -0.11 # horizontal adjustment for subplot letter
@@ -825,7 +851,7 @@ for(i in 1:nrow(dat)){
     pop <- 'Norway'
   }
   
-  thisdat[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
+  thisdat[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '', ylim = c(0, 0.8),
                  main = paste0(pop, ' ', dat$CHROM[i], '\n', dat$test[i]))]
   outl[, points(POS/1e6, fst, col = 'red')]
 }
