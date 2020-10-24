@@ -3,7 +3,7 @@
 # note: run this from /cluster/projects/nn9244k/in_progress/historic_malin/
 
 # Job name: Make coalescent simulations to use as burn-in for SLiM
-#SBATCH --job-name=fstslim
+#SBATCH --job-name=slimburnin
 #
 # Project:
 #SBATCH --account=nn9244k
@@ -41,6 +41,7 @@ do
 	scripts/slim_makeburnin.py -n 1000 -L 30000000 -m 3.5e-9 -r 3.11e-8 -o analysis/slim_burnin_n1000_$i.vcf
 	scripts/slim_makeburnin.py -n 3000 -L 30000000 -m 3.5e-9 -r 3.11e-8 -o analysis/slim_burnin_n3000_$i.vcf
 	scripts/slim_makeburnin.py -n 10000 -L 30000000 -m 3.5e-9 -r 3.11e-8 -o analysis/slim_burnin_n10000_$i.vcf
+	scripts/slim_makeburnin.py -n 30000 -L 30000000 -m 3.5e-9 -r 3.11e-8 -o analysis/slim_burnin_n30000_$i.vcf
 done
 
 
