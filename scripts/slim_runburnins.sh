@@ -9,7 +9,7 @@
 #SBATCH --account=nn9244k
 #
 # Wall time limit: DD-HH:MM:SS
-#SBATCH --time=00-3:00:00
+#SBATCH --time=00-9:00:00
 #
 # Max memory usage:
 #SBATCH --mem-per-cpu=1G

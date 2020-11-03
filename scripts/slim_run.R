@@ -21,9 +21,9 @@ runslim <- function(L=30000000, ne=50, f=0.1, ftol = 0.025, n1=22, n2=22, s=1.0,
 # run slim
 ###########
 
-bifiles <- list.files('analysis/', pattern = 'slim_burnin_n') # get the burn-in files
-nes <- as.numeric(gsub('slim_burnin_n|_[1234567890]+\\.vcf', '', bifiles)) # find the ne values from the file names
-iter <- as.numeric(gsub('slim_burnin_n[[:digit:]]*_|\\.vcf', '', bifiles)) # find the iteration #s from the file names
+bifiles <- list.files('analysis/', pattern = 'slim_burnin_n') # get the burn-in files. this will have errors if a burnin file is present both as .vcf and .vcf.zip
+nes <- as.numeric(gsub('slim_burnin_n|_[1234567890]+\\.vcf|\\.zip', '', bifiles)) # find the ne values from the file names
+iter <- as.numeric(gsub('slim_burnin_n[[:digit:]]*_|\\.vcf|\\.zip', '', bifiles)) # find the iteration #s from the file names
 
 # Lofoten 07-11 parameters
 paramtable <- expand.grid(iter = sort(unique(iter)), ne = sort(unique(nes)), f = c(0.05, 0.2), ftol = 0.025, n1 = 22, n2 = 24, 
@@ -53,11 +53,28 @@ missing[missing$nfail > 0,]
 # run slim for Lofoten
 sum(paramtable$success == 0) # number to run
 if(sum(paramtable$success == 0) > 0){
-  for(i in which(paramtable$success == 0)){
-    infile = with(paramtable[i,], paste0('analysis/slim_burnin_n', ne, '_', iter, '.vcf'))
-    outfile = with(paramtable[i,], paste0('analysis/slim_sim/slim_sim_n', ne, '_s', s, '_f', f, '_i', iter))
-    with(paramtable[i,], runslim(L = L, ne = ne, f = f, ftol = ftol, n1 = n1, n2 = n2, s = s, r = r, g = g, o = outfile, i = infile))
-    
+  todo <- which(paramtable$success == 0)
+  for(i in 1:length(todo)){
+    thisiter <- paramtable$iter[todo[i]]
+    infileroot <- with(paramtable[todo[i],], paste0('slim_burnin_n', ne, '_', iter, '.vcf'))
+    infileindex <- grep(infileroot, bifiles)
+    infile <- paste0('analysis/', bifiles[infileindex])
+    if(grepl('zip', infile)){ # unzip the infile if it is zipped and an unzipped version doesn't exist
+      infilezip <- infile
+      infile <- gsub('\\.zip', '', infile)
+      if(!file.exists(infile)){
+        unzip(infilezip, unzip = Sys.which('unzip'), exdir = 'analysis/') # uses the system's unzip function to avoid file size limits
+      }
+    }
+    outfile <- with(paramtable[todo[i],], paste0('analysis/slim_sim/slim_sim_n', ne, '_s', s, '_f', f, '_i', iter))
+    with(paramtable[todo[i],], runslim(L = L, ne = ne, f = f, ftol = ftol, n1 = n1, n2 = n2, s = s, r = r, g = g, o = outfile, i = infile))
+    if(i != length(todo)){
+      if(thisiter != paramtable$iter[todo[i+1]]){ # if next iteration is a different burn-in file
+        if(file.exists(infilezip)){ # clean up by deleting the unzipped file
+          file.remove(infile)
+        }
+      }
+    }
   }
 } else {
   print('All done!')
