@@ -792,12 +792,8 @@ rowinch <- 2 # inches per row in graph
 rng <- 100000 # how many bp to go in either direction from SNP
 
 # read in outliers
-dat1 <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
-dat2 <- fread('analysis/outlier_50kregions_shared_07-11-14_Can.csv.gz') # list of outlier regions, from region_change_compare.r
-
-# combine outlier SNPs and regions
-dat <- rbind(dat1[, .(comp, CHROM, POS, test)], dat2[, .(comp = 'can071114', CHROM = chr, POS = WinCenter, test = '99th percentile region')])
-setkey(dat, CHROM, POS)
+dat <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
+dat[, midPos := as.numeric(dat$midPos)]
 
 # read in Fsts
 fstLof1 <- fread('analysis/Lof_07.Lof_11.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B')) # from angsd_fst.sh
@@ -843,24 +839,24 @@ png(height= 9, width=6.5, units='in', res=300, file='figures/figureS15.png')
 par(mfrow = c(nrow, ncol), mai = c(0.3, 0.3, 0.4, 0.1), omi = c(0.3, 0.3, 0, 0))
 for(i in 1:nrow(dat)){
   if(dat$comp[i] %in% c('can', 'Canada')){
-    thisdat <- fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, ]
-    outl <- fstCan[CHROM == dat$CHROM[i] & POS == dat$POS[i], ]
+    thisdat <- fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
+    outl <- fstCan[CHROM == dat$CHROM[i] & POS == dat$midPos[i], ]
     pop <- 'Canada'
     thisdat[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
                    main = paste0(pop, ' ', dat$CHROM[i], '\n', dat$test[i]))]
     outl[, points(POS/1e6, fst, col = 'red')]
   }
   if(dat$comp[i] == 'Norway 1907-2011-2014'){
-    thisdat <- fstLof[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, ]
-    outl <- fstLof[CHROM == dat$CHROM[i] & POS == dat$POS[i], ]
+    thisdat <- fstLof[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
+    outl <- fstLof[CHROM == dat$CHROM[i] & POS == dat$midPos[i], ]
     pop <- 'Norway'
     thisdat[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
                    main = paste0(pop, ' ', dat$CHROM[i], '\n', dat$test[i]))]
     outl[, points(POS/1e6, fst, col = 'red')]
   }
-  if(dat$comp[i] == 'can071114'){
-    thisdat1 <- fstLof[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, ]
-    thisdat2 <- fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, ]
+  if(dat$comp[i] == 'Canada-Norway'){
+    thisdat1 <- fstLof[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
+    thisdat2 <- fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
     thisdat1[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
                    main = paste0(dat$CHROM[i], '\n', dat$test[i]))]
     thisdat2[, points(POS/1e6, fst, cex = n.sc, col = 'grey')]

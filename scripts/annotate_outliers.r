@@ -66,12 +66,27 @@ pishuff <- thetashuff[, .(CHROM = Chromo, POS, comp, midPos = WinCenter, testval
 Dshuff <- thetashuff[, .(CHROM = Chromo, POS, comp, midPos = WinCenter, testval = tDd.p, testvaltype, region, test = 'D outlier region')]
 
 
-
+# shared fst outlier regions across populations (region)
+# assumes same windsz as for fst
+fstshared <- fread('analysis/outlier_50kregions_shared_07-11-14_Can.csv.gz')
+fstshared[, testval := mean(c(fst_can, fst_lof0711, fst_lof0714)), by = 1:nrow(fstshared)]
+fstshared[, testvaltype := 'Average Fst']
+fstshared[, test := '99th percentile across pops']
+fstshared[, POS := paste0(WinCenter - windsz/2, '-', WinCenter + windsz/2), by = 1:nrow(fstshared)]
+fstshared[, comp := 'Canada-Norway']
+fstshared[, region := 1] # a region, not a SNP
+setnames(fstshared, c('chr', 'WinCenter'), c('CHROM', 'midPos'))
+fstshared <- fstshared[, .(CHROM, POS, comp, midPos, testval, testvaltype, region, test)]
 
 ##############################################
 # Combine the results and choose the outliers
 ##############################################
-outl <- rbind(pcangsd[testval < 0.05, ], wfs[testval < 0.21, ], fstshuff[testval < 0.1, ], pishuff[testval < 0.05,], Dshuff[testval < 0.05,])
+outl <- rbind(pcangsd[testval < 0.05, ], 
+              wfs[testval < 0.21, ], 
+              fstshuff[testval < 0.1, ], 
+              pishuff[testval < 0.05,], 
+              Dshuff[testval < 0.05,],
+              fstshared)
 
 
 ###################
@@ -142,29 +157,42 @@ codons <- lapply(g, get.codons, 1)
 # print codons for the outliers
 outlcodons <- NULL
 for(chr in outl[,sort(unique(CHROM))]){
-	this <- merge(codons[[chr]], outl[CHROM==chr & region == 0,. (CHROM, midPos)], by.x='Position', by.y='midPos') # trim to outlier SNPs with codons
+	this <- merge(codons[[chr]], outl[CHROM==chr & region == 0,. (CHROM, POS, midPos)], by.x='Position', by.y='midPos') # trim to outlier SNPs with codons
+  if(nrow(this)>0) this$polaritychange <- apply(this[, c('Polarity (major)', 'Polarity (minor)')], 1, paste, collapse = '->') # record if polarity changes
 	
 	reglns <- outl[CHROM == chr & region == 1, ] # any outlier regions on this chromsomes
 	if(nrow(reglns)>0){
 	  for(j in 1:nrow(reglns)){
 	    onereg <- codons[[chr]][codons[[chr]]$Position >= (reglns$midPos[j] - windsz/2) & codons[[chr]]$Position <= (reglns$midPos[j] + windsz/2), ]
-	    if(j == 1) thisreg <- onereg
-	    if(j > 1) thisreg <- rbind(thisreg, onereg)
+	    if(nrow(onereg)>0){
+	      onereg$polaritychange <- apply(onereg[, c('Polarity (major)', 'Polarity (minor)')], 1, paste, collapse = '->') # record if polarity changes
+	      oneregln <- data.frame(POS = reglns$POS[j]) # data.frame collapsed to one row
+	      oneregln$synonymous <- paste(unique(onereg$synonymous), collapse = ', ')
+	      oneregln$polaritychange <- paste(unique(onereg$polaritychange), collapse = ', ')
+	      
+	      if(j == 1) thisreg <- oneregln
+	      if(j > 1) thisreg <- rbind(thisreg, oneregln)
+	    } 
 	  }
 	}
 	
-	if(nrow(this) > 0 & nrow(reglns) > 0) this <- rbind(this, thisreg)
-	if(nrow(this) == 0 & nrow(reglns) > 0) this <- thisreg
+	if(nrow(this) > 0 & nrow(reglns) > 0) this <- rbind(this[, c('POS', 'synonymous', 'polaritychange')], thisreg[, c('POS', 'synonymous', 'polaritychange')])
+	if(nrow(this) == 0 & nrow(reglns) > 0) this <- thisreg[, c('POS', 'synonymous', 'polaritychange')]
 	
 	if(nrow(this)>0){
-		if(is.null(outlcodons)){
+	  this$CHROM <- chr
+	  if(is.null(outlcodons)){
 			outlcodons <- this
 		} else {
 			outlcodons <- rbind(outlcodons, this)
 		}
 	}
 }	
+
+
 outlcodons
+
+
 	
 
 ##########################
@@ -248,12 +276,12 @@ head(anno)
 ##########################################	
 # Combine SNP effects and annotations
 ##########################################
-# optional: read out outlcodons from analysis/outlier_annotation.csv (if anno only was updated)
+# optional: read in outlcodons from analysis/outlier_annotation.csv (if anno only was updated)
 # outlcodons <- fread('analysis/outlier_annotation.csv', select=c('CHROM', 'POS', "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)"))
 # setnames(outlcodons, 'POS', 'Position')
 
 if(!is.null(outlcodons)){
-	anno2 <- merge(anno, outlcodons, by.y=c('CHROM', 'Position'), by.x=c('CHROM', 'POS'), all.x=TRUE)
+	anno2 <- merge(anno, outlcodons, by.x=c('CHROM', 'POS'), by.y = c('CHROM', 'POS'), all.x=TRUE)
 } else {
 	anno2 <- anno
 	anno2[,c("Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", "Polarity (major)", "Polarity (minor)")] <- NA
@@ -261,8 +289,7 @@ if(!is.null(outlcodons)){
 anno2 <- merge(anno2, outl, by = c('CHROM', 'POS'))
 anno2 <- as.data.frame(apply(anno2, MARGIN=2, function(x){x[is.na(x)] <- ''; return(x)})) # turn NA to ''
 anno2 <- anno2[, c("CHROM", "POS", "midPos", "comp", "test", "testval", "testvaltype", "region", 
-                   "Codons (minor)", "Codons (major)", "Protein (minor)", "Protein (major)", "synonymous", 
-                   "Polarity (major)", "Polarity (minor)", "feature", "start", "end", "strand", "frame", "ID", 
+                   "synonymous", "polaritychange", "feature", "start", "end", "strand", "frame", "ID", 
                    "Names", "Parent", "WithinAnno", "WithinGO", "NearGene", "NearAnno", "NearGO")] # reorder columns
 anno2 <- anno2[order(anno2$CHROM, anno2$midPos),]
 
@@ -280,9 +307,9 @@ sum(anno2$WithinAnno != ''); sum(anno2$WithinAnno != '')/nrow(anno2) # fraction 
 length(grep('CDS', anno2$feature)); length(grep('CDS', anno2$feature))/nrow(anno2) # fraction in coding sequence
 length(grep('three_prime_UTR', anno2$feature)); length(grep('three_prime_UTR', anno2$feature))/nrow(anno2) # fraction in 3'UTR
 length(grep('five_prime_UTR', anno2$feature)); length(grep('five_prime_UTR', anno2$feature))/nrow(anno2) # fraction in 5'UTR
-sum(anno2$synonymous==' TRUE', na.rm=TRUE); sum(anno2$synonymous==' TRUE', na.rm=TRUE)/nrow(anno2) # synonymous snps
-sum(anno2$synonymous=='FALSE', na.rm=TRUE); sum(anno2$synonymous=='FALSE', na.rm=TRUE)/nrow(anno2) # non-synonymous snps
-	anno2[anno2$synonymous=='FALSE',]
+sum(grepl('TRUE', anno2$synonymous)); sum(grepl('TRUE', anno2$synonymous))/nrow(anno2) # synonymous snps
+sum(grepl('FALSE', anno2$synonymous)); sum(grepl('FALSE', anno2$synonymous))/nrow(anno2) # non-synonymous snps
+	anno2[grepl('FALSE', anno2$synonymous),]
 
 sum(anno2$NearGene != ''); sum(anno2$NearGene != '')/nrow(anno2) # fraction within 25kb of gene (but not in a gene)
 sum(anno2$NearAnno != ''); sum(anno2$NearAnno != '')/nrow(anno2) # fraction within 25kb of annotated gene (but not in a gene)

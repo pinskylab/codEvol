@@ -321,7 +321,7 @@ binom.test(x13, n13, p = x1/n13 * x3/n13, alternative = 'two.sided')
 ## output FST outlier regions
 out <- binswide[(fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114))), ]
 
-write.csv(out, file = gzfile('analysis/outlier_50kregions_shared_07-11-14_Can.csv.gz'))
+write.csv(out, file = gzfile('analysis/outlier_50kregions_shared_07-11-14_Can.csv.gz'), row.names = FALSE)
 
 ######################
 ## Biplots of change
