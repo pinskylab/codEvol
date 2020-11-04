@@ -1,4 +1,5 @@
 # Compare freq change, LD change, Tajima's D change, pi change
+# set up for 50k windows
 
 require(data.table)
 require(vioplot)
@@ -7,121 +8,320 @@ require(vioplot)
 # read in data
 ################################
 
-# wd <- 1e4; width='10k'
-wd <- 3e4; wdnm='3e4'; width='30k'
+# fst: sliding window fst from ANGSD (GATK nodam2 sites)
+dat1 <- fread('analysis/Can_40.Can_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1) # output by angsd_fst.sh. skip headers.
+dat2 <- fread('analysis/Lof_07.Lof_11.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+dat3 <- fread('analysis/Lof_07.Lof_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+dat4 <- fread('analysis/Lof_11.Lof_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+
+dat1[, pop := 'can']
+dat2[, pop := 'lof0711']
+dat3[, pop := 'lof0714']
+dat4[, pop := 'lof1114']
+
+fst <- rbind(dat1, dat2, dat3, dat4)
+fst[, region := NULL]
+setnames(fst, c('midPos', 'CHROM'), c('WinCenter', 'chr'))
+fst[, WinCenter := WinCenter - 1] # adjust to match the others
+
+# fst: sliding window fst from ANGSD (GATK nodam2 unlinked sites)
+fst.unl <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # output by angsd_fst_siteshuffle_null_stats.r
+setnames(fst.unl, c('CHROM', 'midPos', 'fst', 'nloci', 'p'), c('chr', 'WinCenter', 'fst.unl', 'nloci.unl', 'fst.p'))
+
+# change in ld
+ldwide <- fread('analysis/ld_change_region_5e4_ngsLD.gatk.csv.gz') # from ngsLD_region_change.r
+ld <- rbind(ldwide[, .(pop = 'can', chr, WinCenter = pos1mid1, ld_diff = ld_diff_Can)], # reformat to wide
+            ldwide[, .(pop = 'lof0711', chr, WinCenter = pos1mid1, ld_diff = ld_diff_Lof0711)],
+            ldwide[, .(pop = 'lof0714', chr, WinCenter = pos1mid1, ld_diff = ld_diff_Lof0714)],
+            ldwide[, .(pop = 'lof1114', chr, WinCenter = pos1mid1, ld_diff = ld_diff_Lof1114)])
+
+# change in pi and D: sliding window pi from ANGSD (GATK nodam2 unlinked sites)
+dat1 <- fread('analysis/theta_change_region_50000.Can_40.Can_14.gatk.unlinked.csv.gz', drop = 1) # from angsd_theta_siteshuffle_null.r
+dat2 <- fread('analysis/theta_change_region_50000.Lof_07.Lof_11.gatk.unlinked.csv.gz', drop = 1)
+dat3 <- fread('analysis/theta_change_region_50000.Lof_07.Lof_14.gatk.unlinked.csv.gz', drop = 1)
+dat4 <- fread('analysis/theta_change_region_50000.Lof_11.Lof_14.gatk.unlinked.csv.gz', drop = 1)
+
+dat1[, pop := 'can']
+dat2[, pop := 'lof0711']
+dat3[, pop := 'lof0714']
+dat4[, pop := 'lof1114']
+
+piD <- rbind(dat1, dat2, dat3, dat4)
+piD[, ':='(tW1 = NULL, tP1 = NULL, tD1 = NULL, tW2 = NULL, tP2 = NULL, tD2 = NULL, tWd = NULL)]
+setnames(piD, c('Chromo'), c('chr'))
 
 
-freq <- readRDS(paste('analysis/Frequency_table_ABS_DIFF_runmean', wdnm, '.rds', sep=''))
-pi <- readRDS(paste('analysis/pi_change_region_', wdnm, '.rds', sep=''))
-tajd <- readRDS(paste('analysis/tajimasD_change_region_', wdnm, '.rds', sep=''))
-ld <- readRDS(paste('analysis/ld_change_region_', wdnm, '.rds', sep=''))
+# pi and Tajima's D p-values
+piD.p <- fread('analysis/theta_siteshuffle.angsd.gatk.csv.gz') # output by angsd_theta_siteshuffle_null_stats.r
+piD.p <- piD.p[, .(chr = Chromo, WinCenter, tPd.p, tDd.p, pop)]
 
-# adjust column names
-setnames(freq, c('perc0711', 'perc0714', 'percCAN'), c('freq_region_perc0711', 'freq_region_perc0714', 'freq_region_percCAN'))
-setnames(freq, c('ABS_DIFF_0711', 'ABS_DIFF_0714', 'ABS_DIFF_Can'), c('freq_diff_0711', 'freq_diff_0714', 'freq_diff_CAN'))
-setnames(freq, c('cluster0711', 'cluster0714', 'clusterCAN'), c('freq_region_cluster0711', 'freq_region_cluster0714', 'freq_region_clusterCAN'))
-setnames(ld, 'CHR', 'CHROM')
-
-# adjust pi bins (they are +1 compared to others)
-pi[,BIN_START:= BIN_START-1]
 
 # merge
-bins <- merge(
-	freq[, .(CHROM, BIN_START, freq_diff_0711, freq_diff_0714, freq_diff_CAN, freq_region_perc0711, freq_region_perc0714, freq_region_percCAN, freq_region_cluster0711, freq_region_cluster0714, freq_region_clusterCAN)], 
-	pi[, .(CHROM, BIN_START, pi_diff_0711, pi_diff_0714, pi_diff_CAN, pi_region_perc0711, pi_region_perc0714, pi_region_percCAN, pi_region_cluster0711, pi_region_cluster0714, pi_region_clusterCAN)], 
-	by=c('CHROM', 'BIN_START'), all=TRUE)
-	
-bins <- merge(bins, 
-	tajd[, .(CHROM, BIN_START, D_diff_0711, D_diff_0714, D_diff_CAN, D_region_perc0711, D_region_perc0714, D_region_percCAN, D_region_cluster0711, D_region_cluster0714, D_region_clusterCAN)], 
-	by=c('CHROM', 'BIN_START'), all=TRUE)
-	
-bins <- merge(bins, 
-	ld[, .(CHROM, BIN_START, ld_diff_0711, ld_diff_0714, ld_diff_CAN, ld_region_perc0711, ld_region_perc0714, ld_region_percCAN, ld_region_cluster0711, ld_region_cluster0714, ld_region_clusterCAN)], 
-	by=c('CHROM', 'BIN_START'), all=TRUE)
-	
+bins <- merge(fst, fst.unl, by=c('chr', 'WinCenter', 'pop'), all=TRUE)
+bins <- merge(bins, ld, by=c('chr', 'WinCenter', 'pop'), all=TRUE)
+bins <- merge(bins, piD, by=c('chr', 'WinCenter', 'pop'), all=TRUE)
+bins <- merge(bins, piD.p, by=c('chr', 'WinCenter', 'pop'), all=TRUE)
+
+nrow(bins)
+nrow(fst)
+nrow(fst.unl)
+nrow(ld)
+nrow(piD)
+nrow(piD.p)
+
+###################################################################
+## prep across populations
+## trim to non-overlapping windows, reshape, and calc percentiles
+###################################################################
+# fst and fst unlinked
+binswidefst <- dcast(bins[(WinCenter %% 25000) == 0, .(chr, WinCenter, pop, nloci, nloci.unl, fst, fst.unl, fst.p)], chr + WinCenter ~ pop, value.var = c('fst', 'fst.unl', 'fst.p', 'nloci', 'nloci.unl'))
+nrow(binswidefst)
+binswidefst[, fstperc.can := ecdf(fst_can)(fst_can)]
+binswidefst[, fstperc.lof0711 := ecdf(fst_lof0711)(fst_lof0711)]
+binswidefst[, fstperc.lof0714 := ecdf(fst_lof0714)(fst_lof0714)]
+binswidefst[, fstperc.lof1114 := ecdf(fst_lof1114)(fst_lof1114)]
+
+binswidefst[, fstunlperc.can := ecdf(fst.unl_can)(fst.unl_can)]
+binswidefst[, fstunlperc.lof0711 := ecdf(fst.unl_lof0711)(fst.unl_lof0711)]
+binswidefst[, fstunlperc.lof0714 := ecdf(fst.unl_lof0714)(fst.unl_lof0714)]
+binswidefst[, fstunlperc.lof1114 := ecdf(fst.unl_lof1114)(fst.unl_lof1114)]
+
+# pi and theta change
+binswidepiD <- dcast(bins[(WinCenter %% 25000) == 0, .(chr, WinCenter, pop, nloci.unl, tPd, tDd, tPd.p, tDd.p)], chr + WinCenter ~ pop, value.var = c('tPd', 'tDd', 'tPd.p', 'tDd.p'))
+nrow(binswidepiD)
+binswidepiD[, tPdperc.can := ecdf(tPd_can)(tPd_can)]
+binswidepiD[, tPdperc.lof0711 := ecdf(tPd_lof0711)(tPd_lof0711)]
+binswidepiD[, tPdperc.lof0714 := ecdf(tPd_lof0714)(tPd_lof0714)]
+binswidepiD[, tPdperc.lof1114 := ecdf(tPd_lof1114)(tPd_lof1114)]
+
+binswidepiD[, tDdperc.can := ecdf(tDd_can)(tDd_can)]
+binswidepiD[, tDdperc.lof0711 := ecdf(tDd_lof0711)(tDd_lof0711)]
+binswidepiD[, tDdperc.lof0714 := ecdf(tDd_lof0714)(tDd_lof0714)]
+binswidepiD[, tDdperc.lof1114 := ecdf(tDd_lof1114)(tDd_lof1114)]
+
+# ld change
+# pi and theta
+binswideld <- dcast(bins[(WinCenter %% 25000) == 0, .(chr, WinCenter, pop, nloci.unl, ld_diff)], chr + WinCenter ~ pop, value.var = c('ld_diff'))
+setnames(binswideld, c('can', 'lof0711', 'lof0714', 'lof1114'), c('ld_diff_can', 'ld_diff_lof0711', 'ld_diff_lof0714', 'ld_diff_lof1114'))
+nrow(binswideld)
+binswideld[, ld_diffperc.can := ecdf(ld_diff_can)(ld_diff_can)]
+binswideld[, ld_diffperc.lof0711 := ecdf(ld_diff_lof0711)(ld_diff_lof0711)]
+binswideld[, ld_diffperc.lof0714 := ecdf(ld_diff_lof0714)(ld_diff_lof0714)]
+binswideld[, ld_diffperc.lof1114 := ecdf(ld_diff_lof1114)(ld_diff_lof1114)]
+
+# combine all together
+binswide <- merge(binswidefst, binswidepiD, by = c('chr', 'WinCenter'), all = TRUE)
+binswide <- merge(binswide, binswideld, by = c('chr', 'WinCenter'), all = TRUE)
+
+nrow(binswide)
+nrow(binswidefst)
+nrow(binswidepiD)
+nrow(binswideld)
+
 ######################
 ## Biplots of change
 ## Within same kind of metric, across populations
 ######################
 
-cols <- c('grey', 'purple', 'red')
+# make plots of shared outliers
+cols <- c('grey', 'purple', 'red', 'black')
 
-quartz(height=6, width=6)
-outfile=paste('figures/region_change_across_pops_', wdnm, '.png', sep='')
+#quartz(height=6, width=6)
+outfile=paste('figures/region_change_across_pops_5e4.png', sep='')
 outfile
-# png(height=6, width=6, units='in', res=300, file=outfile)
-par(mfrow=c(4, 3), las=1, mai=c(0.5, 0.6, 0.1, 0.1), tcl=-0.2, mgp=c(2.8,0.4,0), cex.axis=0.7)
-# frequency change
-bins[freq_region_perc0711<=0.99 & freq_region_percCAN<=0.99, plot(freq_diff_CAN, freq_diff_0711, cex=0.2, xlim=c(0,1), ylim=c(0,1), col=cols[1], pch=16, xlab='')]; title(xlab='freq_diff_CAN', line=1.5)
-bins[freq_region_perc0711>0.99 & freq_region_percCAN<=0.99, points(freq_diff_CAN, freq_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[freq_region_perc0711<=0.99 & freq_region_percCAN>0.99,points(freq_diff_CAN, freq_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[freq_region_perc0711>0.99 & freq_region_percCAN>0.99,points(freq_diff_CAN, freq_diff_0711, cex=0.2, col=cols[3], pch=16)]
+png(height=6, width=6, units='in', res=300, file=outfile)
+par(mfrow=c(4, 3), las=1, mai=c(0.5, 0.6, 0.1, 0.1), tcl=-0.2, mgp=c(1.5,0.4,0), cex.axis=0.7)
 
-legend('topright', col=cols, pch=16, legend=c('Locus', '1% outlier in one pop', '1% outlier in both pops'), cex=0.5)
+# fst
+binswide[, plot(fst.unl_can, fst.unl_lof0711, cex=0.2, col=cols[1], pch=16)]
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99, points(fst.unl_can, fst.unl_lof0711, pch=16, cex=0.4, col = cols[2])]
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 > 0.99, points(fst.unl_can, fst.unl_lof0711, pch=16, cex=0.4, col = cols[3])]
+binswide[fstunlperc.lof1114 > 0.99, points(fst.unl_can, fst.unl_lof0711, pch=16, cex=0.4, col = cols[4])]
 
-bins[freq_region_perc0714<=0.99 & freq_region_percCAN<=0.99, plot(freq_diff_CAN, freq_diff_0714, cex=0.2, xlim=c(0,1), ylim=c(0,1), col=cols[1], pch=16, xlab='')]; title(xlab='freq_diff_CAN', line=1.5)
-bins[freq_region_perc0714>0.99 & freq_region_percCAN<=0.99, points(freq_diff_CAN, freq_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[freq_region_perc0714<=0.99 & freq_region_percCAN>0.99,points(freq_diff_CAN, freq_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[freq_region_perc0714>0.99 & freq_region_percCAN>0.99,points(freq_diff_CAN, freq_diff_0714, cex=0.2, col=cols[3], pch=16)]
+legend('bottomright', col=cols, pch=16, legend=c('Locus', '1% outlier in both comparisons', '1% outlier in 3 comparisons', '1% outlier in lof1114'), cex = 0.3)
 
-bins[freq_region_perc0711<=0.99 & freq_region_perc0714<=0.99, plot(freq_diff_0711, freq_diff_0714, cex=0.2, xlim=c(0,1), ylim=c(0,1), col=cols[1], pch=16, xlab='')]; title(xlab='freq_diff_0711', line=1.5)
-bins[freq_region_perc0711>0.99 & freq_region_perc0714<=0.99, points(freq_diff_0711, freq_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[freq_region_perc0711<=0.99 & freq_region_perc0714>0.99,points(freq_diff_0711, freq_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99,points(freq_diff_0711, freq_diff_0714, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(fst.unl_can, fst.unl_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0714 > 0.99, points(fst.unl_can, fst.unl_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 > 0.99, points(fst.unl_can, fst.unl_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[fstunlperc.lof1114 > 0.99, points(fst.unl_can, fst.unl_lof0711, pch=16, cex=0.4, col = cols[4])]
+
+binswide[, plot(fst.unl_lof0711, fst.unl_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 > 0.99, points(fst.unl_lof0711, fst.unl_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 > 0.99, points(fst.unl_lof0711, fst.unl_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[fstunlperc.lof1114 > 0.99, points(fst.unl_lof0711, fst.unl_lof0714, pch=16, cex=0.4, col = cols[4])]
 
 # pi change
-xlims <- ylims <- bins[,range(pi_diff_CAN, pi_diff_0711, pi_diff_0714, na.rm=TRUE)]
-bins[pi_region_perc0711<=0.995 & pi_region_perc0711>=0.005 & pi_region_percCAN<=0.995 & pi_region_percCAN>=0.005, plot(pi_diff_CAN, pi_diff_0711, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='pi_diff_CAN', line=1.5)
-bins[(pi_region_perc0711>0.995 | pi_region_perc0711<0.005) & pi_region_percCAN<=0.995 & pi_region_percCAN>=0.005, points(pi_diff_CAN, pi_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[pi_region_perc0711<=0.995 & pi_region_perc0711>=0.005 & (pi_region_percCAN>0.995 | pi_region_percCAN<0.005), points(pi_diff_CAN, pi_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[(pi_region_perc0711>0.995 | pi_region_perc0711<0.005) & (pi_region_percCAN>0.995 | pi_region_percCAN<0.005), points(pi_diff_CAN, pi_diff_0711, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(tPd_can, tPd_lof0711, cex=0.2, col=cols[1], pch=16)]
+binswide[(tPdperc.can > 0.995 & tPdperc.lof0711 > 0.995) | (tPdperc.can < 0.005 & tPdperc.lof0711 < 0.005), 
+            points(tPd_can, tPd_lof0711, pch=16, cex=0.4, col = cols[2])]
+binswide[(tPdperc.can > 0.995 & tPdperc.lof0711 > 0.995 & tPdperc.lof0714 > 0.995) | (tPdperc.can < 0.005 & tPdperc.lof0711 < 0.005 & tPdperc.lof0714 < 0.005), 
+            points(tPd_can, tPd_lof0711, pch=16, cex=0.4, col = cols[3])]
+binswide[tPdperc.lof1114 > 0.995 | tPdperc.lof1114 < 0.005, points(tPd_can, tPd_lof0711, pch=16, cex=0.4, col = cols[4])]
 
-bins[pi_region_perc0714<=0.995 & pi_region_perc0714>=0.005 & pi_region_percCAN<=0.995 & pi_region_percCAN>=0.005, plot(pi_diff_CAN, pi_diff_0714, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='pi_diff_CAN', line=1.5)
-bins[(pi_region_perc0714>0.995 | pi_region_perc0714<0.005) & pi_region_percCAN<=0.995 & pi_region_percCAN>=0.005, points(pi_diff_CAN, pi_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[pi_region_perc0714<=0.995 & pi_region_perc0714>=0.005 & (pi_region_percCAN>0.995 | pi_region_percCAN<0.005),points(pi_diff_CAN, pi_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[(pi_region_perc0714>0.995 | pi_region_perc0714<0.005) & (pi_region_percCAN>0.995 | pi_region_percCAN<0.005),points(pi_diff_CAN, pi_diff_0714, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(tPd_can, tPd_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[(tPdperc.can > 0.995 & tPdperc.lof0714 > 0.995) | (tPdperc.can < 0.005 & tPdperc.lof0714 < 0.005), 
+            points(tPd_can, tPd_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[(tPdperc.can > 0.995 & tPdperc.lof0711 > 0.995 & tPdperc.lof0714 > 0.995) | (tPdperc.can < 0.005 & tPdperc.lof0711 < 0.005 & tPdperc.lof0714 < 0.005), 
+            points(tPd_can, tPd_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[tPdperc.lof1114 > 0.995 | tPdperc.lof1114 < 0.005, points(tPd_can, tPd_lof0711, pch=16, cex=0.4, col = cols[4])]
 
-bins[pi_region_perc0711<=0.995 & pi_region_perc0711>=0.005 & pi_region_perc0714<=0.995 & pi_region_perc0714>=0.005, plot(pi_diff_0711, pi_diff_0714, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='pi_diff_0711', line=1.5)
-bins[(pi_region_perc0711>0.995 | pi_region_perc0711<0.005) & pi_region_perc0714<=0.995 & pi_region_perc0714>=0.005, points(pi_diff_0711, pi_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[pi_region_perc0711<=0.995 & pi_region_perc0711>=0.005 & (pi_region_perc0714>0.995 | pi_region_perc0714<0.005), points(pi_diff_0711, pi_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[(pi_region_perc0711>0.995 | pi_region_perc0711<0.005) & (pi_region_perc0714>0.995 | pi_region_perc0714<0.005), points(pi_diff_0711, pi_diff_0714, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(tPd_lof0711, tPd_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[(tPdperc.lof0711 > 0.995 & tPdperc.lof0714 > 0.995) | (tPdperc.lof0711 < 0.005 & tPdperc.lof0714 < 0.005), points(tPd_lof0711, tPd_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[(tPdperc.can > 0.995 & tPdperc.lof0711 > 0.995 & tPdperc.lof0714 > 0.995) | (tPdperc.can < 0.005 & tPdperc.lof0711 < 0.005 & tPdperc.lof0714 < 0.005), 
+            points(tPd_lof0711, tPd_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[tPdperc.lof1114 > 0.995 | tPdperc.lof1114 < 0.005, points(tPd_lof0711, tPd_lof0714, pch=16, cex=0.4, col = cols[4])]
 
 # tajd change
-xlims <- ylims <- bins[,range(D_diff_CAN, D_diff_0711, D_diff_0714, na.rm=TRUE)]
-bins[D_region_perc0711<=0.995 & D_region_perc0711>=0.005 & D_region_percCAN<=0.995 & D_region_percCAN>=0.005, plot(D_diff_CAN, D_diff_0711, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='D_diff_CAN', line=1.5)
-bins[(D_region_perc0711>0.995 | D_region_perc0711<0.005) & D_region_percCAN<=0.995 & D_region_percCAN>=0.005, points(D_diff_CAN, D_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[D_region_perc0711<=0.995 & D_region_perc0711>=0.005 & (D_region_percCAN>0.995 | D_region_percCAN<0.005), points(D_diff_CAN, D_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[(D_region_perc0711>0.995 | D_region_perc0711<0.005) & (D_region_percCAN>0.995 | D_region_percCAN<0.005), points(D_diff_CAN, D_diff_0711, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(tDd_can, tDd_lof0711, cex=0.2, col=cols[1], pch=16)]
+binswide[(tDdperc.can > 0.995 & tDdperc.lof0711 > 0.995) | (tDdperc.can < 0.005 & tDdperc.lof0711 < 0.005), 
+            points(tDd_can, tDd_lof0711, pch=16, cex=0.4, col = cols[2])]
+binswide[(tDdperc.can > 0.995 & tDdperc.lof0711 > 0.995 & tDdperc.lof0714 > 0.995) | (tDdperc.can < 0.005 & tDdperc.lof0711 < 0.005 & tDdperc.lof0714 < 0.005), 
+            points(tDd_can, tDd_lof0711, pch=16, cex=0.4, col = cols[3])]
+binswide[tDdperc.lof1114 > 0.995 | tDdperc.lof1114 < 0.005, points(tDd_can, tDd_lof0711, pch=16, cex=0.4, col = cols[4])]
 
-bins[D_region_perc0714<=0.995 & D_region_perc0714>=0.005 & D_region_percCAN<=0.995 & D_region_percCAN>=0.005, plot(D_diff_CAN, D_diff_0714, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='D_diff_CAN', line=1.5)
-bins[(D_region_perc0714>0.995 | D_region_perc0714<0.005) & D_region_percCAN<=0.995 & D_region_percCAN>=0.005, points(D_diff_CAN, D_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[D_region_perc0714<=0.995 & D_region_perc0714>=0.005 & (D_region_percCAN>0.995 | D_region_percCAN<0.005),points(D_diff_CAN, D_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[(D_region_perc0714>0.995 | D_region_perc0714<0.005) & (D_region_percCAN>0.995 | D_region_percCAN<0.005),points(D_diff_CAN, D_diff_0714, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(tDd_can, tDd_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[(tDdperc.can > 0.995 & tDdperc.lof0714 > 0.995) | (tDdperc.can < 0.005 & tDdperc.lof0714 < 0.005), 
+            points(tDd_can, tDd_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[(tDdperc.can > 0.995 & tDdperc.lof0711 > 0.995 & tDdperc.lof0714 > 0.995) | (tDdperc.can < 0.005 & tDdperc.lof0711 < 0.005 & tDdperc.lof0714 < 0.005), 
+            points(tDd_can, tDd_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[tDdperc.lof1114 > 0.995 | tDdperc.lof1114 < 0.005, points(tDd_can, tDd_lof0711, pch=16, cex=0.4, col = cols[4])]
 
-bins[D_region_perc0711<=0.995 & D_region_perc0711>=0.005 & D_region_perc0714<=0.995 & D_region_perc0714>=0.005, plot(D_diff_0711, D_diff_0714, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='D_diff_0711', line=1.5)
-bins[(D_region_perc0711>0.995 | D_region_perc0711<0.005) & D_region_perc0714<=0.995 & D_region_perc0714>=0.005, points(D_diff_0711, D_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[D_region_perc0711<=0.995 & D_region_perc0711>=0.005 & (D_region_perc0714>0.995 | D_region_perc0714<0.005), points(D_diff_0711, D_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[(D_region_perc0711>0.995 | D_region_perc0711<0.005) & (D_region_perc0714>0.995 | D_region_perc0714<0.005), points(D_diff_0711, D_diff_0714, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(tDd_lof0711, tDd_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[(tDdperc.lof0711 > 0.995 & tDdperc.lof0714 > 0.995) | (tDdperc.lof0711 < 0.005 & tDdperc.lof0714 < 0.005), 
+            points(tDd_lof0711, tDd_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[(tDdperc.can > 0.995 & tDdperc.lof0711 > 0.995 & tDdperc.lof0714 > 0.995) | (tDdperc.can < 0.005 & tDdperc.lof0711 < 0.005 & tDdperc.lof0714 < 0.005), 
+            points(tDd_lof0711, tDd_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[tDdperc.lof1114 > 0.995 | tDdperc.lof1114 < 0.005, points(tDd_lof0711, tDd_lof0714, pch=16, cex=0.4, col = cols[4])]
 
 # LD change
-xlims <- ylims <- bins[,range(ld_diff_CAN, ld_diff_0711, ld_diff_0714, na.rm=TRUE)]
-bins[ld_region_perc0711<=0.99 & ld_region_percCAN<=0.99, plot(ld_diff_CAN, ld_diff_0711, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='ld_diff_CAN', line=1.5)
-bins[ld_region_perc0711>0.99 & ld_region_percCAN<=0.99, points(ld_diff_CAN, ld_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[ld_region_perc0711<=0.99 & ld_region_percCAN>0.99,points(ld_diff_CAN, ld_diff_0711, cex=0.2, col=cols[2], pch=16)]
-bins[ld_region_perc0711>0.99 & ld_region_percCAN>0.99,points(ld_diff_CAN, ld_diff_0711, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(ld_diff_can, ld_diff_lof0711, cex=0.2, col=cols[1], pch=16)]
+binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0711 > 0.99, points(ld_diff_can, ld_diff_lof0711, pch=16, cex=0.4, col = cols[2])]
+binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0711 > 0.99 & ld_diffperc.lof0714 > 0.99, points(ld_diff_can, ld_diff_lof0711, pch=16, cex=0.4, col = cols[3])]
+binswide[ld_diffperc.lof1114 > 0.99, points(ld_diff_can, ld_diff_lof0711, pch=16, cex=0.4, col = cols[4])]
 
-bins[ld_region_perc0714<=0.99 & ld_region_percCAN<=0.99, plot(ld_diff_CAN, ld_diff_0714, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='ld_diff_CAN', line=1.5)
-bins[ld_region_perc0714>0.99 & ld_region_percCAN<=0.99, points(ld_diff_CAN, ld_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[ld_region_perc0714<=0.99 & ld_region_percCAN>0.99,points(ld_diff_CAN, ld_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[ld_region_perc0714>0.99 & ld_region_percCAN>0.99,points(ld_diff_CAN, ld_diff_0714, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(ld_diff_can, ld_diff_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0714 > 0.99, points(ld_diff_can, ld_diff_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0711 > 0.99 & ld_diffperc.lof0714 > 0.99, points(ld_diff_can, ld_diff_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[ld_diffperc.lof1114 > 0.99, points(ld_diff_can, ld_diff_lof0711, pch=16, cex=0.4, col = cols[4])]
 
-bins[ld_region_perc0711<=0.99 & ld_region_perc0714<=0.99, plot(ld_diff_0711, ld_diff_0714, cex=0.2, xlim=xlims, ylim=ylims, col=cols[1], pch=16, xlab='')]; title(xlab='ld_diff_0711', line=1.5)
-bins[ld_region_perc0711>0.99 & ld_region_perc0714<=0.99, points(ld_diff_0711, ld_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[ld_region_perc0711<=0.99 & ld_region_perc0714>0.99,points(ld_diff_0711, ld_diff_0714, cex=0.2, col=cols[2], pch=16)]
-bins[ld_region_perc0711>0.99 & ld_region_perc0714>0.99,points(ld_diff_0711, ld_diff_0714, cex=0.2, col=cols[3], pch=16)]
+binswide[, plot(ld_diff_lof0711, ld_diff_lof0714, cex=0.2, col=cols[1], pch=16)]
+binswide[ld_diffperc.lof0711 > 0.99 & ld_diffperc.lof0714 > 0.99, points(ld_diff_lof0711, ld_diff_lof0714, pch=16, cex=0.4, col = cols[2])]
+binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0711 > 0.99 & ld_diffperc.lof0714 > 0.99, points(ld_diff_lof0711, ld_diff_lof0714, pch=16, cex=0.4, col = cols[3])]
+binswide[ld_diffperc.lof1114 > 0.99, points(ld_diff_lof0711, ld_diff_lof0714, pch=16, cex=0.4, col = cols[4])]
 
 dev.off()
 
+##########################################
+## Examine and output genomic regions
+## with shared changes across populations
+##########################################
+
+## fst
+# check outlier regions
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)),
+            .(chr, WinCenter, nloci.unl_can, nloci.unl_lof0711, fst.unl_can, fst.unl_lof0711, fst.unl_lof0714, fst.unl_lof1114, fst.p_can, fst.p_lof0711, fst.p_lof0714, fst.p_lof1114)]
+
+# binomial test for shared outlier regions
+nrow(binswide)
+n12 <- binswide[!is.na(fstunlperc.can) & !is.na(fstunlperc.lof0711), .N] # number of evaluated regions (can to lof0711)
+n13 <- binswide[!is.na(fstunlperc.can) & !is.na(fstunlperc.lof0714), .N] # number of evaluated regions (can to lof0714)
+x1 <- binswide[fstunlperc.can > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)), .N] # outliers in can
+x2 <- binswide[fstunlperc.lof0711 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)), .N] # outliers in lof0711
+x3 <- binswide[fstunlperc.lof0714 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)), .N] # outliers in lof0714
+x12 <- binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)), .N] # shared outliers can 0711
+x13 <- binswide[fstunlperc.can > 0.99 & fstunlperc.lof0714 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)), .N] # shared outliers can 0714
+x1/n12 * x2/n12 * n12 # expected number shared can 0711
+x12 # number shared
+binom.test(x12, n12, p = x1/n12 * x2/n12, alternative = 'two.sided')
+
+x1/n13 * x3/n13 * n13 # expected number shared can 0714
+x13 # number shared
+binom.test(x13, n13, p = x1/n13 * x3/n13, alternative = 'two.sided')
+
+## pi change
+# check outlier regions
+binswide[(tPdperc.can > 0.995 & tPdperc.lof0711 > 0.995 & tPdperc.lof0714 > 0.995 & (tPdperc.lof1114 < 0.995 | is.na(tPdperc.lof1114))) |
+              (tPdperc.can < 0.005 & tPdperc.lof0711 < 0.005 & tPdperc.lof0714 < 0.005 & (tPdperc.lof1114 > 0.005 | is.na(tPdperc.lof1114))),
+            .(chr, WinCenter, nloci.unl_can, nloci.unl_lof0711, tPd_can, tPd_lof0711, tPd_lof0714, tPd_lof1114, tPd.p_can, tPd.p_lof0711, tPd.p_lof0714, tPd.p_lof1114)]
+
+# binomial test for shared outlier regions
+nrow(binswide)
+n12 <- binswide[!is.na(tPdperc.can) & !is.na(tPdperc.lof0711), .N] # number of evaluated regions (can to lof0711)
+n13 <- binswide[!is.na(tPdperc.can) & !is.na(tPdperc.lof0714), .N] # number of evaluated regions (can to lof0714)
+x1 <- binswide[(tPdperc.can > 0.995 & (tPdperc.lof1114 < 0.995 | is.na(tPdperc.lof1114))) |
+                    tPdperc.can < 0.005 & (tPdperc.lof1114 > 0.005 | is.na(tPdperc.lof1114)), .N] # outliers in can
+x2 <- binswide[(tPdperc.lof0711 > 0.995 & (tPdperc.lof1114 < 0.995 | is.na(tPdperc.lof1114))) |
+                    (tPdperc.lof0711 < 0.005 & (tPdperc.lof1114 > 0.005 | is.na(tPdperc.lof1114))), .N] # outliers in lof0711
+x3 <- binswide[(tPdperc.lof0714 > 0.995 & (tPdperc.lof1114 < 0.995 | is.na(tPdperc.lof1114))) |
+                    (tPdperc.lof0714 < 0.005 & (tPdperc.lof1114 > 0.005 | is.na(tPdperc.lof1114))), .N] # outliers in lof0714
+x12 <- binswide[(tPdperc.can > 0.995 & tPdperc.lof0711 > 0.995 & (tPdperc.lof1114 < 0.995 | is.na(tPdperc.lof1114))) |
+                     (tPdperc.can < 0.005 & tPdperc.lof0711 < 0.005 & (tPdperc.lof1114 > 0.005 | is.na(tPdperc.lof1114))), .N] # shared outliers can 0711
+x13 <- binswide[(tPdperc.can > 0.995 & tPdperc.lof0714 > 0.995 & (tPdperc.lof1114 < 0.995 | is.na(tPdperc.lof1114))) |
+                     (tPdperc.can < 0.005 & tPdperc.lof0714 < 0.005 & (tPdperc.lof1114 > 0.005 | is.na(tPdperc.lof1114))), .N] # shared outliers can 0714
+x1/n12 * x2/n12 * n12 # expected number shared can 0711
+x12 # number shared
+binom.test(x12, n12, p = x1/n12 * x2/n12, alternative = 'two.sided')
+
+x1/n13 * x3/n13 * n13 # expected number shared can 0714
+x13 # number shared
+binom.test(x13, n13, p = x1/n13 * x3/n13, alternative = 'two.sided')
+
+
+## D change
+# check outlier regions
+binswide[(tDdperc.can > 0.995 & tDdperc.lof0711 > 0.995 & tDdperc.lof0714 > 0.995 & (tDdperc.lof1114 < 0.995 | is.na(tDdperc.lof1114))) |
+              (tDdperc.can < 0.005 & tDdperc.lof0711 < 0.005 & tDdperc.lof0714 < 0.005 & (tDdperc.lof1114 > 0.005 | is.na(tDdperc.lof1114))),
+            .(chr, WinCenter, nloci.unl_can, nloci.unl_lof0711, tDd_can, tDd_lof0711, tDd_lof0714, tDd_lof1114, tDd.p_can, tDd.p_lof0711, tDd.p_lof0714, tDd.p_lof1114)]
+
+# binomial test for shared outlier regions
+nrow(binswide)
+n12 <- binswide[!is.na(tDdperc.can) & !is.na(tDdperc.lof0711), .N] # number of evaluated regions (can to lof0711)
+n13 <- binswide[!is.na(tDdperc.can) & !is.na(tDdperc.lof0714), .N] # number of evaluated regions (can to lof0714)
+x1 <- binswide[(tDdperc.can > 0.995 & (tDdperc.lof1114 < 0.995 | is.na(tDdperc.lof1114))) |
+                    tDdperc.can < 0.005 & (tDdperc.lof1114 > 0.005 | is.na(tDdperc.lof1114)), .N] # outliers in can
+x2 <- binswide[(tDdperc.lof0711 > 0.995 & (tDdperc.lof1114 < 0.995 | is.na(tDdperc.lof1114))) |
+                    (tDdperc.lof0711 < 0.005 & (tDdperc.lof1114 > 0.005 | is.na(tDdperc.lof1114))), .N] # outliers in lof0711
+x3 <- binswide[(tDdperc.lof0714 > 0.995 & (tDdperc.lof1114 < 0.995 | is.na(tDdperc.lof1114))) |
+                    (tDdperc.lof0714 < 0.005 & (tDdperc.lof1114 > 0.005 | is.na(tDdperc.lof1114))), .N] # outliers in lof0714
+x12 <- binswide[(tDdperc.can > 0.995 & tDdperc.lof0711 > 0.995 & (tDdperc.lof1114 < 0.995 | is.na(tDdperc.lof1114))) |
+                     (tDdperc.can < 0.005 & tDdperc.lof0711 < 0.005 & (tDdperc.lof1114 > 0.005 | is.na(tDdperc.lof1114))), .N] # shared outliers can 0711
+x13 <- binswide[(tDdperc.can > 0.995 & tDdperc.lof0714 > 0.995 & (tDdperc.lof1114 < 0.995 | is.na(tDdperc.lof1114))) |
+                     (tDdperc.can < 0.005 & tDdperc.lof0714 < 0.005 & (tDdperc.lof1114 > 0.005 | is.na(tDdperc.lof1114))), .N] # shared outliers can 0714
+x1/n12 * x2/n12 * n12 # expected number shared can 0711
+x12 # number shared
+binom.test(x12, n12, p = x1/n12 * x2/n12, alternative = 'two.sided')
+
+x1/n13 * x3/n13 * n13 # expected number shared can 0714
+x13 # number shared
+binom.test(x13, n13, p = x1/n13 * x3/n13, alternative = 'two.sided')
+
+
+## LD Change
+# check outlier regions
+binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0711 > 0.99 & ld_diffperc.lof0714 > 0.99 & (ld_diffperc.lof1114 < 0.99 | is.na(ld_diffperc.lof1114)),
+            .(chr, WinCenter, nloci.unl_can, nloci.unl_lof0711, ld_diff_can, ld_diff_lof0711, ld_diff_lof0714, ld_diff_lof1114)]
+
+# binomial test for shared outlier regions
+nrow(binswide)
+n12 <- binswide[!is.na(ld_diffperc.can) & !is.na(ld_diffperc.lof0711), .N] # number of evaluated regions (can to lof0711)
+n13 <- binswide[!is.na(ld_diffperc.can) & !is.na(ld_diffperc.lof0714), .N] # number of evaluated regions (can to lof0714)
+x1 <- binswide[ld_diffperc.can > 0.99 & (ld_diffperc.lof1114 < 0.99 | is.na(ld_diffperc.lof1114)), .N] # outliers in can
+x2 <- binswide[ld_diffperc.lof0711 > 0.99 & (ld_diffperc.lof1114 < 0.99 | is.na(ld_diffperc.lof1114)), .N] # outliers in lof0711
+x3 <- binswide[ld_diffperc.lof0714 > 0.99 & (ld_diffperc.lof1114 < 0.99 | is.na(ld_diffperc.lof1114)), .N] # outliers in lof0714
+x12 <- binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0711 > 0.99 & (ld_diffperc.lof1114 < 0.99 | is.na(ld_diffperc.lof1114)), .N] # shared outliers can 0711
+x13 <- binswide[ld_diffperc.can > 0.99 & ld_diffperc.lof0714 > 0.99 & (ld_diffperc.lof1114 < 0.99 | is.na(ld_diffperc.lof1114)), .N] # shared outliers can 0714
+x1/n12 * x2/n12 * n12 # expected number shared can 0711
+x12 # number shared
+binom.test(x12, n12, p = x1/n12 * x2/n12, alternative = 'two.sided')
+
+x1/n13 * x3/n13 * n13 # expected number shared can 0714
+x13 # number shared
+binom.test(x13, n13, p = x1/n13 * x3/n13, alternative = 'two.sided')
+
+## output FST outlier regions
+out <- binswide[(fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114))), ]
+
+write.csv(out, file = gzfile('analysis/outlier_50kregions_shared_07-11-14_Can.csv.gz'))
 
 ######################
 ## Biplots of change
@@ -219,196 +419,41 @@ bins[ld_region_percCAN>0.99 & (pi_region_percCAN>0.995 | pi_region_percCAN<0.005
 dev.off()
 
 
-#####################
-# Find outlier regions
-#####################
-
-#### regions with large frequency change and large increase in LD
-	bins[,freqLD0711 := freq_region_perc0711 + ld_region_perc0711]
-	bins[,freqLD0714 := freq_region_perc0714 + ld_region_perc0714]
-	bins[,freqLDCAN := freq_region_percCAN + ld_region_percCAN]
-	
-	# 07-11
-	setkey(bins, freqLD0711); bins[freq_region_perc0711>0.99 & ld_region_perc0711>0.99,.(CHROM, BIN_START, freq_diff_0711, ld_diff_0711, freqLD0711, freq_region_perc0711, ld_region_perc0711)]
-	# 07-14
-	setkey(bins, freqLD0714); bins[freq_region_perc0714>0.99 & ld_region_perc0714>0.99,.(CHROM, BIN_START, freq_diff_0714, ld_diff_0714, freqLD0714, freq_region_perc0714, ld_region_perc0714)]
-	# 07-11 and 07-14
-	setkey(bins, freqLD0711, freqLD0714); bins[freq_region_perc0711>0.95 & ld_region_perc0711>0.95 & freq_region_perc0714>0.95 & ld_region_perc0714>0.95,.(CHROM, BIN_START, freq_diff_0711, freq_diff_0714, ld_diff_0711, ld_diff_0714, freqLD0711, freqLD0714)]
-	# CAN
-	setkey(bins, freqLDCAN); bins[freq_region_percCAN>0.99 & ld_region_percCAN>0.99,.(CHROM, BIN_START, freq_diff_CAN, ld_diff_CAN, freqLDCAN, freq_region_percCAN, ld_region_percCAN)]
-	# 07-11 and 07-14 and CAN
-	setkey(bins, freqLD0711, freqLD0714, freqLDCAN); bins[freq_region_perc0711>0.95 & ld_region_perc0711>0.95 & freq_region_perc0714>0.95 & ld_region_perc0714>0.95 & freq_region_percCAN>0.95 & ld_region_percCAN>0.95,.(CHROM, BIN_START, freq_diff_0711, freq_diff_0714, freq_diff_CAN, ld_diff_0711, ld_diff_0714, ld_diff_CAN)]
-
-	par(mfrow=c(1,3)); bins[,plot(freqLD0711, freqLD0714, cex=0.2, col='#00000033')]; bins[,plot(freqLD0711, freqLDCAN, cex=0.2, col='#00000033')]; bins[,plot(freqLD0714, freqLDCAN, cex=0.2, col='#00000033')]
-	bins[,cor.test(freqLD0711, freqLD0714)]
-	bins[,cor.test(freqLD0711, freqLDCAN)]
-	bins[,cor.test(freqLDCAN, freqLD0714)]
-	
-	
-	# write out a selection of highly ranked loci
-	setkey(bins, CHROM, BIN_START)
-
-	write.csv(bins[(freq_region_perc0711>0.99 & ld_region_perc0711>0.99) | (freq_region_perc0714>0.99 & ld_region_perc0714>0.99) | (freq_region_percCAN>0.99 & ld_region_percCAN>0.99), .(CHROM, BIN_START, BIN_END=BIN_START+wd, outlier0711=(freq_region_perc0711>0.99 & ld_region_perc0711>0.99), outlier0714=(freq_region_perc0714>0.99 & ld_region_perc0714>0.99), outlierCAN=(freq_region_percCAN>0.99 & ld_region_percCAN>0.99), freq_diff_0711, freq_diff_0714, freq_diff_CAN, ld_diff_0711, ld_diff_0714, ld_diff_CAN)], file='analysis/outlier_10kregions_freqLD_07-11-14_Can.csv', row.names=FALSE)
-	
-	
-#### rank the outlier regions based in clustering the frequency changes together (see Oziolor et al. 2019 Science)
-	outlreg0711 = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_0711)), by=freq_region_cluster0711]
-	outlreg0714 = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_0714)), by=freq_region_cluster0714]
-	outlregCAN = bins[,.(CHROM=unique(CHROM), BIN_START=min(BIN_START), BIN_END=max(BIN_START+wd), WIDTH=max(BIN_START+wd)-min(BIN_START), score=sum(freq_diff_CAN)), by=freq_region_clusterCAN]
-
-	setkey(outlreg0711, score)
-	setkey(outlreg0714, score)
-	setkey(outlregCAN, score)
-
-	outlreg0711[,sort(unique(WIDTH))] # cluster width always 10kb
-	outlreg0714[,sort(unique(WIDTH))]
-	outlregCAN[,sort(unique(WIDTH))]
-
-	tail(outlreg0711, 10)
-	tail(outlreg0714, 10)
-	tail(outlregCAN, 10)
-
-#### rank outlier regions based on shared change in allele frequency across populations
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN)]
-
-	# write out a selection of highly ranked loci
-	setkey(bins, CHROM, BIN_START)
-
-	outfile <- paste('analysis/outlier_', width, 'regions_freqshared_07-11-14_Can.csv', sep='')
-	outfile
-	write.csv(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd)], file=outfile, row.names=FALSE)
-
-
-		
-	# LD change in freq outlier regions
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN, ld_diff_0711, ld_diff_0714, ld_diff_CAN)]
-
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(mean0711=mean(ld_diff_0711, na.rm=TRUE), se0711=sd(ld_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0714=mean(ld_diff_0714, na.rm=TRUE), se0714=sd(ld_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(ld_diff_CAN, na.rm=TRUE), seCAN=sd(ld_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # in outlier regions
-	bins[, .(mean0711=mean(ld_diff_0711, na.rm=TRUE), se0711=sd(ld_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0714=mean(ld_diff_0714, na.rm=TRUE), se0714=sd(ld_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(ld_diff_CAN, na.rm=TRUE), seCAN=sd(ld_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # genome-wide for comparison
-	
-		# simple plot
-		quartz(height=5, width=9)
-		vioplot(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0711], 
-			bins[,ld_diff_0711],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0714], 
-			bins[,ld_diff_0714],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_CAN], 
-			bins[,ld_diff_CAN],
-			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
-			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
-			ylab="Change in LD",
-			main='Regions that are 99% frequency change outliers in all three comparisons')
-		abline(h=0, lty=2, col='grey')
-		
-
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0711], bins[,ld_diff_0711])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0714], bins[,ld_diff_0714])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_CAN], bins[,ld_diff_CAN])
-
-		# one-sample version
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0711], bins[,ld_diff_0711])
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_0714], bins[,ld_diff_0714])
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, ld_diff_CAN], bins[,ld_diff_CAN])
-
-
-	# abs(LD change)
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(mean0711=mean(abs(ld_diff_0711), na.rm=TRUE), se0711=sd(abs(ld_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0711=mean(abs(ld_diff_0714), na.rm=TRUE), se0714=sd(abs(ld_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(abs(ld_diff_CAN), na.rm=TRUE), seCAN=sd(abs(ld_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # in outlier regions
-	bins[, .(mean0711=mean(abs(ld_diff_0711), na.rm=TRUE), se0711=sd(abs(ld_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0711))), mean0711=mean(abs(ld_diff_0714), na.rm=TRUE), se0714=sd(abs(ld_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_0714))), meanCAN=mean(abs(ld_diff_CAN), na.rm=TRUE), seCAN=sd(abs(ld_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(ld_diff_CAN))))] # genome-wide for comparison
-	
-		# simple plot
-		quartz(height=5, width=9)
-		vioplot(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_0711)], 
-			bins[,abs(ld_diff_0711)],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_0714)], 
-			bins[,abs(ld_diff_0714)],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_CAN)], 
-			bins[,abs(ld_diff_CAN)],
-			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
-			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
-			ylab="abs(Change in LD)",
-			main='Regions that are 99% frequency change outliers in all three comparisons')
-		abline(h=0, lty=2, col='grey')
-
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_0711)], bins[,abs(ld_diff_0711)])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_0714)], bins[,abs(ld_diff_0714)])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(ld_diff_CAN)], bins[,abs(ld_diff_CAN)])
-
-		
-	# Tajima's D change
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN, D_diff_0711, D_diff_0714, D_diff_CAN)]
-
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(mean0711=mean(D_diff_0711, na.rm=TRUE), se0711=sd(D_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(D_diff_0714, na.rm=TRUE), se0714=sd(D_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(D_diff_CAN, na.rm=TRUE), seCAN=sd(D_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # in outlier regions
-	bins[, .(mean0711=mean(D_diff_0711, na.rm=TRUE), se0711=sd(D_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(D_diff_0714, na.rm=TRUE), se0714=sd(D_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(D_diff_CAN, na.rm=TRUE), seCAN=sd(D_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # genome-wide for comparison
-	
-		# simple plot
-		quartz(height=5, width=9)
-		outfile=paste('figures/region_change_shared_freq_outliers_Dchange_', wdnm, '.pdf', sep='')
-		outfile
-		# pdf(height=5, width=9, file=outfile)
-		vioplot(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0711], 
-			bins[,D_diff_0711],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0714], 
-			bins[,D_diff_0714],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_CAN], 
-			bins[,D_diff_CAN],
-			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
-			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
-			ylab="Change in Tajima's D",
-			main='Regions that are 99% frequency change outliers in all three comparisons')
-		abline(h=0, lty=2, col='grey')
-		
-		dev.off()
-
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0711], bins[,D_diff_0711])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0714], bins[,D_diff_0714])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_CAN], bins[,D_diff_CAN])
-
-		# one-sample version
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0711], bins[,D_diff_0711])
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_0714], bins[,D_diff_0714])
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, D_diff_CAN], bins[,D_diff_CAN])
 
 	
-
-	# abs(Tajima's D change)
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(mean0711=mean(abs(D_diff_0711), na.rm=TRUE), se0711=sd(abs(D_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(abs(D_diff_0714), na.rm=TRUE), se0714=sd(abs(D_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(abs(D_diff_CAN), na.rm=TRUE), seCAN=sd(abs(D_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # in outlier regions
-	bins[, .(mean0711=mean(abs(D_diff_0711), na.rm=TRUE), se0711=sd(abs(D_diff_0711), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0711))), mean0711=mean(abs(D_diff_0714), na.rm=TRUE), se0714=sd(abs(D_diff_0714), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_0714))), meanCAN=mean(abs(D_diff_CAN), na.rm=TRUE), seCAN=sd(abs(D_diff_CAN), na.rm=TRUE)/sqrt(sum(!is.na(D_diff_CAN))))] # genome-wide for comparison
 	
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(D_diff_0711)], bins[,abs(D_diff_0711)])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(D_diff_0714)], bins[,abs(D_diff_0714)])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, abs(D_diff_CAN)], bins[,abs(D_diff_CAN)])
+###############################
+## Plot FST in outlier regions
+###############################
+# read in Fsts
+fstLof1 <- fread('analysis/Lof_07.Lof_11.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B')) # from angsd_fst.sh
+fstLof2 <- fread('analysis/Lof_07.Lof_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
+fstCan <- fread('analysis/Can_40.Can_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
+
+# trim fsts to nodam2 loci
+gatk <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab', col.names = c('CHROM', 'POS', 'REF', 'ALT'))
+fstLof1 <- merge(fstLof1, gatk[, .(CHROM, POS)])
+fstLof2 <- merge(fstLof2, gatk[, .(CHROM, POS)])
+fstCan <- merge(fstCan, gatk[, .(CHROM, POS)])
+
+# calc fst
+fstCan[, fst := A/B]
+fstLof1[, fst := A/B]
+fstLof2[, fst := A/B]
 
 
-	# Pi change
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(CHROM, BIN_START, BIN_END=BIN_START+wd, freq_diff_0711, freq_diff_0714, freq_diff_CAN, pi_diff_0711, pi_diff_0714, pi_diff_CAN)]
+# list outlier 50kb regions to plot
+dat <- data.table(CHROM = c('LG10', 'LG11', 'LG14', 'LG20'), POS = c( 13375000, 175000, 8425000, 16725000))
 
-	bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, .(mean0711=mean(pi_diff_0711, na.rm=TRUE), se0711=sd(pi_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0711))), mean0711=mean(pi_diff_0714, na.rm=TRUE), se0714=sd(pi_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0714))), meanCAN=mean(pi_diff_CAN, na.rm=TRUE), seCAN=sd(pi_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_CAN))))] # in outlier regions
-	bins[, .(mean0711=mean(pi_diff_0711, na.rm=TRUE), se0711=sd(pi_diff_0711, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0711))), mean0711=mean(pi_diff_0714, na.rm=TRUE), se0714=sd(pi_diff_0714, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_0714))), meanCAN=mean(pi_diff_CAN, na.rm=TRUE), seCAN=sd(pi_diff_CAN, na.rm=TRUE)/sqrt(sum(!is.na(pi_diff_CAN))))] # genome-wide for comparison
-	
-		# simple plot
-		quartz(height=5, width=9)
-		outfile=paste('figures/region_change_shared_freq_outliers_pichange_', wdnm, '.pdf', sep='')
-		outfile
-		# pdf(height=5, width=9, file=outfile)
-		vioplot(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0711], 
-			bins[,pi_diff_0711],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0714], 
-			bins[,pi_diff_0714],
-			bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_CAN], 
-			bins[,pi_diff_CAN],
-			col=c('purple', 'grey', 'purple', 'grey', 'purple', 'grey'),
-			names=c('0711 outliers', '0711 genome', '0714 outliers', '0714 genome', 'CAN outliers', 'CAN genome'),
-			ylab="Change in pi",
-			main='Regions that are 99% frequency change outliers in all three comparisons')
-		abline(h=0, lty=2, col='grey')
-		
-		dev.off()
+# make plot
+ncol = 3
+nrow = ceiling(nrow(dat)/ncol)
+cols = c('black', 'blue', 'green') # can, 0711, 0714
+rng <- 25000
 
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0711], bins[,pi_diff_0711])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0714], bins[,pi_diff_0714])
-	t.test(bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_CAN], bins[,pi_diff_CAN])
-
-		# one-sample
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0711], bins[,pi_diff_0711])
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_0714], bins[,pi_diff_0714])
-	t.test(mu=bins[freq_region_perc0711>0.99 & freq_region_perc0714>0.99 & freq_region_percCAN>0.99, pi_diff_CAN], bins[,pi_diff_CAN])
+par(mfrow = c(nrow, ncol), mai = c(0.3, 0.3, 0.4, 0.1), omi = c(0.3, 0.3, 0, 0))
+for(i in 1:nrow(dat)){
+  fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, plot(POS/1e6, fst, xlab = 'Mb', ylab = 'Fst', main = dat$CHROM[i], col = cols[1])]
+  fstLof1[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, points(POS/1e6, fst, xlab = 'Mb', ylab = 'Fst', main = dat$CHROM[i], col = cols[2])]
+  fstLof2[CHROM == dat$CHROM[i] & abs(POS - dat$POS[i]) < rng, points(POS/1e6, fst, xlab = 'Mb', ylab = 'Fst', main = dat$CHROM[i], col = cols[3])]
+}
