@@ -222,6 +222,9 @@ binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & fstunlperc.lof0714 
             .(chr, WinCenter, nloci.unl_can, nloci.unl_lof0711, fst.unl_can, fst.unl_lof0711, fst.unl_lof0714, fst.unl_lof1114, fst.p_can, fst.p_lof0711, fst.p_lof0714, fst.p_lof1114)]
 
 # binomial test for shared outlier regions
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0711 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)), .(chr, WinCenter, nloci_can, nloci_lof0711)] # shared outliers can 0711
+binswide[fstunlperc.can > 0.99 & fstunlperc.lof0714 > 0.99 & (fstunlperc.lof1114 < 0.99 | is.na(fstunlperc.lof1114)), .(chr, WinCenter, nloci_can, nloci_lof0711)] # shared outliers can 0714
+
 nrow(binswide)
 n12 <- binswide[!is.na(fstunlperc.can) & !is.na(fstunlperc.lof0711), .N] # number of evaluated regions (can to lof0711)
 n13 <- binswide[!is.na(fstunlperc.can) & !is.na(fstunlperc.lof0714), .N] # number of evaluated regions (can to lof0714)

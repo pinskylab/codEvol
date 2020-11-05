@@ -156,6 +156,16 @@ dat4[, pop := 'lof1114']
 
 dat <- rbind(dat1, dat2, dat3, dat4)
 
+# trim to non-overlapping windows
+dat <- dat[(midPos - 1) %% 25000 == 0, ]
+
+# read in outlier regions
+outl <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
+outl[, midPos := as.numeric(midPos) + 1] # add one to match dat centers
+outl <- outl[region == 1, .(CHROM, midPos, outl = 1)] # trim to just regions
+dat <- merge(dat, outl, all.x = TRUE)
+dat[is.na(outl), outl := 0]
+
 # LG mid-points and genome position
 chrmax <- fread('data/lg_length.csv')
 chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
@@ -165,6 +175,7 @@ setkey(dat, CHROM)
 dat <- dat[chrmax[, .(CHROM = chr, start)], ]
 dat[, posgen := midPos + start]
 dat[,start := NULL]
+
 
 # trim out Unplaced or windows with <2 loci
 dat <- dat[!(CHROM %in% c('Unplaced')) & nloci > 1, ]
@@ -178,36 +189,38 @@ dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
 
 
 ### set up plot
-adjlet <- -0.11 # horizontal adjustment for subplot letter
-cexlet <- 1
-linelet <- -0.5
+adjlet <- -0.14 # horizontal adjustment for subplot letter
+cexlet <- 0.7
+linelet <- 0.2
 cexsc <- 1/5
 
 # quartz(height=8, width=6)
 png(height=5, width=6, units='in', res=300, file='figures/figure2.png')
-par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.1, 0.1))
+par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.15, 0.1))
 
-ymax <- dat[, max(fst, na.rm=TRUE)]
 xlims <- dat[, range(posgen, na.rm=TRUE)]
 
-dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'can' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0)) # plot x-axis
-mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
+mtext(side=3, 'A. Canada 1940-2013', adj=adjlet, line=linelet, cex=cexlet)
 
 legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.5)
 
 
-dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0711' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
-mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
+mtext(side=3, 'B. Norway 1907-2011', adj=adjlet, line=linelet, cex=cexlet)
 
-dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims,  xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0714' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
-mtext(side=3, 'C', adj=adjlet, line=linelet, cex=cexlet)
+mtext(side=3, 'C. Norway 1907-2014', adj=adjlet, line=linelet, cex=cexlet)
 
-dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, ylim = c(0, ymax), xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
-mtext(side=3, 'D', adj=adjlet, line=linelet, cex=cexlet)
+mtext(side=3, 'D. Norway 2011-2014', adj=adjlet, line=linelet, cex=cexlet)
 
 
 dev.off()
