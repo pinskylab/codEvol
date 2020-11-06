@@ -671,9 +671,9 @@ dat[pop == 'Can', plot(POSgen, WEIR_AND_COCKERHAM_FST, type='p', col=lgcol, xlim
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.5, line = -0.6) # plot x-axis
 mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
 
-color.bar(cbar$col1, cbar$x, axis = FALSE, nticks = 5, xposmin =12e6, xposmax = 16e6, yposmin = -0.1, yposmax = 0.3)
-color.bar(cbar$col2, cbar$x, cex = 0.5, axis = TRUE, nticks = 5, 
-          xposmin =16e6, xposmax = 20e6, yposmin = -0.1, yposmax = 0.3, title = 'p-value', titley = 0.4)
+color.bar(cbar$col1, cbar$x, axis = FALSE, nticks = 5, xposmin =20e6, xposmax = 26e6, yposmin = -0.95, yposmax = -0.2)
+color.bar(cbar$col2, cbar$x, cex = 0.7, axis = TRUE, nticks = 5, 
+          xposmin =26e6, xposmax = 32e6, yposmin = -0.95, yposmax = -0.2, title = 'p-value', titley = -0.05)
 
 
 dat[pop == 'Lof', plot(POSgen, WEIR_AND_COCKERHAM_FST, type='p', col=lgcol, xlim = xlims, xlab = '', 
@@ -889,42 +889,66 @@ library(data.table)
 
 # read in data
 dat <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
+dat[, midPos := as.integer(midPos)]
 freqCan40 <- fread('data_31_01_20/Can_40_freq.mafs.gz') # allele frequencies
-freqCan14 <- fread('data_31_01_20/Can_14_freq.mafs.gz')
+freqCan14 <- fread('data_31_01_20/Can_14_freq.mafs.gz') # actually 2013, not 2014
 freqLof07 <- fread('data_31_01_20/Lof_07_freq.mafs.gz')
 freqLof11 <- fread('data_31_01_20/Lof_11_freq.mafs.gz')
 freqLof14 <- fread('data_31_01_20/Lof_14_freq.mafs.gz')
 
-# add column for functional location
-dat[,annotation:=as.character(NA)]
-dat[NearGene != '', annotation:='<25kb from gene']
-dat[grepl('CDS', feature), annotation:='coding']
-dat[grepl('three_prime_UTR', feature), annotation:="3' UTR"]
-dat[grepl('five_prime_UTR', feature), annotation:="5' UTR"]
-dat[grepl('mRNA', feature) & !grepl('CDS|three_prime_UTR|five_prime_UTR', feature), annotation:="transcript"]
+setkey(freqCan40, chromo, position)
+setkey(freqCan14, chromo, position)
+setkey(freqLof07, chromo, position)
+setkey(freqLof11, chromo, position)
+setkey(freqLof14, chromo, position)
 
+# p-value for 99th percentile is an fst, not a p-value, so erase it
+dat[testvaltype == 'Average Fst', testval := NA_real_]
+dat[testvaltype == 'Average Fst', testvaltype := '']
+
+# adjust text slightly
+dat[test == '99th percentile across pops', test := 'Shared 99th percentile']
+dat[, test := gsub('pcangsd', 'PCAngsd', test)]
+dat[testvaltype == 'Genome-wide p-value for the region', testvaltype := 'Genome-wide p']
+
+# add column for functional location
+dat[,annotation:='']
+dat[NearGene != '', annotation:= paste(annotation, '<25kb from gene', sep = ', ')]
+dat[grepl('CDS', feature), annotation:='coding']
+dat[grepl('three_prime_UTR', feature), annotation:= paste(annotation, "3' UTR", sep = ', ')]
+dat[grepl('five_prime_UTR', feature), annotation:= paste(annotation, "5' UTR", sep = ', ')]
+dat[grepl('mRNA', feature) & !grepl('CDS|three_prime_UTR|five_prime_UTR', feature), annotation:= paste(annotation, "transcript", sep = ', ')]
+dat[, annotation := gsub('^, ', '', annotation)]
 
 # Add allele frequencies
-dat[, freq := NA_character_]
+dat[, Canada1940 := NA_character_]
+dat[, Canada2013 := NA_character_]
+dat[, Norway1907 := NA_character_]
+dat[, Norway2011 := NA_character_]
+dat[, Norway2014 := NA_character_]
 dat[, sort(unique(comp))] # make sure all cases are handled below
 for(i in 1:nrow(dat)){
-  if(dat$comp[i] %in% c('can', 'Canada')){
-    freq1 <- freqCan40[chromo == dat$CHROM[i] & position == dat$POS[i], round(knownEM, 2)]
-    freq2 <- freqCan14[chromo == dat$CHROM[i] & position == dat$POS[i], round(knownEM, 2)]
-    dat[i, freq := paste0(freq1, ', ', freq2)]
-  }
-  if(dat$comp[i] == 'Norway 1907-2011-2014'){
-    freq1 <- freqLof07[chromo == dat$CHROM[i] & position == dat$POS[i], round(knownEM, 2)]
-    freq2 <- freqLof11[chromo == dat$CHROM[i] & position == dat$POS[i], round(knownEM, 2)]
-    freq3 <- freqLof14[chromo == dat$CHROM[i] & position == dat$POS[i], round(knownEM, 2)]
-    dat[i, freq := paste0(freq1, ', ', freq2, ', ', freq3)]
+  if(dat$region[i] == 0){ # can only do this for snps
+    if(dat$comp[i] %in% c('can', 'Canada', 'Canada-Norway')){
+      dat$Canada1940[i] <- freqCan40[.(dat$CHROM[i], dat$midPos[i]), round(knownEM, 2)]
+      dat$Canada2013[i] <- freqCan14[.(dat$CHROM[i], dat$midPos[i]), round(knownEM, 2)]
+    }
+    if(dat$comp[i] %in% c('Norway 1907-2011-2014', 'Norway 1907-2011', 'Canada-Norway', 'Norway 1907-2014')){
+      dat$Norway1907[i] <- freqLof07[.(dat$CHROM[i], dat$midPos[i]), round(knownEM, 2)]
+    }
+    if(dat$comp[i] %in% c('Norway 1907-2011-2014', 'Norway 1907-2011', 'Canada-Norway')){
+      dat$Norway2011[i] <- freqLof11[.(dat$CHROM[i], dat$midPos[i]), round(knownEM, 2)]
+    }
+    if(dat$comp[i] %in% c('Norway 1907-2011-2014', 'Norway 1907-2014', 'Canada-Norway')){
+      dat$Norway2014[i] <- freqLof14[.(dat$CHROM[i], dat$midPos[i]), round(knownEM, 2)]
+    }
   }
 }
 
 	
 # make Table S5
-out <- dat[,.(LG=CHROM, Position=POS, Pop=gsub('can', 'Canada', comp), Freq = freq, Test=paste0(test, ' ', gsub(' p-value', '', testvaltype)), p = signif(testval,2), annotation,
-	gene_name=lapply(strsplit(paste(WithinAnno, NearAnno), split=':'), FUN=function(x) return(x[1])))]
+out <- dat[,.(LG=CHROM, Position=POS, Pop=gsub('can', 'Canada', comp), Canada1940, Canada2013, Norway1907, Norway2011, Norway2014, Test=paste0(test, ' ', gsub(' p-value', '', testvaltype)), p = signif(testval,2), annotation,
+	Gene=lapply(strsplit(paste(WithinAnno, NearAnno), split=':'), FUN=function(x) return(x[1])))]
 
 
 # convert to text and turn NA to ''
@@ -932,4 +956,4 @@ for (j in names(out)) set(out, j = j, value = as.character(out[[j]]))
 for (j in names(out)) set(out, i=which(is.na(out[[j]])), j = j, value = '')
 
 # write out
-write.csv(out, file='figures/tableS5.csv', row.names=FALSE)
+write.csv(out, file='tables/tableS5.csv', row.names=FALSE)

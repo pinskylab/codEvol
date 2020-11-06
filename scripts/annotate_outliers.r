@@ -41,6 +41,7 @@ wfs[, c('pop', 'p.adj') := NULL]
 windsz <- 50000
 fstshuff <- fread('output/fst_siteshuffle.angsd.gatk.csv.gz') # from angsd_fst_siteshuffle_null_stats.r
 fstshuff <- fstshuff[nloci >1, ]
+fstshuff <- fstshuff[midPos %% 25000 == 0, ] # trim to non-overlapping windows
 fstshuff[, POS := paste0(midPos - windsz/2, '-', midPos + windsz/2), by = 1:nrow(fstshuff)]
 fstshuff[pop == 'can', comp := 'Canada']
 fstshuff[pop == 'lof0711', comp := 'Norway 1907-2011']
@@ -56,6 +57,7 @@ fstshuff[, c('fst', 'nloci', 'pop') := NULL]
 #site-shuffle pi and D (region)
 # assumes same windsz as for fst
 thetashuff <- fread('analysis/theta_siteshuffle.angsd.gatk.csv.gz') # from angsd_theta_siteshuffle_null_stats.r
+thetashuff <- thetashuff[WinCenter %% 25000 == 0, ] # trim to non-overlapping windows
 thetashuff[, POS := paste0(WinCenter - windsz/2, '-', WinCenter + windsz/2), by = 1:nrow(thetashuff)]
 thetashuff[pop == 'can', comp := 'Canada']
 thetashuff[pop == 'lof0711', comp := 'Norway 1907-2011']
@@ -83,9 +85,9 @@ fstshared <- fstshared[, .(CHROM, POS, comp, midPos, testval, testvaltype, regio
 ##############################################
 outl <- rbind(pcangsd[testval < 0.05, ], 
               wfs[testval < 0.21, ], 
-              fstshuff[testval < 0.1, ], 
-              pishuff[testval < 0.05,], 
-              Dshuff[testval < 0.05,],
+              fstshuff[testval < 0.2, ], 
+              pishuff[testval < 0.2,], 
+              Dshuff[testval < 0.2,],
               fstshared)
 
 
@@ -103,12 +105,12 @@ if('LG03' %in% lgstoload) g3 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF
 if('LG04' %in% lgstoload) g4 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG04', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=34805322, numcols=100000, include.unknown=TRUE)
 if('LG05' %in% lgstoload) g5 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG05', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=24067848, numcols=100000, include.unknown=TRUE)
 if('LG06' %in% lgstoload) g6 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG06', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25464620, numcols=100000, include.unknown=TRUE)
-if('LG07' %in% lgstoload) error('need to write lg07!')
+if('LG07' %in% lgstoload) g7 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG07', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=31232877, numcols=100000, include.unknown=TRUE)
 if('LG08' %in% lgstoload) g8 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG08', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=26796886, numcols=100000, include.unknown=TRUE)
 if('LG09' %in% lgstoload) g9 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG09', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25382314, numcols=100000, include.unknown=TRUE)
 if('LG10' %in% lgstoload) g10 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG10', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25304306, numcols=100000, include.unknown=TRUE)
 if('LG11' %in% lgstoload) g11 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG11', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=28942968, numcols=100000, include.unknown=TRUE)
-if('LG12' %in% lgstoload) error('need to write lg12!')
+if('LG12' %in% lgstoload) g12 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG12', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=27297974, numcols=100000, include.unknown=TRUE)
 if('LG13' %in% lgstoload) g13 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG13', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=25676735, numcols=100000, include.unknown=TRUE)
 if('LG14' %in% lgstoload) g14 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG14', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=29296932, numcols=100000, include.unknown=TRUE)
 if('LG15' %in% lgstoload) g15 <- readVCF('../genome_data/All_rerun_hist.vcf.gz_HF_GQ_HWE_MISS_0.6_IND_Norway.vcf.gz', tid='LG15', approx=FALSE, gffpath='../genome_data/gff/gadMor2_annotation_filtered_only_gene_models.gff', frompos=1, topos=26597959, numcols=100000, include.unknown=TRUE)
@@ -152,7 +154,7 @@ if(exists('g23')){ g[[ii]] <- set.synnonsyn(g23, ref.chr='../genome_data/LG23.fa
 # get codons and SNP effects
 codons <- lapply(g, get.codons, 1)
 
-	head(codons[['LG05']])
+	#head(codons[['LG05']])
 	
 # print codons for the outliers
 outlcodons <- NULL
@@ -226,16 +228,16 @@ for(i in 1:nrow(outl)){
   }
 	if(length(j)>0){
 		pieces <- strsplit(gff[j,attribute], split=';')
-		fts <- paste(gff[j,feature], collapse=';')
-		sts <- paste(gff[j,start], collapse=';')
-		ends <- paste(gff[j,end], collapse=';')
-		strnds <- paste(gff[j,strand], collapse=';')
-		frms <- paste(gff[j,frame], collapse=';')
-		ids <- paste(sapply(pieces, FUN=grepstrip, 'ID='), collapse=';')
-		nms <- paste(sapply(pieces, FUN=grepstrip, 'Name='), collapse=';')
-		prnt <- paste(sapply(pieces, FUN=grepstrip, 'Parent='), collapse=';')
-		sim <- paste(setdiff(unique(sapply(pieces, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
-		ingo <- paste(setdiff(unique(sapply(pieces, FUN=grepstrip, strip='Ontology_term=', na='')), ''), collapse=',')
+		fts <- paste(unique(gff[j,feature]), collapse=';')
+		sts <- paste(unique(gff[j,start]), collapse=';')
+		ends <- paste(unique(gff[j,end]), collapse=';')
+		strnds <- paste(unique(gff[j,strand]), collapse=';')
+		frms <- paste(unique(gff[j,frame]), collapse=';')
+		ids <- paste(unique(sapply(pieces, FUN=grepstrip, 'ID=')), collapse=';')
+		nms <- paste(unique(sapply(pieces, FUN=grepstrip, 'Name=')), collapse=';')
+		prnt <- paste(unique(sapply(pieces, FUN=grepstrip, 'Parent=')), collapse=';')
+		sim <- paste(unique(setdiff(unique(sapply(pieces, FUN=grepstrip, strip='Note=Similar to ', na='')), '')), collapse=';')
+		ingo <- paste(unique(setdiff(unique(sapply(pieces, FUN=grepstrip, strip='Ontology_term=', na='')), '')), collapse=',')
 	} else {
 		fts <- sts <- ends <- strnds <- frms <- ids <- nms <- prnt <- sim <- ingo <- ''
 	}
@@ -247,15 +249,15 @@ for(i in 1:nrow(outl)){
 		minend <- abs(gff[k,end]-outl[i,midPos])[minendindex]
 		if(minend<=minstart){
 			pieces2 <- strsplit(gff[k,attribute][minendindex], split=';')
-			neargene <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='ID=', na='')), ''), collapse=';')
-			nearanno <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
-			neargo <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Ontology_term=', na='')), ''), collapse=',')
+			neargene <- paste(unique(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='ID=', na='')), '')), collapse=';')
+			nearanno <- paste(unique(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), '')), collapse=';')
+			neargo <- paste(unique(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Ontology_term=', na='')), '')), collapse=',')
 		}
 		if(minend>minstart){
 			pieces2 <- strsplit(gff[k,attribute][minstartindex], split=';')
-			neargene <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='ID=', na='')), ''), collapse=';')
-			nearanno <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), ''), collapse=';')
-			neargo <- paste(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Ontology_term=', na='')), ''), collapse=',')
+			neargene <- paste(unique(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='ID=', na='')), '')), collapse=';')
+			nearanno <- paste(unique(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Note=Similar to ', na='')), '')), collapse=';')
+			neargo <- paste(unique(setdiff(unique(sapply(pieces2, FUN=grepstrip, strip='Ontology_term=', na='')), '')), collapse=',')
 		}
 	} else {
 		neargene <- nearanno <- neargo <- ''
