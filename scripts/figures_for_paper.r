@@ -819,7 +819,9 @@ fstLof1 <- merge(fstLof1, gatk[, .(CHROM, POS)])
 fstLof2 <- merge(fstLof2, gatk[, .(CHROM, POS)])
 fstCan <- merge(fstCan, gatk[, .(CHROM, POS)])
 
-# merge fsts
+# calc and merge fsts
+fstLof1[, fst := A/B]
+fstLof2[, fst := A/B]
 fstLof <- merge(fstLof1[, .(CHROM, POS, fst1 = A/B)], fstLof2[, .(CHROM, POS, fst2 = A/B)])
 fstLof[, fst := rowMeans(cbind(fst1, fst2))]
 fstCan[, fst := A/B]
@@ -837,44 +839,88 @@ datLof <- merge(datLof, datLof14[, .(CHROM = chromo, POS = position, n3 = nInd)]
 
 # harmonic mean sample size
 datCan[, n := 2/(1/n1 + 1/n2)]
-datLof[, n := 3/(1/n1 + 1/n2 + 1/n3)]
+datLof[, n12 := 2/(1/n1 + 1/n2)]
+datLof[, n13 := 2/(1/n1 + 1/n3)]
+datLof[, n123 := 3/(1/n1 + 1/n2 + 1/n3)]
 
 datCan[, n.sc := (n - min(n))/(max(n) - min(n))] # scale 0-1
-datLof[, n.sc := (n - min(n))/(max(n) - min(n))] # scale 0-1
+datLof[, n12.sc := (n12 - min(n12))/(max(n12) - min(n12))] # scale 0-1
+datLof[, n13.sc := (n13 - min(n13))/(max(n13) - min(n13))] # scale 0-1
+datLof[, n123.sc := (n123 - min(n123))/(max(n123) - min(n123))] # scale 0-1
 
 fstCan <- merge(fstCan, datCan[, .(CHROM, POS, n, n.sc)], by = c('CHROM', 'POS'))
-fstLof <- merge(fstLof, datLof[, .(CHROM, POS, n, n.sc)], by = c('CHROM', 'POS'))
+fstLof1 <- merge(fstLof1, datLof[, .(CHROM, POS, n12, n12.sc)], by = c('CHROM', 'POS'))
+fstLof2 <- merge(fstLof2, datLof[, .(CHROM, POS, n13, n13.sc)], by = c('CHROM', 'POS'))
+fstLof <- merge(fstLof, datLof[, .(CHROM, POS, n12, n13, n123, n12.sc, n13.sc, n123.sc)], by = c('CHROM', 'POS'))
+
+# merge adjacent regions of the same comparison & test
+dat2 <- dat # the version to modify
+dat2[, todelete := 0]
+for(i in 1:nrow(dat)){
+  j <- dat[, which(CHROM == dat$CHROM[i] & comp == dat$comp[i] & test == dat$test[i] & abs(midPos - dat$midPos[i]) < 100000)]
+  if(length(j) > 1){
+    print(i)
+    dat2$POS[j[1]] <- paste0(dat$POS[j], collapse = ',')
+    dat2$midPos[j[1]] <- mean(dat$midPos[j])
+    dat2$todelete[j[-1]] <- 1
+  }
+}
+dat2[, .(CHROM, POS, midPos, comp, test, todelete)]
+dat2 <- dat2[todelete == 0, ]
 
 # make plot
 nrow = ceiling(nrow(dat)/ncol)
+bty <- 'l'
+outlcol <- 'red'
 
 png(height= 9, width=6.5, units='in', res=300, file='figures/figureS15.png')
 par(mfrow = c(nrow, ncol), mai = c(0.3, 0.3, 0.4, 0.1), omi = c(0.3, 0.3, 0, 0))
-for(i in 1:nrow(dat)){
-  if(dat$comp[i] %in% c('can', 'Canada')){
-    thisdat <- fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
-    outl <- fstCan[CHROM == dat$CHROM[i] & POS == dat$midPos[i], ]
+for(i in 1:nrow(dat2)){
+  if(dat2$comp[i] %in% c('can', 'Canada')){
+    thisdat <- fstCan[CHROM == dat2$CHROM[i] & abs(POS - dat2$midPos[i]) < rng, ]
+    outl <- fstCan[CHROM == dat2$CHROM[i] & POS == dat2$midPos[i], ]
+    if(grepl(',', dat2$POS[i])) outl <- fstCan[CHROM == dat2$CHROM[i] & POS %in% unlist(strsplit(dat2$POS[i], split = ',')), ] # if a joined region
     pop <- 'Canada'
     thisdat[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
-                   main = paste0(pop, ' ', dat$CHROM[i], '\n', dat$test[i]))]
-    outl[, points(POS/1e6, fst, col = 'red')]
+                   main = paste0(dat2$CHROM[i], ' ', pop), bty = bty)]
+    outl[, points(POS/1e6, fst, col = outlcol)]
   }
-  if(dat$comp[i] == 'Norway 1907-2011-2014'){
-    thisdat <- fstLof[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
-    outl <- fstLof[CHROM == dat$CHROM[i] & POS == dat$midPos[i], ]
-    pop <- 'Norway'
-    thisdat[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
-                   main = paste0(pop, ' ', dat$CHROM[i], '\n', dat$test[i]))]
-    outl[, points(POS/1e6, fst, col = 'red')]
+  if(dat2$comp[i] == 'Norway 1907-2011'){
+    thisdat <- fstLof1[CHROM == dat2$CHROM[i] & abs(POS - dat2$midPos[i]) < rng, ]
+    outl <- fstLof1[CHROM == dat2$CHROM[i] & POS == dat2$midPos[i], ]
+    if(grepl(',', dat2$POS[i])) outl <- fstCan[CHROM == dat2$CHROM[i] & POS %in% unlist(strsplit(dat2$POS[i], split = ',')), ] # if a joined region
+    pop <- 'Norway 1907-2011'
+    thisdat[, plot(POS/1e6, fst, cex = n12.sc, xlab = '', ylab = '',
+                   main = paste0(dat2$CHROM[i], ' ', pop), bty = bty)]
+    outl[, points(POS/1e6, fst, col = outlcol)]
   }
-  if(dat$comp[i] == 'Canada-Norway'){
-    thisdat1 <- fstLof[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
-    thisdat2 <- fstCan[CHROM == dat$CHROM[i] & abs(POS - dat$midPos[i]) < rng, ]
-    thisdat1[, plot(POS/1e6, fst, cex = n.sc, xlab = '', ylab = '',
-                   main = paste0(dat$CHROM[i], '\n', dat$test[i]))]
+  if(dat2$comp[i] == 'Norway 1907-2014'){
+    thisdat <- fstLof2[CHROM == dat2$CHROM[i] & abs(POS - dat2$midPos[i]) < rng, ]
+    outl <- fstLof2[CHROM == dat2$CHROM[i] & POS == dat2$midPos[i], ]
+    if(grepl(',', dat2$POS[i])) outl <- fstCan[CHROM == dat2$CHROM[i] & POS %in% unlist(strsplit(dat2$POS[i], split = ',')), ] # if a joined region
+    pop <- 'Norway 1907-2014'
+    thisdat[, plot(POS/1e6, fst, cex = n13.sc, xlab = '', ylab = '',
+                   main = paste0(dat2$CHROM[i], ' ', pop), bty = bty)]
+    outl[, points(POS/1e6, fst, col = outlcol)]
+  }
+  if(dat2$comp[i] == 'Norway 1907-2011-2014'){
+    thisdat <- fstLof[CHROM == dat2$CHROM[i] & abs(POS - dat2$midPos[i]) < rng, ]
+    outl <- fstLof[CHROM == dat2$CHROM[i] & POS == dat2$midPos[i], ]
+    if(grepl(',', dat2$POS[i])) outl <- fstCan[CHROM == dat2$CHROM[i] & POS %in% unlist(strsplit(dat2$POS[i], split = ',')), ] # if a joined region
+    pop <- 'Norway 1907-2011-2014'
+    thisdat[, plot(POS/1e6, fst, cex = n123.sc, xlab = '', ylab = '',
+                   main = paste0(dat2$CHROM[i], ' ', pop), cex.main = 0.95, bty = bty)]
+    outl[, points(POS/1e6, fst, col = outlcol)]
+  }
+  if(dat2$comp[i] == 'Canada-Norway'){
+    thisdat1 <- fstLof[CHROM == dat2$CHROM[i] & abs(POS - dat2$midPos[i]) < rng, ]
+    thisdat2 <- fstCan[CHROM == dat2$CHROM[i] & abs(POS - dat2$midPos[i]) < rng, ]
+    pop <- 'All'
+    thisdat1[, plot(POS/1e6, fst, cex = n123.sc, xlab = '', ylab = '',
+                   main = paste0(dat2$CHROM[i], ' ', pop), bty = bty)]
     thisdat2[, points(POS/1e6, fst, cex = n.sc, col = 'grey')]
   }
-  
+  title(main = dat2$test[i], line = 0.4, cex.main = 0.7)
 }
 
 mtext('Position (Mb)', side = 1, outer = TRUE)
