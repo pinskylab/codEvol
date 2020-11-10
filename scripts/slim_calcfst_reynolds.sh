@@ -23,6 +23,7 @@ set -o nounset  # Treat any unset variables as an error
 
 
 # gzip any raw vcf files
+echo Gzipping any raw vcf files
 module --quiet purge  # Reset the modules to the system default
 module load BCFtools/1.9-intel-2018b # for merging the vcf files
 
@@ -35,6 +36,7 @@ shopt -u nullglob # unset this option
 
 
 # calc for each simulation
+echo Calculating Reynolds FST components
 module --quiet purge  # Reset the modules to the system default
 module load R/3.6.2-foss-2019b # to convert files to beagle format (using R)
 
@@ -42,7 +44,9 @@ for f in analysis/slim_sim/slim_sim_n*_1.vcf.gz # for all gen 1 files
 do
 	f2=${f/%_1.vcf.gz/_11.vcf.gz} # create filename for the later generation file
 	out=${f/%_1.vcf.gz/.fst.csv.gz} # set up output file prefix
-
-	Rscript --vanilla scripts/fst_reynolds_fromvcf.R $f $f2 $out
+ 	if [ ! -f "$out" ]; then # only run if output does not already exist
+ 		echo $out
+  		Rscript --vanilla scripts/fst_reynolds_fromvcf.R $f $f2 $out
+	fi
 done
 

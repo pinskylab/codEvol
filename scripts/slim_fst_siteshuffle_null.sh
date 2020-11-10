@@ -33,22 +33,27 @@ do
 	
 	out=${f:18} # remove analysis/slim_sim/
 	out=tmp/${out/.fst.csv.gz/_comb.fst.csv.gz} # create output filename
+
+	outshuff=${out:4} # output file name from site shuffling (to test if already exists). cut off tmp/
+	outshuff=analysis/slim_sim/${outshuff/.fst.csv.gz/.fst.siteshuffle.csv.gz} # set up output file name
+
+	if [ ! -f "$outshuff" ]; then # only run if final shuffled file does not exist
+		#echo $szero
+		echo $out # a simple progress indicator
 	
-	#echo $szero
-	echo $out # a simple progress indicator
+		# cat together the s0 files after removing headers
+		# also replace the chromosome number with a made-up new one
+		rm -f tmp/szero.fst.csv.gz # force remove if it exists
 	
-	# cat together the s0 files after removing headers
-	# also replace the chromosome number with a made-up new one
-	rm -f tmp/szero.fst.csv.gz # force remove if it exists
+		chrom=2
+		for s in $szero*[!b].fst.csv.gz # [!b] so that _comb files aren't also included
+		do
+			zcat $s | tail -n+2 | sed -e "s/^1/$chrom/g" | gzip >> tmp/szero.fst.csv.gz # replace CHROM number and append
+			chrom=$((++chrom)) # move on to the next chromosome
+		done
 	
-	chrom=2
-	for s in $szero*[!b].fst.csv.gz # [!b] so that _comb files aren't also included
-	do
-		zcat $s | tail -n+2 | sed -e "s/^1/$chrom/g" | gzip >> tmp/szero.fst.csv.gz # replace CHROM number and append
-		chrom=$((++chrom)) # move on to the next chromosome
-	done
-	
-	zcat $f tmp/szero.fst.csv.gz | gzip > $out # cat file and the s0 files together together
+		zcat $f tmp/szero.fst.csv.gz | gzip > $out # cat file and the s0 files together together
+	fi
 done
 
 
@@ -60,9 +65,11 @@ for f in analysis/slim_sim/slim_sim_n*.fst.csv.gz
 do
 	out=${f/.fst.csv.gz/.fst.siteshuffle.csv.gz} # set up output file name
 	
-	echo $out
+	if [ ! -f "$out" ]; then # only run if final shuffled file does not exist
+		echo $out
 		
-	Rscript --vanilla scripts/slim_fst_siteshuffle_null.r $f $out
+		Rscript --vanilla scripts/slim_fst_siteshuffle_null.r $f $out
+	fi
 done
 
 # run fst site shuffle for full genomes
@@ -74,9 +81,11 @@ do
 	out=${f:4} # cut off tmp/
 	out=analysis/slim_sim/${out/.fst.csv.gz/.fst.siteshuffle.csv.gz} # set up output file name
 	
-	echo $out
+	if [ ! -f "$out" ]; then # only run if final shuffled file does not exist
+		echo $out
 		
-	Rscript --vanilla scripts/slim_fst_siteshuffle_null.r $f $out
+		Rscript --vanilla scripts/slim_fst_siteshuffle_null.r $f $out
+	fi
 done
 
 
