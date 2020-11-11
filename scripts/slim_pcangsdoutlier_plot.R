@@ -11,7 +11,7 @@ require(ggplot2)
 # read in data
 ##############
 
-files <- list.files('analysis/slim_sim/', pattern = 'slim_sim_n[[:alnum:][:punct:]]*.selection.npy') # get the fst file names
+files <- list.files('analysis/slim_sim/', pattern = 'slim_sim_n[[:alnum:][:punct:]]*.selection.npy') # get the pcangsd file names
 length(files)
 
 for(i in 1:length(files)){
@@ -169,8 +169,8 @@ ggplot(sum2, aes(x = npos, y = prop, group = f, color = s)) +
 cols <- c(rep('#af8dc3', 22), rep('#7fbf7b', 24))
 
 # pick which sim to plot
-ne=100
-s=1.5
+ne=30000
+s=0
 f=0.05
 i=1
 comb='_comb' # or ''

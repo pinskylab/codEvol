@@ -782,7 +782,7 @@ ggsave(plot = fs13, filename = 'figures/figureS13.png', width = 7, height = 2, d
 
 
 ############################################################
-## Fig. S14 Power to detect selection from FST site-shuffle
+## Fig. S14 Power to detect selection from PCAngsd
 ############################################################
 require(ggplot2)
 

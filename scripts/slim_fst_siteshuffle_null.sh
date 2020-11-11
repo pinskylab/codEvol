@@ -26,6 +26,7 @@ set -o nounset  # Treat any unset variables as an error
 
 
 #merge each sim with 20 other chromosomes with s=0
+# only run if final shuffled file does not exist
 for f in analysis/slim_sim/slim_sim_n*.fst.csv.gz #
 do
 	szero=$(echo "$f" | sed -e 's/_s0.[1-9]_\|_s1_\|_s1.[1-9]_\+/_s0_/g') # get name of the corresponding s0 files

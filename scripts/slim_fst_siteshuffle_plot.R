@@ -109,14 +109,14 @@ ggplot(sum2, aes(s, fpl05, group = f, color = as.factor(f))) +
   coord_cartesian(ylim = c(0,1))
 ggsave('figures/slim_fst_siteshuffle_fpl05.png', width = 7, height = 4, dpi = 150)
 
-# fraction of sims with at least one window p<0.05
+# fraction of sims with at least two windows p<0.05
 ggplot(sum2, aes(s, f2pl05, group = f, color = as.factor(f))) +
   geom_point() +
   geom_smooth(method = 'lm') +
   facet_grid(comb ~ ne) +
   coord_cartesian(ylim = c(0,1))
 
-# fraction of sims with at least two windows p<0.05
+# fraction of sims with at least three windows p<0.05
 ggplot(sum2, aes(s, f3pl05, group = f, color = as.factor(f))) +
   geom_point() +
   geom_smooth(method = 'lm') +
