@@ -103,7 +103,9 @@ ggplot(sum1, aes(x = ne, y = npos, group = as.factor(f), color = as.factor(f))) 
   facet_grid(~ comb, scales = 'free') +
   labs(color = 'Initial frequency') +
   scale_y_log10() +
+  scale_x_log10() +
   ylab('# NSPs')
+ggsave('figures/slim_nsnps.png', width = 6, height = 3, dpi = 150)
 
 # plot min p vs. s and ne and comb (group by f)
 ggplot(sum1, aes(x = s, y = -log10(minp), group = as.factor(f), color = as.factor(f))) +
