@@ -380,3 +380,5 @@ for(i in 1:nrow(anno2)){
   if(!exists('outdat')) outdat <- thisdat
   if(exists('outdat')) outdat <- rbind(outdat, thisdat)
 }
+
+write.csv(outdat, 'output/outlierSNPs_in_outlierregions.csv')
