@@ -328,4 +328,55 @@ t(t(sort(table(gos2), decreasing=TRUE)))
 ############
 
 write.csv(anno2, file='tables/outlier_annotation.csv', row.names=FALSE)
-	
+
+
+#############################################################
+# Write out list of high Fst loci within outlier regions
+#############################################################
+# read in outliers and trim to regions
+anno2 <- fread('tables/outlier_annotation.csv')
+anno2 <- anno2[region == 1,]
+anno2[, midPos := as.numeric(midPos)]
+
+# read in Fsts
+fstLof1 <- fread('analysis/Lof_07.Lof_11.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B')) # from angsd_fst.sh
+fstLof2 <- fread('analysis/Lof_07.Lof_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
+fstCan <- fread('analysis/Can_40.Can_14.fst.AB.gz', col.names = c('CHROM', 'POS', 'A', 'B'))
+
+# trim fsts to nodam2 loci
+gatk <- fread('data_2020.05.07/GATK_filtered_SNP_no_dam2.tab', col.names = c('CHROM', 'POS', 'REF', 'ALT'))
+fstLof1 <- merge(fstLof1, gatk[, .(CHROM, POS)])
+fstLof2 <- merge(fstLof2, gatk[, .(CHROM, POS)])
+fstCan <- merge(fstCan, gatk[, .(CHROM, POS)])
+
+# calc and merge fsts
+fstLof1[, fst := A/B]
+fstLof2[, fst := A/B]
+fstLof <- merge(fstLof1[, .(CHROM, POS, fst1 = A/B)], fstLof2[, .(CHROM, POS, fst2 = A/B)])
+fstLof[, fst := rowMeans(cbind(fst1, fst2))]
+fstCan[, fst := A/B]
+
+# find high FST snps in outlier regions
+fstthresh <- 0.2
+rng <- 25000
+for(i in 1:nrow(anno2)){
+  if(anno2$comp[i] %in% c('can', 'Canada')){
+    thisdat <- fstCan[CHROM == anno2$CHROM[i] & abs(POS - anno2$midPos[i]) < rng & fst >= fstthresh, .(CHROM, POS, fst, pop = 'Canada')]
+  }
+  if(anno2$comp[i] == 'Norway 1907-2011'){
+    thisdat <- fstLof1[CHROM == anno2$CHROM[i] & abs(POS - anno2$midPos[i]) < rng & fst >= fstthresh, .(CHROM, POS, fst, pop = 'Norway 1907-2011')]
+  }
+  if(anno2$comp[i] == 'Norway 1907-2014'){
+    thisdat <- fstLof2[CHROM == anno2$CHROM[i] & abs(POS - anno2$midPos[i]) < rng & fst >= fstthresh, .(CHROM, POS, fst, pop = 'Norway 1907-2014')]
+  }
+  if(anno2$comp[i] == 'Norway 1907-2011-2014'){
+    thisdat <- fstLof[CHROM == anno2$CHROM[i] & abs(POS - anno2$midPos[i]) < rng & fst >= fstthresh, .(CHROM, POS, fst, pop = 'Norway 1907-2011-2014')]
+  }
+  if(anno2$comp[i] == 'Canada-Norway'){
+    thisdat1 <- fstLof[CHROM == anno2$CHROM[i] & abs(POS - anno2$midPos[i]) < rng & fst >= fstthresh, .(CHROM, POS, fst, pop = 'Norway 1907-2011-2014')]
+    thisdat2 <- fstCan[CHROM == anno2$CHROM[i] & abs(POS - anno2$midPos[i]) < rng & fst >= fstthresh, .(CHROM, POS, fst, pop = 'Canada')]
+    thisdat <- rbind(thisdat1, thisdat2)
+  }
+  if(!exists('outdat')) outdat <- thisdat
+  if(exists('outdat')) outdat <- rbind(outdat, thisdat)
+}
