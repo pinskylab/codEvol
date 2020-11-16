@@ -171,7 +171,7 @@ ggplot(sum2, aes(x = npos, y = prop, group = f, color = s)) +
 cols <- c(rep('#af8dc3', 22), rep('#7fbf7b', 24))
 
 # pick which sim to plot
-ne=30000
+ne=300
 s=0
 f=0.05
 i=1
@@ -180,5 +180,11 @@ comb='_comb' # or ''
 cov <- fread(paste0('analysis/slim_sim/slim_sim_n', ne, '_s', s, '_f', f, '_i', i, comb, '.cov'))
 eig <- eigen(cov)
 
+png(filename = paste0('figures/slim_pca_n', ne, '_s', s, '_f', f, '_i', i, 
+                      ifelse(comb=='_comb', '_wholegen.png', 'onechrom.png')),
+    width = 4, height = 4, units = 'in', res = 300)
 plot(eig$vectors[, 1:2], xlab = 'PC1', ylab = 'PC2', col = cols,
-     main = paste0('ne=', ne, ' s=', s, ' init freq=', f, ' iter#', i, ifelse(comb=='_comb', ' whole genome', ' one chromosome')))
+     main = paste0('ne=', ne, ' s=', s, ' init freq=', f, '\niter#', i, ifelse(comb=='_comb', ' whole genome', ' one chromosome')))
+legend('topright', legend = c('1', '11'), col = cols[c(1,23)], pch = 1, title = 'generation')
+dev.off()
+
