@@ -145,24 +145,20 @@ ggsave(p5, filename = 'figures/figure1.pdf', width = 7.5, height = 2)
 
 # read in data: sliding window fst from ANGSD (GATK nodam2 sites)
 dat1 <- fread('analysis/Can_40.Can_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1) # output by angsd_fst.sh. skip headers.
-dat2 <- fread('analysis/Lof_07.Lof_11.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
 dat3 <- fread('analysis/Lof_07.Lof_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
-dat4 <- fread('analysis/Lof_11.Lof_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
 
 dat1[, pop := 'can']
-dat2[, pop := 'lof0711']
 dat3[, pop := 'lof0714']
-dat4[, pop := 'lof1114']
 
-dat <- rbind(dat1, dat2, dat3, dat4)
+dat <- rbind(dat1, dat3)
 
 # trim to non-overlapping windows
 dat <- dat[(midPos - 1) %% 25000 == 0, ]
 
-# read in outlier regions
+# read in shared outlier regions
 outl <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
 outl[, midPos := as.numeric(midPos) + 1] # add one to match dat centers
-outl <- outl[region == 1, .(CHROM, midPos, outl = 1)] # trim to just regions
+outl <- outl[region == 1 & test == '99th percentile across pops', .(CHROM, midPos, outl = 1)] # trim to just regions
 dat <- merge(dat, outl, all.x = TRUE)
 dat[is.na(outl), outl := 0]
 
@@ -195,8 +191,8 @@ linelet <- 0.2
 cexsc <- 1/5
 
 # quartz(height=8, width=6)
-png(height=5, width=6, units='in', res=300, file='figures/figure2.png')
-par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.15, 0.1))
+png(height=3, width=6, units='in', res=300, file='figures/figure2.png')
+par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 xlims <- dat[, range(posgen, na.rm=TRUE)]
 
@@ -207,27 +203,89 @@ mtext(side=3, 'A. Canada 1940-2013', adj=adjlet, line=linelet, cex=cexlet)
 
 legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.5)
 
+dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims,  xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0714' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
+mtext(side=3, 'B. Norway 1907-2014', adj=adjlet, line=linelet, cex=cexlet)
+
+dev.off()
+
+####################################################
+## Fig. S6 Manhattan plot FSTs 1907-2011 and 2011-2014
+####################################################
+
+# read in data: sliding window fst from ANGSD (GATK nodam2 sites)
+dat2 <- fread('analysis/Lof_07.Lof_11.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+dat4 <- fread('analysis/Lof_11.Lof_14.gatk.slide', col.names = c('region', 'CHROM', 'midPos', 'nloci', 'fst'), skip = 1)
+
+dat2[, pop := 'lof0711']
+dat4[, pop := 'lof1114']
+
+dat <- rbind(dat2, dat4)
+
+# trim to non-overlapping windows
+dat <- dat[(midPos - 1) %% 25000 == 0, ]
+
+# read in outlier regions
+outl <- fread('tables/outlier_annotation.csv') # annotated list of outliers, from annotate_outliers.r
+outl[, midPos := as.numeric(midPos) + 1] # add one to match dat centers
+outl <- outl[region == 1, .(CHROM, midPos, outl = 1)] # trim to just regions
+dat <- merge(dat, outl, all.x = TRUE)
+dat[is.na(outl), outl := 0]
+
+# LG mid-points and genome position
+chrmax <- fread('data/lg_length.csv')
+chrmax[, start := c(0,cumsum(chrmax$len)[1:(nrow(chrmax)-1)])]
+chrmax[, mid := rowSums(cbind(start, length/2))]
+
+setkey(dat, CHROM)
+dat <- dat[chrmax[, .(CHROM = chr, start)], ]
+dat[, posgen := midPos + start]
+dat[,start := NULL]
+
+
+# trim out Unplaced or windows with <2 loci
+dat <- dat[!(CHROM %in% c('Unplaced')) & nloci > 1, ]
+nrow(dat)
+
+
+# add a vector for color by LG
+lgs <- dat[, sort(unique(CHROM))]
+dat[,lgcol := cols[1]]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
+
+
+### set up plot
+adjlet <- -0.14 # horizontal adjustment for subplot letter
+cexlet <- 0.7
+linelet <- 0.2
+cexsc <- 1/5
+
+# quartz(height=8, width=6)
+png(height=3, width=6, units='in', res=300, file='figures/figureS6.png')
+par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.3, 0.1))
+
+xlims <- dat[, range(posgen, na.rm=TRUE)]
+
+
 
 dat[pop == 'lof0711', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'lof0711' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
-mtext(side=3, 'B. Norway 1907-2011', adj=adjlet, line=linelet, cex=cexlet)
+mtext(side=3, 'A. Norway 1907-2011', adj=adjlet, line=linelet, cex=cexlet)
 
-dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims,  xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-dat[pop == 'lof0714' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
-mtext(side=3, 'C. Norway 1907-2014', adj=adjlet, line=linelet, cex=cexlet)
+legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.5)
 
 dat[pop == 'lof1114', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
-mtext(side=3, 'D. Norway 2011-2014', adj=adjlet, line=linelet, cex=cexlet)
+mtext(side=3, 'B. Norway 2011-2014', adj=adjlet, line=linelet, cex=cexlet)
 
 
 dev.off()
 
 
 ####################################################
-## Fig. S5 Manhattan plot FST site-shuffle p-value
+## Fig. S7 Manhattan plot FST site-shuffle p-value
 ####################################################
 
 # read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK nodam2 unlinked sites)
@@ -258,7 +316,7 @@ cexlet <- 0.8
 linelet <- 0.2
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS5.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS7.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 ymin <- min(c(dat[, min(p, na.rm=TRUE)], 0.05))
@@ -296,7 +354,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S6 Manhattan plot change in pi by region
+## Fig. S8 Manhattan plot change in pi by region
 ####################################################
 winsz = 5e4 # for scaling the windowed pi and thetaW values
 
@@ -333,7 +391,7 @@ cexlet <- 1
 linelet <- -0.5
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS6.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS8.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1), mgp = c(4, 1, 0))
 
 ylims <- dat[, range(tPd/winsz, na.rm=TRUE)]
@@ -365,7 +423,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S7 Manhattan plot change in D by region
+## Fig. S9 Manhattan plot change in D by region
 ####################################################
 
 # read in data: sliding window D from ANGSD (GATK nodam2 unlinked sites)
@@ -401,7 +459,7 @@ cexlet <- 1
 linelet <- -0.5
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS7.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS9.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1), mgp = c(4, 1, 0))
 
 ylims <- dat[, range(tDd, na.rm=TRUE)]
@@ -434,7 +492,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S8 Manhattan plot change in LD by region
+## Fig. S10 Manhattan plot change in LD by region
 ####################################################
 
 # read in data: sliding window D from ngsLD (GATK nodam2 sites)
@@ -465,7 +523,7 @@ cexlet <- 1
 linelet <- -0.5
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS8.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS10.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1), mgp = c(4, 1, 0))
 
 ylims <- datl[, range(ldchange, na.rm=TRUE)]
@@ -498,7 +556,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S9 Manhattan plot p-value for change in pi by region
+## Fig. S11 Manhattan plot p-value for change in pi by region
 ####################################################
 
 # read in data: sliding window pi from ANGSD (GATK nodam2 unlinked sites)
@@ -520,7 +578,7 @@ cexlet <- 0.8
 linelet <- 0.2
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS9.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS11.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 ylims <- c(1, dat[, min(c(tPd.p, 0.05), na.rm=TRUE)])
@@ -557,7 +615,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S10 Manhattan plot p-value for change in D by region
+## Fig. S12 Manhattan plot p-value for change in D by region
 ####################################################
 
 # read in data: sliding window pi from ANGSD (GATK nodam2 unlinked sites)
@@ -579,7 +637,7 @@ cexlet <- 0.8
 linelet <- 0.2
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS10.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS12.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 ylims <- c(1, dat[, min(c(tDd.p, 0.05), na.rm=TRUE)])
@@ -614,149 +672,6 @@ mtext(side=3, 'D. Norway 2011-2014', adj=adjlet, line=linelet, cex=cexlet)
 dev.off()
 
 
-
-#########################################
-## Fig. S11 Manhattan plot FSTs by SNP
-#########################################
-
-# WFS results, from wfs_nullmodel_analysis.r
-wfs <- fread('analysis/wfs_nullmodel_padj.csv.gz')
-
-# 1907-2011-2014 fsts
-fst <- fread('analysis/gatk.lof07-11-14.weir.fst', header=TRUE) # from vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --weir-fst-pop data_2020.05.07/popLof07.txt --weir-fst-pop data_2020.05.07/popLof11.txt --weir-fst-pop data_2020.05.07/popLof14.txt --out analysis/gatk.lof07-11-14
-datLof <- merge(fst, wfs[pop == 'Lof', .(CHROM, POS, pop, p.adj)], by = c('CHROM', 'POS'))
-
-# Canada fsts
-fstCan <- fread('analysis/gatk.can.weir.fst', header=TRUE) # from vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --weir-fst-pop data_2020.05.07/popCan40.txt --weir-fst-pop data_2020.05.07/popCan13.txt --out analysis/gatk.can
-datCan <- merge(fstCan, wfs[pop == 'Can', .(CHROM, POS, pop, p.adj)], by = c('CHROM', 'POS'))
-nrow(datCan)
-
-# combine
-dat <- rbind(datLof, datCan)
-
-# add genome position
-chrmax <- fread('data/lg_length.csv')
-chrmax[, start := c(0,cumsum(chrmax$length)[1:(nrow(chrmax)-1)])]
-chrmax[, mid := rowSums(cbind(start, length/2))]
-
-dat <- merge(dat, chrmax[, .(CHROM = chr, start)], by = c('CHROM'))
-dat[, POSgen := POS + start]
-dat[,start := NULL]
-
-# trim out NAs
-dat <- dat[!is.na(WEIR_AND_COCKERHAM_FST), ]
-
-
-# add a vector for color by LG
-lgs <- dat[, sort(unique(CHROM))]
-dat[,lgcol := lgcolsramp(p.adj, lg = 1, thresh = 0.1)]
-dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(p.adj, lg = 2, thresh = 0.1)]
-
-# and for plotting a colorbar
-cbar <- data.frame(logx = seq(0, 1.30103, length.out=50))
-cbar$x <- 10^(-cbar$logx)
-cbar$col1 <- lgcolsramp(cbar$x, lg = 1, thresh = 0.1)
-cbar$col2 <- lgcolsramp(cbar$x, lg = 2, thresh = 0.1)
-
-# order
-setorder(dat, pop, -p.adj)
-
-### set up plot
-adjlet <- -0.11 # horizontal adjustment for subplot letter
-cexlet <- 1
-linelet <- -0.5
-cexsc <- 1/5
-
-ylims <- dat[, range(WEIR_AND_COCKERHAM_FST, na.rm=TRUE)]
-xlims <- dat[, range(POSgen, na.rm=TRUE)]
-
-
-png(height=3.5, width=6, units='in', res=300, file='figures/figureS11.png')
-par(mfrow = c(2,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1))
-
-dat[pop == 'Can', plot(POSgen, WEIR_AND_COCKERHAM_FST, type='p', col=lgcol, xlim = xlims, xlab = '', 
-                       ylim = ylims, ylab = expression(F[ST]), bty = 'l', cex.lab = 1, cex.axis = 0.8, cex = 0.3, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.5, line = -0.6) # plot x-axis
-mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
-
-color.bar(cbar$col1, cbar$x, axis = FALSE, nticks = 5, xposmin =20e6, xposmax = 26e6, yposmin = -0.95, yposmax = -0.2)
-color.bar(cbar$col2, cbar$x, cex = 0.7, axis = TRUE, nticks = 5, 
-          xposmin =26e6, xposmax = 32e6, yposmin = -0.95, yposmax = -0.2, title = 'p-value', titley = -0.05)
-
-
-dat[pop == 'Lof', plot(POSgen, WEIR_AND_COCKERHAM_FST, type='p', col=lgcol, xlim = xlims, xlab = '', 
-                           ylim = ylims, ylab = expression(F[ST]), bty = 'l', cex.lab = 1, cex.axis = 0.8, cex = 0.3, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.5, line = -0.6) # plot x-axis
-mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
-
-
-dev.off()
-
-
-
-
-####################################################
-## Fig. S12 Manhattan plot p-value for pcangsd
-####################################################
-
-# read in data: outlier test from pcangsd (GATK nodam2 unlinked sites)
-dat <- fread('analysis/pcangsd_outlier.gatk.nodam.unlinked.csv.gz') # output by angsd_pcangsd_plot_selection.r
-
-# LG mid-points and genome position
-chrmax <- fread('data/lg_length.csv')
-chrmax[, start := c(0,cumsum(chrmax$length)[1:(nrow(chrmax)-1)])]
-chrmax[, mid := rowSums(cbind(start, length/2))]
-
-dat <- merge(dat, chrmax[, .(CHROM = chr, start)], by = c('CHROM'))
-dat[, POSgen := POS + start]
-dat[,start := NULL]
-
-# add a vector for color by LG
-lgs <- dat[, sort(unique(CHROM))]
-dat[,lgcol := lgcolsramp(0.2, lg = 1, thresh = 0.1)]
-dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(0.2, lg = 2, thresh = 0.1)]
-
-### set up plot
-adjlet <- -0.14 # horizontal adjustment for subplot letter
-cexlet <- 0.8
-linelet <- 0.2
-cexsc <- 1/5
-
-png(height=5, width=6, units='in', res=300, file='figures/figureS12.png')
-par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
-
-ylims <- c(0, dat[, max(c(-log10(pfdr), -log10(0.05)), na.rm=TRUE)])
-xlims <- dat[, range(POSgen, na.rm=TRUE)]
-
-dat[pop == 'can', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
-                       ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
-mtext(side=3, 'A. Canada 1940-2013', adj=adjlet, line=linelet, cex=cexlet)
-abline(h = -log10(0.05), lty = 2, col = 'grey')
-
-
-dat[pop == 'lof0711', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
-                           ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
-mtext(side=3, 'B. Norway 1907-2011', adj=adjlet, line=linelet, cex=cexlet)
-abline(h = -log10(0.05), lty = 2, col = 'grey')
-
-dat[pop == 'lof0714', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
-                           ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
-mtext(side=3, 'C. Norway 1907-2014', adj=adjlet, line=linelet, cex=cexlet)
-abline(h = -log10(0.05), lty = 2, col = 'grey')
-
-dat[pop == 'lof1114', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
-                           ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
-axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
-mtext(side=3, 'D. Norway 2011-2014', adj=adjlet, line=linelet, cex=cexlet)
-abline(h = -log10(0.05), lty = 2, col = 'grey')
-
-
-dev.off()
-
-
 ############################################################
 ## Fig. S13 Power to detect selection from FST site-shuffle
 ############################################################
@@ -780,32 +695,8 @@ fs13 <- ggplot(dat[comb == 1, ], aes(s, fpl05, group = f, color = as.factor(f)))
 ggsave(plot = fs13, filename = 'figures/figureS13.png', width = 7, height = 2, dpi = 300)
 
 
-
-############################################################
-## Fig. S14 Power to detect selection from PCAngsd
-############################################################
-require(ggplot2)
-
-# read in data: outlier test from pcangsd (GATK nodam2 unlinked sites)
-dat <- fread('analysis/slim_pcangsd.summary.csv.gz') # output by slim_pcangsdoutlier_plot.R
-
-# plot
-fs14 <- ggplot(dat[comb == 1, ], aes(s, prop, group = f, color = as.factor(f))) +
-  geom_point() +
-  geom_smooth(method = 'lm') +
-  facet_grid(~ ne, labeller = label_both) +
-  coord_cartesian(ylim = c(0,1)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        panel.spacing = unit(1, "lines")) +
-  labs(y = 'Proportion that\ndetect outlier loci', color = "Initial frequency")
-ggsave(plot = fs14, filename = 'figures/figureS14.png', width = 7, height = 2, dpi = 300)
-
-
 #########################################
-# Fig. S15 Fst around putative outliers
+# Fig. S14 Fst around putative outliers
 #########################################
 library(data.table)
 ncol = 3 # number of columns in graph
@@ -881,7 +772,7 @@ nrow = ceiling(nrow(dat)/ncol)
 bty <- 'l'
 outlcol <- 'red'
 
-png(height= 9, width=6.5, units='in', res=300, file='figures/figureS15.png')
+png(height= 9, width=6.5, units='in', res=300, file='figures/figureS14.png')
 par(mfrow = c(nrow, ncol), mai = c(0.3, 0.3, 0.4, 0.1), omi = c(0.3, 0.3, 0, 0))
 for(i in 1:nrow(dat2)){
   if(dat2$comp[i] %in% c('can', 'Canada')){
@@ -925,7 +816,7 @@ for(i in 1:nrow(dat2)){
     thisdat2 <- fstCan[CHROM == dat2$CHROM[i] & abs(POS - dat2$midPos[i]) < rng, ]
     pop <- 'All'
     thisdat1[, plot(POS/1e6, fst, cex = n123.sc, xlab = '', ylab = '',
-                   main = paste0(dat2$CHROM[i], ' ', pop), bty = bty)]
+                    main = paste0(dat2$CHROM[i], ' ', pop), bty = bty)]
     thisdat2[, points(POS/1e6, fst, cex = n.sc, col = 'grey')]
   }
   title(main = dat2$test[i], line = 0.4, cex.main = 0.7)
@@ -935,6 +826,173 @@ mtext('Position (Mb)', side = 1, outer = TRUE)
 mtext('Fst', side = 2, outer = TRUE)
 
 dev.off()
+
+
+
+#########################################
+## Fig. S15 Manhattan plot FSTs by SNP
+#########################################
+
+# WFS results, from wfs_nullmodel_analysis.r
+wfs <- fread('analysis/wfs_nullmodel_padj.csv.gz')
+
+# 1907-2011-2014 fsts
+fst <- fread('analysis/gatk.lof07-11-14.weir.fst', header=TRUE) # from vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --weir-fst-pop data_2020.05.07/popLof07.txt --weir-fst-pop data_2020.05.07/popLof11.txt --weir-fst-pop data_2020.05.07/popLof14.txt --out analysis/gatk.lof07-11-14
+datLof <- merge(fst, wfs[pop == 'Lof', .(CHROM, POS, pop, p.adj)], by = c('CHROM', 'POS'))
+
+# Canada fsts
+fstCan <- fread('analysis/gatk.can.weir.fst', header=TRUE) # from vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --weir-fst-pop data_2020.05.07/popCan40.txt --weir-fst-pop data_2020.05.07/popCan13.txt --out analysis/gatk.can
+datCan <- merge(fstCan, wfs[pop == 'Can', .(CHROM, POS, pop, p.adj)], by = c('CHROM', 'POS'))
+nrow(datCan)
+
+# combine
+dat <- rbind(datLof, datCan)
+
+# add genome position
+chrmax <- fread('data/lg_length.csv')
+chrmax[, start := c(0,cumsum(chrmax$length)[1:(nrow(chrmax)-1)])]
+chrmax[, mid := rowSums(cbind(start, length/2))]
+
+dat <- merge(dat, chrmax[, .(CHROM = chr, start)], by = c('CHROM'))
+dat[, POSgen := POS + start]
+dat[,start := NULL]
+
+# trim out NAs
+dat <- dat[!is.na(WEIR_AND_COCKERHAM_FST), ]
+
+
+# add a vector for color by LG
+lgs <- dat[, sort(unique(CHROM))]
+dat[,lgcol := lgcolsramp(p.adj, lg = 1, thresh = 0.1)]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(p.adj, lg = 2, thresh = 0.1)]
+
+# and for plotting a colorbar
+cbar <- data.frame(logx = seq(0, 1.30103, length.out=50))
+cbar$x <- 10^(-cbar$logx)
+cbar$col1 <- lgcolsramp(cbar$x, lg = 1, thresh = 0.1)
+cbar$col2 <- lgcolsramp(cbar$x, lg = 2, thresh = 0.1)
+
+# order
+setorder(dat, pop, -p.adj)
+
+### set up plot
+adjlet <- -0.11 # horizontal adjustment for subplot letter
+cexlet <- 1
+linelet <- -0.5
+cexsc <- 1/5
+
+ylims <- dat[, range(WEIR_AND_COCKERHAM_FST, na.rm=TRUE)]
+xlims <- dat[, range(POSgen, na.rm=TRUE)]
+
+
+png(height=3.5, width=6, units='in', res=300, file='figures/figureS15.png')
+par(mfrow = c(2,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1))
+
+dat[pop == 'Can', plot(POSgen, WEIR_AND_COCKERHAM_FST, type='p', col=lgcol, xlim = xlims, xlab = '', 
+                       ylim = ylims, ylab = expression(F[ST]), bty = 'l', cex.lab = 1, cex.axis = 0.8, cex = 0.3, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.5, line = -0.6) # plot x-axis
+mtext(side=3, 'A', adj=adjlet, line=linelet, cex=cexlet)
+
+color.bar(cbar$col1, cbar$x, axis = FALSE, nticks = 5, xposmin =20e6, xposmax = 26e6, yposmin = -0.95, yposmax = -0.2)
+color.bar(cbar$col2, cbar$x, cex = 0.7, axis = TRUE, nticks = 5, 
+          xposmin =26e6, xposmax = 32e6, yposmin = -0.95, yposmax = -0.2, title = 'p-value', titley = -0.05)
+
+
+dat[pop == 'Lof', plot(POSgen, WEIR_AND_COCKERHAM_FST, type='p', col=lgcol, xlim = xlims, xlab = '', 
+                       ylim = ylims, ylab = expression(F[ST]), bty = 'l', cex.lab = 1, cex.axis = 0.8, cex = 0.3, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.5, line = -0.6) # plot x-axis
+mtext(side=3, 'B', adj=adjlet, line=linelet, cex=cexlet)
+
+
+dev.off()
+
+
+
+####################################################
+## Fig. S16 Manhattan plot p-value for pcangsd
+####################################################
+
+# read in data: outlier test from pcangsd (GATK nodam2 unlinked sites)
+dat <- fread('analysis/pcangsd_outlier.gatk.nodam.unlinked.csv.gz') # output by angsd_pcangsd_plot_selection.r
+
+# LG mid-points and genome position
+chrmax <- fread('data/lg_length.csv')
+chrmax[, start := c(0,cumsum(chrmax$length)[1:(nrow(chrmax)-1)])]
+chrmax[, mid := rowSums(cbind(start, length/2))]
+
+dat <- merge(dat, chrmax[, .(CHROM = chr, start)], by = c('CHROM'))
+dat[, POSgen := POS + start]
+dat[,start := NULL]
+
+# add a vector for color by LG
+lgs <- dat[, sort(unique(CHROM))]
+dat[,lgcol := lgcolsramp(0.2, lg = 1, thresh = 0.1)]
+dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := lgcolsramp(0.2, lg = 2, thresh = 0.1)]
+
+### set up plot
+adjlet <- -0.14 # horizontal adjustment for subplot letter
+cexlet <- 0.8
+linelet <- 0.2
+cexsc <- 1/5
+
+png(height=5, width=6, units='in', res=300, file='figures/figureS16.png')
+par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
+
+ylims <- c(0, dat[, max(c(-log10(pfdr), -log10(0.05)), na.rm=TRUE)])
+xlims <- dat[, range(POSgen, na.rm=TRUE)]
+
+dat[pop == 'can', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
+                       ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'A. Canada 1940-2013', adj=adjlet, line=linelet, cex=cexlet)
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+
+dat[pop == 'lof0711', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'B. Norway 1907-2011', adj=adjlet, line=linelet, cex=cexlet)
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+dat[pop == 'lof0714', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'C. Norway 1907-2014', adj=adjlet, line=linelet, cex=cexlet)
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+dat[pop == 'lof1114', plot(POSgen, -log10(pfdr), type='p', col=lgcol, xlim = xlims, xlab = '', 
+                           ylim = ylims, ylab = expression(-log[10](p)), bty = 'l', cex.lab = 1, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8)
+mtext(side=3, 'D. Norway 2011-2014', adj=adjlet, line=linelet, cex=cexlet)
+abline(h = -log10(0.05), lty = 2, col = 'grey')
+
+
+dev.off()
+
+
+############################################################
+## Fig. S17 Power to detect selection from PCAngsd
+############################################################
+require(ggplot2)
+
+# read in data: outlier test from pcangsd (GATK nodam2 unlinked sites)
+dat <- fread('analysis/slim_pcangsd.summary.csv.gz') # output by slim_pcangsdoutlier_plot.R
+
+# plot
+fs14 <- ggplot(dat[comb == 1, ], aes(s, prop, group = f, color = as.factor(f))) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_grid(~ ne, labeller = label_both) +
+  coord_cartesian(ylim = c(0,1)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        panel.spacing = unit(1, "lines")) +
+  labs(y = 'Proportion that\ndetect outlier loci', color = "Initial frequency")
+ggsave(plot = fs14, filename = 'figures/figureS17.png', width = 7, height = 2, dpi = 300)
+
+
 
 ######################
 ## Table S5 Outliers
