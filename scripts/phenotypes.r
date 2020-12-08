@@ -35,17 +35,13 @@ ggplot(lofmatl, aes(age, propmat, group = Year, color = Year)) +
 canmat50 <- canmatl[, .(age50 = calc50p(age, cbind(propmat*1000, (1-propmat)*1000)), pop = 'can'), by = Year]
 lofmat50 <- lofmatl[, .(age50 = calc50p(age, cbind(propmat*1000, (1-propmat)*1000)), pop = 'lof'), by = Year]
 
-# plot age of 50% maturity by year
-ggplot(canmat50, aes(Year, age50)) +
-  geom_line() + 
-  geom_smooth()
-
-ggplot(lofmat50, aes(Year, age50)) +
-  geom_line() + 
-  geom_smooth()
-
 # combine
 mat50 <- rbind(canmat50, lofmat50)
+
+# plot age of 50% maturity by year
+ggplot(mat50, aes(Year, age50, group = pop, color = pop)) +
+  geom_line() + 
+  geom_smooth()
 
 # write out
 write.csv(mat50, 'output/age_50percmature.csv', row.names = FALSE)
