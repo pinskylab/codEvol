@@ -1,4 +1,4 @@
-# to run on cod node
+# to run on saga
 
 require(data.table)
 

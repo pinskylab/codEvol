@@ -20,7 +20,7 @@ module purge
 module load VCFtools/0.1.16-foss-2018b-Perl-5.28.0
 module load R/3.5.1-foss-2018b
 
-#####Script to run a bionomial test of allele contribution (read depth of alleles) on heterozygote genotype calls. A true mendelian SNP will fall within the 0.5 frequency
+#####Script to run a binomial test of allele contribution (read depth of alleles) on heterozygote genotype calls. A true mendelian SNP will fall within the 0.5 frequency
 #### R script is made by Malin Pinsky, with input from Bastiaan Star
 #### Use at own risk
 
@@ -42,10 +42,10 @@ vcftools --gzvcf $1 \
 --out $1
 
 
-echo "Running bionomial test on heterozygote genotype calls..."
+echo "Running binomial test on heterozygote genotype calls..."
 
 
-##run bionomial test
+##run binomial test
 Rscript /cluster/projects/nn9244k/databases/old_bin_CEES/filter_allele_balance.r $1.GT.FORMAT $1.AD.FORMAT $1
 
 ## Select the postions to EXCLUDE (significant test)
