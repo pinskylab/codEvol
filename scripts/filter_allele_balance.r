@@ -1,9 +1,15 @@
 # to run on cod node
 
-require(data.table, lib.loc="/projects/cees/lib/R_packages/")
+require(data.table)
 
-gt <- fread('Allele_balance/Allele_balance.GT.FORMAT') # takes 45 sec or so
-ad <- fread('Allele_balance/Allele_balance.AD.FORMAT') # takes 45 sec or so
+
+#accept arguments
+args<-commandArgs(TRUE)
+
+
+
+gt <- fread(args[1]) # takes 45 sec or so
+ad <- fread(args[2]) # takes 45 sec or so
 
 dim(gt)
 dim(ad)
@@ -13,7 +19,7 @@ setnames(gt, 3:ncol(gt), paste(names(gt)[3:ncol(gt)], '_gt', sep=''))
 setkey(gt, CHROM, POS)
 setkey(ad, CHROM, POS)
 ad2 <- merge(ad, gt)
-	
+
 # mask uncalled or homozygote individuals (set to NA)
 indivs <- setdiff(names(ad), c('CHROM', 'POS'))
 for(i in indivs){
@@ -56,4 +62,7 @@ ad2[,binompFDR := p.adjust(binomp, method='fdr')]
 # write out
 #write.table(ad2[,.(CHROM, POS, sumRef, sumAlt)], file='Allele_balance/Allele_balance.binomp.tsv', row.names=FALSE, sep='/t')
 
-write.table(ad2[,.(CHROM, POS, sumRef, sumAlt, binomp, binompFDR)], file='Allele_balance/Allele_balance.binomp.tsv', row.names=FALSE, sep='\t', quote=FALSE)
+x=paste0(c(args[3]),c(".tsv"))
+
+
+write.table(ad2[,.(CHROM, POS, sumRef, sumAlt, binomp, binompFDR)], file=x, row.names=FALSE, sep='\t', quote=FALSE)
