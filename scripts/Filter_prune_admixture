@@ -1,0 +1,39 @@
+#Note give one argument_to_name_resulting_file
+
+#you have to adapt the filtering to what you want!
+#you may have to change the plotting characterisitics
+
+module purge
+module load VCFtools/0.1.16-foss-2018b-Perl-5.28.0
+module load BCFtools/1.9-foss-2018b
+module load PLINK/1.9b_6.13-x86_64
+
+
+vcftools --gzvcf ../GVCF/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --plink --out $1 \
+--not-chr LG01 \
+--not-chr LG02 \
+--not-chr LG07 \
+--not-chr LG12 \
+--not-chr Unplaced \
+--minGQ 20 \
+--minDP 9 \
+--chrom-map ../GVCF/chrom_map
+
+#--exclude-bed ../../data/SNP_regions_with_top5_perc_SNPdensity_150bp_flanking.tab \
+
+plink --file $1 --indep-pairwise 100 10 0.8
+
+
+# 100 SNPs 10 step R 0.5
+
+plink --file $1 --extract plink.prune.in --make-bed --out $1.pruned
+
+for f in 1 2 3
+
+do
+
+
+sbatch ~/scripts/run_admixture ${1}.pruned ${f}
+
+done
+

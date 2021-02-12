@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Job name:
+#SBATCH --job-name=ANGSD_SNP
+#
+# Project:
+#SBATCH --account=nn9244k
+#
+# Wall clock limit:
+#SBATCH --time=05:00:00
+#
+# Processor and memory usage:
+#SBATCH --mem-per-cpu=5G
+#
+#SBATCH --ntasks-per-node=5
+
+#module load fastNGSadmix/190518-foss-2019a-R-3.6.0
+module purge
+
+module load angsd/0.931-GCC-8.2.0-2.31.1
+
+NGSadmix -likes GATK_DP5_no_dam2.beagle_pruned.gz -K 1 -P 5 -o K1_DP5_pruned -minMaf 0.05
+
+NGSadmix -likes GATK_DP5_no_dam2.beagle_pruned.gz -K 2 -P 5 -o K2_DP5_pruned -minMaf 0.05
+
+NGSadmix -likes GATK_DP5_no_dam2.beagle_pruned.gz -K 3 -P 5 -o K3_DP5_pruned -minMaf 0.05

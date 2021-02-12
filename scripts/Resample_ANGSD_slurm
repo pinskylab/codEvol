@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Job name:
+#SBATCH --job-name=ANGSD_SNP
+#
+# Project:
+#SBATCH --account=nn9244k
+#
+# Wall clock limit:
+#SBATCH --time=110:00:00
+#
+# Processor and memory usage:
+#SBATCH --mem-per-cpu=5G
+#
+#SBATCH--ntasks-per-node=2
+
+#if you need long time
+# --partition=long
+
+#If you need hugemem...
+
+# --partition=hugemem
+
+module purge
+module load angsd/0.931-GCC-8.2.0-2.31.1
+
+##HOME_DIR
+
+
+mkdir -p output
+mkdir -p analysis
+
+for i in {1..200}
+
+do 
+
+### Resample Pop 1
+
+##Shuf historic Canada
+shuf -n 21 Canada/total_canada.bamlist > Canada/${1}.hist.bam.list
+
+angsd -b Canada/${1}.hist.bam.list -anc /cluster/projects/nn9244k/databases/gadus_morhua/gadMor2/sep_mt_gen_nu_gen/gadMor2.nu.fasta \
+-out output/1_${1} \
+-dosaf 1 \
+-GL 1 \
+-P 2 \
+-minInd 3 -minQ 20 \
+-r ${1} \
+-sites sites_dir/${1}.sites.tab \
+
+#### Resample Pop 2
+
+shuf -n 24 Canada/total_canada.bamlist > Canada/${1}.modern.bam.list
+
+angsd -b Canada/${1}.modern.bam.list -anc /cluster/projects/nn9244k/databases/gadus_morhua/gadMor2/sep_mt_gen_nu_gen/gadMor2.nu.fasta \
+-out output/2_${1} \
+-dosaf 1 \
+-GL 1 \
+-P 2 \
+-minInd 3 -minQ 20 \
+-r ${1} \
+-sites sites_dir/${1}.sites.tab \
+
+
+### REALSFS
+realSFS output/1_${1}.saf.idx output/2_${1}.saf.idx -P 2 > output/1_2_${1}.ml
+
+### REALSFS index
+
+realSFS fst index output/1_${1}.saf.idx output/2_${1}.saf.idx -sfs output/1_2_${1}.ml -fstout output/1_2_${1}
+
+### REALSFS stats
+
+realSFS fst stats output/1_2_${1}.fst.idx
+
+### REAL_SFS windowed
+
+realSFS fst stats2 output/1_2_${1}.fst.idx -win 50000 -step 10000 -type 2 > analysis/${i}_Can_40_13_${1}.slide
+
+
+done

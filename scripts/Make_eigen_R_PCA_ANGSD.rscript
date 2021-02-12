@@ -1,0 +1,59 @@
+
+#Read in file
+
+#accept arguments
+args<-commandArgs(TRUE)
+
+#install package
+require(RColorBrewer)
+require(maps)
+require(spam)
+require(fields)
+#install.packages("fields", repos='http://cran.us.r-project.org', lib="~/R")
+
+#load library
+#library(RColorBrewer, lib.loc="~/R")
+
+#pdf(paste0(c(args[1]),c(".pdf")), width = 8, height = 2.5)
+
+#library(maps, lib.loc="~/R")
+#library(spam, lib.loc="~/R")
+
+#Load specific bin package
+#library(fields, lib.loc="~/R")
+
+#Setup plot
+#dummy vars
+
+
+C <- as.matrix(read.table(args[1]))
+
+
+
+#bams=read.table("bams_good")
+#population=
+#Note: the 12 is essential for the number of groups encountered in the data
+
+e <- eigen(C)
+
+e.var.per <- round(e$values/sum(e$values)*100, 2)
+
+e_df <- as.data.frame(e$vectors, row.names = NULL)
+
+write.table(e_df, file = paste0(c(args[1]),c(".tab")), sep = "\t", row.names = TRUE, col.names = NA)
+
+
+#plot(data$C1,data$C2,pch=19, cex=0.5, col=brewer.pal(9,"Paired")[data$Pop],xlab="PCA_1",ylab="PCA_2",axes=FALSE, main=c(args[1]))
+
+#axis(1,col.axis="black", cex=0.8, cex.axis=0.6)
+
+#axis(2,col.axis="black", las=1, cex=0.8, cex.axis=0.6)
+
+#legend('top', legend = unique(data$Pop), cex = 0.8, pch=19, col=brewer.pal(9, "Paired")[unique(data$Pop)], inset=0.05, bty = "n")
+
+
+#save file
+#dev.off()
+#quit
+q()
+
