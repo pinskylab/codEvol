@@ -61,7 +61,7 @@ color.bar <- function(cols, x, axis = TRUE, cex = 1, nticks=11,
 }
 
 #####################################################
-# Part of Fig. 1: allele frequency change heatmap
+# Part of Fig. 1 and S6: allele frequency change heatmap
 #####################################################
 colLof <- '#F26523' # matching Bastiaan
 colCan <- '#BEA512'
@@ -186,32 +186,73 @@ dat[CHROM %in% lgs[seq(2, length(lgs),by=2)], lgcol := cols[2]]
 
 ### set up plot
 adjlet <- -0.14 # horizontal adjustment for subplot letter
-cexlet <- 0.7
-linelet <- 0.2
+cexlet <- 1
+linelet <- 0.35
 cexsc <- 1/5
+xlims <- dat[, range(posgen, na.rm=TRUE)]
+ylims <- c(0,0.4)
 
 # quartz(height=8, width=6)
 png(height=3, width=6, units='in', res=300, file='figures/figure2.png')
-par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
+par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.25, 0.1))
 
-xlims <- dat[, range(posgen, na.rm=TRUE)]
 
-dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, 
+                       ylim = ylims, xlab = '', ylab = expression(F[ST]), bty = 'l', 
+                       cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'can' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0)) # plot x-axis
 mtext(side=3, 'A. Canada 1940-2013', adj=adjlet, line=linelet, cex=cexlet)
 
-legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.5)
+legend('topleft', legend = c(2, 5, 10, 100), pch = 1, pt.cex = log(c(2,5,10,100))*cexsc, title = '# of SNPs', bty = 'n', cex = 0.7)
 
-dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims,  xlab = '', ylab = expression(F[ST]), bty = 'l', cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
+dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, 
+                           ylim = ylims, xlab = '', ylab = expression(F[ST]), bty = 'l', 
+                           cex.lab = 1.5, xaxt = 'n', xaxs = 'i', tcl = -0.3)]
 dat[pop == 'lof0714' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
 mtext(side=3, 'B. Norway 1907-2014', adj=adjlet, line=linelet, cex=cexlet)
 
 dev.off()
 
+###################################################
+## Fig. S5: read balance at heterozygote genotypes
+## (check for reference bias)
+###################################################
+# read in
+can13 <- fread('analysis/allele_balance_popCan13.csv.gz', header= FALSE)
+can40 <- fread('analysis/allele_balance_popCan40.csv.gz', header= FALSE)
+lof07 <- fread('analysis/allele_balance_popLof07.csv.gz', header= FALSE)
+lof11 <- fread('analysis/allele_balance_popLof11.csv.gz', header= FALSE)
+lof14 <- fread('analysis/allele_balance_popLof14.csv.gz', header= FALSE)
+
+# plot
+linex <- 2
+cexx <- 0.6
+
+png(height=4, width=6.5, units='in', res=300, file='figures/figureS5.png')
+par(mfrow = c(2,3), las=1, mai=c(0.5, 0.7, 0.25, 0.1), mgp = c(4,0.8,0))
+
+hist(lof07$V1, main = 'Norway 1907')
+mtext('REF allele read proportion', 1, cex = cexx, line = linex)
+
+hist(lof11$V1, main = 'Norway 2011')
+mtext('REF allele read proportion', 1, cex = cexx, line = linex)
+
+hist(lof14$V1, main = 'Norway 2014')
+mtext('REF allele read proportion', 1, cex = cexx, line = linex)
+
+hist(can40$V1, main = 'Canada 1940')
+mtext('REF allele read proportion', 1, cex = cexx, line = linex)
+
+hist(can13$V1, main = 'Canada 2013')
+mtext('REF allele read proportion', 1, cex = cexx, line = linex)
+
+dev.off()
+
+
 ####################################################
-## Fig. S6 Manhattan plot FSTs 1907-2011 and 2011-2014
+## Fig. S7 Manhattan plot FSTs 1907-2011 and 2011-2014
 ####################################################
 
 # read in data: sliding window fst from ANGSD (GATK nodam2 sites)
@@ -262,7 +303,7 @@ linelet <- 0.2
 cexsc <- 1/5
 
 # quartz(height=8, width=6)
-png(height=3, width=6, units='in', res=300, file='figures/figureS6.png')
+png(height=3, width=6, units='in', res=300, file='figures/figureS7.png')
 par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.3, 0.1))
 
 xlims <- dat[, range(posgen, na.rm=TRUE)]
@@ -285,7 +326,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S7 Manhattan plot FST site-shuffle p-value
+## Fig. S8 Manhattan plot FST site-shuffle p-value
 ####################################################
 
 # read in data: sliding window fst and site-shuffle p-values from ANGSD (GATK nodam2 unlinked sites)
@@ -316,7 +357,7 @@ cexlet <- 0.8
 linelet <- 0.2
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS7.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS8.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 ymin <- min(c(dat[, min(p, na.rm=TRUE)], 0.05))
@@ -354,7 +395,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S8 Manhattan plot change in pi by region
+## Fig. S9 Manhattan plot change in pi by region
 ####################################################
 winsz = 5e4 # for scaling the windowed pi and thetaW values
 
@@ -391,7 +432,7 @@ cexlet <- 1
 linelet <- -0.5
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS8.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS9.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1), mgp = c(4, 1, 0))
 
 ylims <- dat[, range(tPd/winsz, na.rm=TRUE)]
@@ -423,7 +464,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S9 Manhattan plot change in D by region
+## Fig. S10 Manhattan plot change in D by region
 ####################################################
 
 # read in data: sliding window D from ANGSD (GATK nodam2 unlinked sites)
@@ -459,7 +500,7 @@ cexlet <- 1
 linelet <- -0.5
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS9.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS10.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1), mgp = c(4, 1, 0))
 
 ylims <- dat[, range(tDd, na.rm=TRUE)]
@@ -492,7 +533,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S10 Manhattan plot change in LD by region
+## Fig. S11 Manhattan plot change in LD by region
 ####################################################
 
 # read in data: sliding window D from ngsLD (GATK nodam2 sites)
@@ -523,7 +564,7 @@ cexlet <- 1
 linelet <- -0.5
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS10.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS11.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1), mgp = c(4, 1, 0))
 
 ylims <- datl[, range(ldchange, na.rm=TRUE)]
@@ -556,7 +597,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S11 Manhattan plot p-value for change in pi by region
+## Fig. S12 Manhattan plot p-value for change in pi by region
 ####################################################
 
 # read in data: sliding window pi from ANGSD (GATK nodam2 unlinked sites)
@@ -578,7 +619,7 @@ cexlet <- 0.8
 linelet <- 0.2
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS11.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS12.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 ylims <- c(1, dat[, min(c(tPd.p, 0.05), na.rm=TRUE)])
@@ -615,7 +656,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S12 Manhattan plot p-value for change in D by region
+## Fig. S13 Manhattan plot p-value for change in D by region
 ####################################################
 
 # read in data: sliding window pi from ANGSD (GATK nodam2 unlinked sites)
@@ -637,7 +678,7 @@ cexlet <- 0.8
 linelet <- 0.2
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS12.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS13.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 ylims <- c(1, dat[, min(c(tDd.p, 0.05), na.rm=TRUE)])
@@ -673,7 +714,7 @@ dev.off()
 
 
 ############################################################
-## Fig. S13 Power to detect selection from FST site-shuffle
+## Fig. S14 Power to detect selection from FST site-shuffle
 ############################################################
 require(ggplot2)
 
@@ -692,11 +733,11 @@ fs13 <- ggplot(dat[comb == 1, ], aes(s, fpl05, group = f, color = as.factor(f)))
         axis.line = element_line(colour = "black"),
         panel.spacing = unit(1, "lines")) +
   labs(y = 'Proportion that\ndetect outlier loci', color = "Initial frequency")
-ggsave(plot = fs13, filename = 'figures/figureS13.png', width = 7, height = 2, dpi = 300)
+ggsave(plot = fs13, filename = 'figures/figureS14.png', width = 7, height = 2, dpi = 300)
 
 
 #########################################
-# Fig. S14 Fst around putative outliers
+# Fig. S15 Fst around putative outliers
 #########################################
 library(data.table)
 ncol = 3 # number of columns in graph
@@ -772,7 +813,7 @@ nrow = ceiling(nrow(dat)/ncol)
 bty <- 'l'
 outlcol <- 'red'
 
-png(height= 9, width=6.5, units='in', res=300, file='figures/figureS14.png')
+png(height= 9, width=6.5, units='in', res=300, file='figures/figureS15.png')
 par(mfrow = c(nrow, ncol), mai = c(0.3, 0.3, 0.4, 0.1), omi = c(0.3, 0.3, 0, 0))
 for(i in 1:nrow(dat2)){
   if(dat2$comp[i] %in% c('can', 'Canada')){
@@ -830,7 +871,7 @@ dev.off()
 
 
 #########################################
-## Fig. S15 Manhattan plot FSTs by SNP
+## Fig. S16 Manhattan plot FSTs by SNP
 #########################################
 
 # WFS results, from wfs_nullmodel_analysis.r
@@ -885,7 +926,7 @@ ylims <- dat[, range(WEIR_AND_COCKERHAM_FST, na.rm=TRUE)]
 xlims <- dat[, range(POSgen, na.rm=TRUE)]
 
 
-png(height=3.5, width=6, units='in', res=300, file='figures/figureS15.png')
+png(height=3.5, width=6, units='in', res=300, file='figures/figureS16.png')
 par(mfrow = c(2,1), las=1, mai=c(0.3, 0.8, 0.1, 0.1))
 
 dat[pop == 'Can', plot(POSgen, WEIR_AND_COCKERHAM_FST, type='p', col=lgcol, xlim = xlims, xlab = '', 
@@ -909,7 +950,7 @@ dev.off()
 
 
 ####################################################
-## Fig. S16 Manhattan plot p-value for pcangsd
+## Fig. S17 Manhattan plot p-value for pcangsd
 ####################################################
 
 # read in data: outlier test from pcangsd (GATK nodam2 unlinked sites)
@@ -935,7 +976,7 @@ cexlet <- 0.8
 linelet <- 0.2
 cexsc <- 1/5
 
-png(height=5, width=6, units='in', res=300, file='figures/figureS16.png')
+png(height=5, width=6, units='in', res=300, file='figures/figureS17.png')
 par(mfrow = c(4,1), las=1, mai=c(0.3, 0.6, 0.2, 0.1))
 
 ylims <- c(0, dat[, max(c(-log10(pfdr), -log10(0.05)), na.rm=TRUE)])
@@ -971,7 +1012,7 @@ dev.off()
 
 
 ############################################################
-## Fig. S17 Power to detect selection from PCAngsd
+## Fig. S18 Power to detect selection from PCAngsd
 ############################################################
 require(ggplot2)
 
@@ -990,7 +1031,7 @@ fs14 <- ggplot(dat[comb == 1, ], aes(s, prop, group = f, color = as.factor(f))) 
         axis.line = element_line(colour = "black"),
         panel.spacing = unit(1, "lines")) +
   labs(y = 'Proportion that\ndetect outlier loci', color = "Initial frequency")
-ggsave(plot = fs14, filename = 'figures/figureS17.png', width = 7, height = 2, dpi = 300)
+ggsave(plot = fs14, filename = 'figures/figureS18.png', width = 7, height = 2, dpi = 300)
 
 
 
