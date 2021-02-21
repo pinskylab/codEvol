@@ -139,8 +139,8 @@ vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_
 1. `wfs_nullmodel_sbatch.sh`: Submits `wfs_nullmodel_function.r` to run for a set of loci in a population comparison with two time points.
 1. `wfs_nullmodel_sbatch_3times.sh`: Submits `wfs_nullmodel_function.r` to run for a set of loci in a population comparison with three time points.
 1. `wfs_nullmodel_makesbatchscript.r`: Creates batch scripts to submit all the `wfs_nullmodel_sbatch.sh` jobs for a particular temporal comparison. All of those scripts should then be run to calculate the per-locus p-values.
-1. `wfs_nullmodel_combine.r`: 
-1. `wfs_nullmodel_lowp_rerun.r`:
+1. `wfs_nullmodel_combine.r`: Run after wfs_nullmodel_function.r to combine the results together. Writes `analysis/wfs_nullmodel_pos&pvals_*.rds`.
+1. `wfs_nullmodel_lowp_rerun.r`: Script to make more null model simulations for loci with low p-values. Run after `wfs_nullmodel_combine.r`. Writes `analysis/wfs_nullmodel_pos&pvals_*.rds`.
 1. `wfs_nullmodel_analysis.r`: Examines the frequencies at which the null model produces results as extreme as our observations. Run after `wfs_nullmodel_function.r` and `wfs_nullmodel_combine.r`/`wfs_nullmodel_lowp_rerun.r`. Writes `analysis/wfs_nullmodel_padj.csv.gz`.
 1. `wfs_nullmodel_analysis_Canada,1907-2011&2014.r`: Not used. Messy code to examine the p-values.
 
@@ -184,7 +184,7 @@ vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_
 1. `outlierSNPs_in_outlierregions.csv`: A list of SNPs with FST>0.2 in outlier regions. Produced by `annotate_outliers.r`.
 
 # figures/
-The script-produced figures from the paper
+The script-produced figures from the paper, plus a handful of others that were useful along the way.
 
 # tables/
 1. `outlier_annotation.csv`: Annotated list of potential outlier SNPs and regions. Produced by `annotate_outliers.r`. Used by `figures_for_paper.r`
