@@ -75,7 +75,7 @@ zcat data_31_01_20/All_ind_beagle.GATK_ex_inv.gz | cut -f 1-3,133-204,205-270 | 
 # Trim to unlinked loci (only for GATK loci)
 ###########################################
 
-# make list of unlinked loci in correct format
+# make list of unlinked loci in correct format. Needs output from ngsLD_find_unlinked.r
 zcat analysis/ld.unlinked.Can.gatk.csv.gz | tail -n +2 | awk --field-separator ',' '{print $2"_"$3}' > tmp/Can.gatk.unlink.beagle.pos
 zcat analysis/ld.unlinked.Lof.gatk.csv.gz | tail -n +2 | awk --field-separator ',' '{print $2"_"$3}' > tmp/Lof.gatk.unlink.beagle.pos
 

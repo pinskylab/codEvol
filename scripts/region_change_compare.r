@@ -1,4 +1,4 @@
-# Compare freq change, LD change, Tajima's D change, pi change
+# Compare Fst, LD change, Tajima's D change, pi change across populations. Identify regions with substantial change in multiple populations.
 # set up for 50k windows
 
 require(data.table)

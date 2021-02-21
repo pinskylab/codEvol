@@ -1,5 +1,6 @@
 # average LD within windows and calculate change through time
 # for ngsLD output (ANGSD-called loci)
+# run after ngsLD_bypop.sh
 
 
 ######################
