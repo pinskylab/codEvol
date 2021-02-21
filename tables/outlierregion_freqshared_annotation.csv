@@ -1,3 +1,0 @@
-"CHROM","POS","region","Freq_07","Freq_11","Freq_14","Freq_Can40","Freq_CanMod","Codons (minor)","Codons (major)","Protein (minor)","Protein (major)","synonymous","Polarity (major)","Polarity (minor)","feature","start","end","strand","frame","ID","Names","Parent","WithinAnno","WithinGO","NearGene","NearAnno","NearGO"
-"LG08",12123192,"1","0.571429","0.833333","0.736842","0.300000","0.568182","","","","","","","","","","","","","","","","","","GAMO_00031882","Klf2: Krueppel-like factor 2 (Rattus norvegicus)","GO:0003676,GO:0046872"
-"LG08",12125678,"1","0.500000","0.333333","0.342105","0.733333","0.681818","","","","","","","","","","","","","","","","","","GAMO_00031882","Klf2: Krueppel-like factor 2 (Rattus norvegicus)","GO:0003676,GO:0046872"
