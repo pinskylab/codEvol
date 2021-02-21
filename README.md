@@ -6,11 +6,20 @@ Pinsky, ML, AM Eikeset, C Helmerson, IR Bradbury, P Bentzen, C Morris, A Gondek,
 
 These scripts contain hard links and specific environment settings. They would require adaptation to run elsewhere and on other data. The scripts were run on a Linux scientific workstation (cod) and two Linux clusters with SLURM job management (abel and saga) at the University of Oslo, plus on a MacBook Pro running R 3.*.
 
+# Basic directory structure
+- `analysis/`: Files output by scripts. Not track by Git.
+- `data/`: Input data. Does not include the DNA sequence reads, which are at [ENA](https://www.ebi.ac.uk/ena/browser/home) with project #PRJEB41431
+- `figures/`: Output figures
+- `output/`: Output files that are tracked by Git (as opposed to `analysis/`)
+- `scripts/`: Scripts to do analyses
+- `tables/`: Tables output by scripts.
+- `tmp/`: Temporary files output by scripts. Not tracked by git.
+
 # data/
 1. `kjesbu_fecundity/AFWG_Table3.11proportionmatureatage.csv`: Proportion of Northeast Arctic cod mature at each age. From Table 3.11 in [ICES AFWG Report 2016. ICES CM 2016/ACOM:06. Report of the Arctic Fisheries Working Group (AFWG).](http://www.ices.dk/sites/pub/Publication%20Reports/Expert%20Group%20Report/acom/2016/AFWG/01%20AFWG%20Report%202016.pdf)
 1. `kjesbu_fecundity/AFWG_Table3.16stocknumbersatage.csv`: Numbers at age from the stock assessment. Table 3.16 in ICES AFWG Report 2016.
 1. `kjesbu_fecundity/AFWG_Table3.6catchnumbersatage.csv`: Numbers at age from catch data. Table 3.16 in ICES AFWG Report 2016.
-1 `kjesbu_fecundity/Fekunditet Andenes 1986_2006 Excel_2.csv`: Fecundity data from a local fishing port in northern Norway covering a period of 20 years. Use Main_series == Y (Yes), Oto_Age, whole body weight (in g) in Fish_Weight, liver weight (in  g) in Fish_Liver, Oto_type == 3, 4 or 5 (meaning that we exclude Coastal cod type 1 and 2), fecundity (in mill.) in Fec_Mill. Mean oocyte diameter is in Ooc_Mean_Dia in micrometers; females with small oocytes tend to show a decrease in fecundity up to spawning due to atresia (reabsorption of developing oocytes).  
+1. `kjesbu_fecundity/Fekunditet Andenes 1986_2006 Excel_2.csv`: Fecundity data from a local fishing port in northern Norway covering a period of 20 years. Use Main_series == Y (Yes), Oto_Age, whole body weight (in g) in Fish_Weight, liver weight (in  g) in Fish_Liver, Oto_type == 3, 4 or 5 (meaning that we exclude Coastal cod type 1 and 2), fecundity (in mill.) in Fec_Mill. Mean oocyte diameter is in Ooc_Mean_Dia in micrometers; females with small oocytes tend to show a decrease in fecundity up to spawning due to atresia (reabsorption of developing oocytes).  
 1. `kjesbu_fecundity/Leverdata.csv`: Relative liver size, called the hepatosomatic index, from [Kjesbu et al. 2014 ICES Journal of Marine Science](https://doi.org/10.1093/icesjms/fsu030)
 1. `kjesbu_fecundity/Rollesfsen1953_Fig1.csv`: Female age distribution from Fig. 1 in [Rollefsen 1953 Observations on the cod and cod fisheries of Lofoten. Rapports et Proces-Verbaux des Reunions, Conseil lnternationale pour l'Exploration de la Mer 136: 40-47](http://hdl.handle.net/11250/101129)
 1. `phenotypes/AFWG_2019_3_Northeast Arctic_Cod_Table3.18.csv`: Average fishing mortality (F) for ages 5-10 on the Northeast Arctic stock, from the stock assessment. From Table 3.18 in [ICES AFWG Report 2019](http://ices.dk/sites/pub/Publication%20Reports/Expert%20Group%20Report/Fisheries%20Resources%20Steering%20Group/2019/AFWG/AFWG%202019_3_Northeast%20Arctic%20Cod.pdf)
@@ -57,9 +66,11 @@ These scripts contain hard links and specific environment settings. They would r
 1. `ngsLD_find_unlinked.r`: Identifies unlinked loci for use in downstream analyses. Run after `nsdLD_find_blocks.sh`. Writes `analysis/ld.unlinked.*.gatk.nodam.csv.gz`.
 
 ## Basic GATK analyses
-1. `ld_decay.r`: Not used in the end. Plot linkage disequilibrium decay using output from vcftools, e.g., 
-    vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --geno-r2 --ld-window-bp 5000 --keep data_2020.05.07/popLof07.txt --minGQ 15 --minDP 3 --not-chr LG01 --not-chr LG02 --not-chr LG07 --not-chr LG12 --not-chr Unplaced --chrom-map data_2019_03_18/chrom_map --out analysis/LOF_07
- 
+1. `ld_decay.r`: Not used. Plot linkage disequilibrium decay using output from vcftools, e.g., 
+```
+vcftools --gzvcf data_2020.05.07/Historic_dataset_no_clip.vcf.gz_HF_GQ_HWE_MISS_IND_Kmer_VAR_Binom_No_Dam2.vcf.gz --geno-r2 --ld-window-bp 5000 --keep data_2020.05.07/popLof07.txt --minGQ 15 --minDP 3 --not-chr LG01 --not-chr LG02 --not-chr LG07 --not-chr LG12 --not-chr Unplaced --chrom-map data_2019_03_18/chrom_map --out analysis/LOF_07
+```
+
 ## PCA and Admixture
 ### from ANGSD
 1. `PCAANGSD.sh`: Runs PCA from ANGSD. Requires beagle files, reference, positions file. Outputs PCA.
