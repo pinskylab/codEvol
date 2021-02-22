@@ -1,8 +1,12 @@
 # codEvol
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4554375.svg)](https://doi.org/10.5281/zenodo.4554375)
+
 Scripts, supporting data, and figures from analysis of Atlantic cod genome sequences through time (Northeast Arctic and Canada), as published in
 
 Pinsky, ML, AM Eikeset, C Helmerson, IR Bradbury, P Bentzen, C Morris, A Gondek, HT Baalsrud, MSO Brieuc, OS Kjesbu, JA Godiksen, JMI Barth, M Matschiner, NC Stenseth, KS Jakobsen, SJentoft, and B Star. Genomic stability through time despite decades of exploitation in cod on both sides of the Atlantic. *PNAS*.
+
+This repository has been archived on Zenodo. Cite as ML Pinsky & B Star. (2021, February 21). pinskylab/codEvol: Publication (Version v1.0). Zenodo. [https://doi.org/10.5281/zenodo.4554375](https://doi.org/10.5281/zenodo.4554375)
 
 These scripts contain hard links and specific environment settings. They would require adaptation to run elsewhere and on other data. The scripts were run on a Linux scientific workstation (cod) and two Linux clusters with SLURM job management (abel and saga) at the University of Oslo, plus on a MacBook Pro running R 3.*.
 
