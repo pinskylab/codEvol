@@ -193,7 +193,8 @@ xlims <- dat[, range(posgen, na.rm=TRUE)]
 ylims <- c(0,0.4)
 
 # quartz(height=8, width=6)
-png(height=3, width=6, units='in', res=300, file='figures/figure2.png')
+#png(height=3, width=6, units='in', res=300, file='figures/figure2.png')
+pdf(height=3, width=6, file='figures/figure2.pdf')
 par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.25, 0.1))
 
 
