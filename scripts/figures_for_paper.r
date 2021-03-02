@@ -193,9 +193,9 @@ xlims <- dat[, range(posgen, na.rm=TRUE)]
 ylims <- c(0,0.4)
 
 # quartz(height=8, width=6)
-#png(height=3, width=6, units='in', res=300, file='figures/figure2.png')
-pdf(height=3, width=6, file='figures/figure2.pdf')
-par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.25, 0.1))
+#png(height=3.3, width=6, units='in', res=300, file='figures/figure2.png')
+pdf(height=3.3, width=6, file='figures/figure2.pdf')
+par(mfrow = c(2,1), las=1, mai=c(0.3, 0.6, 0.25, 0.1), omi = c(0.3, 0, 0, 0))
 
 
 dat[pop == 'can', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgcol, xlim = xlims, 
@@ -213,6 +213,7 @@ dat[pop == 'lof0714', plot(posgen, fst, type='p', cex=log(nloci)*cexsc, col=lgco
 dat[pop == 'lof0714' & outl == 1, points(posgen, fst, col = colout, cex=log(nloci)*cexsc)]
 axis(side=1, at = chrmax$mid, labels = gsub('LG|LG0', '', chrmax$chr), tick = FALSE, cex.axis = 0.8, mgp = c(1, 0, 0))
 mtext(side=3, 'B. Norway 1907-2014', adj=adjlet, line=linelet, cex=cexlet)
+mtext(side=1, 'Linkage group', outer = TRUE)
 
 dev.off()
 
