@@ -36,6 +36,8 @@ These scripts contain hard links and specific environment settings. They would r
 
 
 # scripts/
+Some scripts make use of [BEAGLE Utilities](https://faculty.washington.edu/browning/beagle_utilities/utilities.html).
+
 ## Phenotypes
 1. `phenotypes.r`: Calculates the age at 50% mature in Canadian and Northeast Arctic populations. Needs data in `data/phenotypes/`. Writes `output/age_50percmature.csv`.
 
